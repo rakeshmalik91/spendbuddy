@@ -1,4 +1,7 @@
 [build]
-  command = "rm -rf data/ expenseiq-android-app/ utils/ .agents/ media/ tests/ scripts/"
-  publish = "."
+  publish = "webapp"
+  command = "rm -rf webapp/tests/ webapp/node_modules/"
+
+
+
 

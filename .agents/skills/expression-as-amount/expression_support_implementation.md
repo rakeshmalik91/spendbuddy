@@ -5,12 +5,12 @@ Implemented support for mathematical expressions in the amount field, allowing u
 
 ## Changes Made
 
-### 1. Frontend - Form Input (`index.html`)
+### 1. Frontend - Form Input (`webapp/index.html`)
 - **Changed amount input type** from `number` to `text` to accept expressions
 - **Updated placeholder** to show example: `e.g. 500 or 127+100+30`
 - **Updated hint** to mention expression support
 
-### 2. Expression Evaluation (`js/ui/form.js`)
+### 2. Expression Evaluation (`webapp/js/ui/form.js`)
 - **Added `evaluateExpression()` function** that:
   - Accepts expressions with `+` and `-` operators
   - Validates input to prevent code injection (only allows digits, +, -, ., and whitespace)
@@ -26,7 +26,7 @@ Implemented support for mathematical expressions in the amount field, allowing u
   - `amount`: calculated value (stored as number)
   - `amountExpression`: original expression string (empty if just a number)
 
-### 3. Data Storage (`js/services/storage.js`)
+### 3. Data Storage (`webapp/js/services/storage.js`)
 - **Updated CSV format** to include new column `Amount Expression`:
   - Regular transactions: `Date,Amount,Amount Expression,Currency,Category,...`
   - Scheduled transactions: `id,amount,amountExpression,currency,category,...`
@@ -39,26 +39,26 @@ Implemented support for mathematical expressions in the amount field, allowing u
 - **Updated background sync** to handle the new field
 
 ### 4. Display Logic
-#### Dashboard (`js/ui/dashboard.js`)
+#### Dashboard (`webapp/js/ui/dashboard.js`)
 - Updated transaction amount display to show:
   - **Main value**: Calculated amount in normal size
   - **Expression**: Original expression below in small gray text (only if expression exists)
 
-#### Transactions Page (`js/ui/transactions.js`)
+#### Transactions Page (`webapp/js/ui/transactions.js`)
 - Applied same display logic as dashboard
 
 ### 5. Editing Functionality
-#### Form Editing (`js/ui/form.js`)
+#### Form Editing (`webapp/js/ui/form.js`)
 - **`editEntry()`**: Updated to populate the input field with the original expression (if exists) instead of the calculated amount
 - This allows users to see and edit the original expression
 
-#### Scheduled Transactions (`js/utils/helpers.js`)
+#### Scheduled Transactions (`webapp/js/utils/helpers.js`)
 - **`editScheduledTransaction()`**: Updated to show expression when editing scheduled transactions
 
-#### Update Logic (`js/ui/form.js`)
+#### Update Logic (`webapp/js/ui/form.js`)
 - Modified scheduled transaction update to preserve `amountExpression` field
 
-#### Transaction Type Switching (`js/ui/form_dropdowns.js`)
+#### Transaction Type Switching (`webapp/js/ui/form_dropdowns.js`)
 - Modified transaction type chip listeners to dynamically invert full expressions (e.g., `100+200` becomes `-100-200`) when switching between Expense and Income. The script evaluates the expression and selectively flips all mathematical signs to enforce the required positive or negative total.
 
 ## Behavior

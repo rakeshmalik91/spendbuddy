@@ -3,10 +3,15 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "1/2 Running Frontend (Jest) Unit Tests..." -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
-npm test
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ Frontend (Jest) Unit Tests Failed!" -ForegroundColor Red
-    exit $LASTEXITCODE
+Push-Location webapp
+try {
+    npm test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`n❌ Frontend (Jest) Unit Tests Failed!" -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+} finally {
+    Pop-Location
 }
 
 Write-Host "`n==========================================" -ForegroundColor Cyan

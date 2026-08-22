@@ -27,7 +27,7 @@ AUTH_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPasswo
 BUCKET_API_URL = "https://firebasestorage.googleapis.com/v0/b/expense-manager-iq.firebasestorage.app/o"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, '..', 'data')
+DATA_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'data'))
 
 parser = argparse.ArgumentParser(description='Sync Firebase data locally.')
 parser.add_argument('-e', '--email', type=str, help='Email address to sync')
@@ -143,58 +143,59 @@ for email in EMAILS:
         response.raise_for_status()
         data = response.json()
         
-        # Filter for all CSV files under this prefix
-        files = [item['name'] for item in data.get('items', []) if item['name'].endswith('.csv')]
+        # Filter for all CSV and JSON files under this prefix
+        files = [item['name'] for item in data.get('items', []) if item['name'].endswith('.csv') or item['name'].endswith('.json')]
         
         if not files:
-            print(f"No CSV files found in the bucket for {email}.")
+            print(f"No CSV or JSON files found in the bucket for {email}.")
         else:
             # 4. Download each file
-                for file_name in files:
-                    # Strip the email folder prefix so it saves cleanly locally
-                    local_name = file_name.replace(f"{email}/", "")
-                    encoded_name = urllib.parse.quote(file_name, safe='')
-                    download_url = f"{BUCKET_API_URL}/{encoded_name}?alt=media"
-                    save_path = os.path.join(user_dir, local_name)
+            for file_name in files:
+                # Strip the email folder prefix so it saves cleanly locally
+                local_name = file_name.replace(f"{email}/", "")
+                encoded_name = urllib.parse.quote(file_name, safe='')
+                download_url = f"{BUCKET_API_URL}/{encoded_name}?alt=media"
+                save_path = os.path.join(user_dir, local_name)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                
+                try:
+                    dl_resp = session.get(download_url, headers=list_headers, timeout=15)
+                    dl_resp.raise_for_status()
+                    dl_resp.encoding = 'utf-8' # Force utf-8 decoding to prevent double-encoding
+                    content = dl_resp.text
                     
-                    try:
-                        dl_resp = session.get(download_url, headers=list_headers, timeout=15)
-                        dl_resp.raise_for_status()
-                        dl_resp.encoding = 'utf-8' # Force utf-8 decoding to prevent double-encoding
-                        content = dl_resp.text
-                        
-                        if content.startswith("ENC:"):
-                            if not HAS_CRYPTO:
-                                print("Encrypted data detected. Installing 'cryptography' package...")
-                                try:
-                                    import subprocess, sys
-                                    subprocess.check_call([sys.executable, "-m", "pip", "install", "cryptography", "-q"])
-                                    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC as _PBKDF2HMAC
-                                    from cryptography.hazmat.primitives import hashes as _hashes
-                                    from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
-                                    globals()['PBKDF2HMAC'] = _PBKDF2HMAC
-                                    globals()['hashes'] = _hashes
-                                    globals()['AESGCM'] = _AESGCM
-                                    HAS_CRYPTO = True
-                                    encryption_key = derive_key(password)
-                                except Exception as e:
-                                    print(f"Failed to install cryptography: {e}")
+                    if content.startswith("ENC:"):
+                        if not HAS_CRYPTO:
+                            print("Encrypted data detected. Installing 'cryptography' package...")
+                            try:
+                                import subprocess, sys
+                                subprocess.check_call([sys.executable, "-m", "pip", "install", "cryptography", "-q"])
+                                from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC as _PBKDF2HMAC
+                                from cryptography.hazmat.primitives import hashes as _hashes
+                                from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+                                globals()['PBKDF2HMAC'] = _PBKDF2HMAC
+                                globals()['hashes'] = _hashes
+                                globals()['AESGCM'] = _AESGCM
+                                HAS_CRYPTO = True
+                                encryption_key = derive_key(password)
+                            except Exception as e:
+                                print(f"Failed to install cryptography: {e}")
 
-                            if encryption_key:
-                                try:
-                                    content = decrypt_data(encryption_key, content)
-                                    print(f"Synced and decrypted: {local_name}")
-                                except Exception as err:
-                                    print(f"Failed to decrypt {local_name}: {err}")
-                            else:
-                                print(f"Synced (Encrypted format): {local_name}")
+                        if encryption_key:
+                            try:
+                                content = decrypt_data(encryption_key, content)
+                                print(f"Synced and decrypted: {local_name}")
+                            except Exception as err:
+                                print(f"Failed to decrypt {local_name}: {err}")
                         else:
-                            print(f"Synced: {local_name}")
-                            
-                        with open(save_path, 'w', encoding='utf-8', newline='') as out_file:
-                            out_file.write(content)
-                    except Exception as e:
-                        print(f"Error downloading {local_name}: {e}")
+                            print(f"Synced (Encrypted format): {local_name}")
+                    else:
+                        print(f"Synced: {local_name}")
+                        
+                    with open(save_path, 'w', encoding='utf-8', newline='') as out_file:
+                        out_file.write(content)
+                except Exception as e:
+                    print(f"Error downloading {local_name}: {e}")
     except Exception as e:
         print(f"Failed to fetch file list for {email}: {e}")
         

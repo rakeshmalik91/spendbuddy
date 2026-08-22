@@ -82,18 +82,6 @@ public class ExpenseExtractionTest {
     }
 
     private static File resolveTestDataFile(String relativePath) {
-        String[] candidates = new String[] {
-            "../../data/test-data/" + relativePath,
-            "../data/test-data/" + relativePath,
-            "data/test-data/" + relativePath,
-            relativePath
-        };
-        for (String path : candidates) {
-            File file = new File(path);
-            if (file.exists()) {
-                return file;
-            }
-        }
         return new File("../../data/test-data/" + relativePath);
     }
 

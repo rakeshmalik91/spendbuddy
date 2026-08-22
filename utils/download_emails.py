@@ -60,7 +60,8 @@ def download_emails():
         date_120_days_ago = (datetime.date.today() - datetime.timedelta(days=120)).strftime("%d-%b-%Y")
         print(f"Searching for emails since {date_120_days_ago} across all folders...")
         
-        log_path = r"..\expenseiq-android-app\app\src\test\data\email_log.txt"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        log_path = os.path.abspath(os.path.join(script_dir, "..", "expenseiq-android-app", "app", "src", "test", "data", "email_log.txt"))
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
         count = 0

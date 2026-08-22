@@ -91,7 +91,7 @@ Month headers and day separators on `#recent-table` similarly use `grid-template
 
 ## 3. Multi-Device Verification Matrix
 
-Any changes to table styles (`tables.css`, `responsive.css`) or row rendering JS (`transactions.js`, `dashboard.js`, `chart_builders.js`, `refund_helpers.js`) **MUST** be verified on:
+Any changes to table styles (`webapp/css/components/tables.css`, `webapp/css/layout/responsive.css`) or row rendering JS (`webapp/js/ui/transactions.js`, `webapp/js/ui/dashboard.js`, `webapp/js/ui/chart_builders.js`, `webapp/js/utils/refund_helpers.js`) **MUST** be verified on:
 
 1. **Desktop Browsers**:
    - Verify table column alignment, no horizontal scrollbars on standard displays, left-aligned badges, and proper `Mode` cell ellipsis.
@@ -119,4 +119,4 @@ Any changes to table styles (`tables.css`, `responsive.css`) or row rendering JS
      <td data-label="Mode"><span class="mode-cell">${escHtml(mode)}</span></td>
      ```
 2. **Cache Bursting Mandatory**:
-   - Whenever table CSS or JS is edited, increment the version parameters in `index.html` (`tables.css?v=N`, `responsive.css?v=N`, `app.js?v=N`).
+   - Whenever table CSS or JS is edited, increment the version parameters in `webapp/index.html` (`tables.css?v=N`, `responsive.css?v=N`, `app.js?v=N`).

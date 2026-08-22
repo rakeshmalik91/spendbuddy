@@ -18,7 +18,7 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
   ```
   605761060095|__TXN_ms8x6880vxej
   ```
-- Functions in [`txn_id_helpers.js`](file:///d:/Projects/expense-manager/js/utils/txn_id_helpers.js):
+- Functions in [`txn_id_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/txn_id_helpers.js):
   - `getTxnIdList(t)`: Returns array of trimmed IDs from `t.txnId` or `t.transactionId`.
   - `hasMatchingTxnId(t1, t2)`: Returns `true` if any ID in `t1` matches any ID in `t2`.
   - `isSystemTxnId(id)`: Returns `true` if ID starts with `__TXN_`, `__SCHEDULER_`, or `__QUICKADD_`.
@@ -107,10 +107,10 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
 ## 6. Testing & Maintenance Guidelines
 
 1. **Automated Unit Tests**:
-   - Always run `npm test` after modifying refund logic to verify `tests/refund_linking.test.js`.
+   - Always run `npm test` after modifying refund logic to verify `webapp/tests/refund_linking.test.js`.
 2. **Multi-Device Verification**:
    - **Desktop**: Verify clicking badge toggle expands sub-row smoothly and rotates arrow `▼`.
    - **Mobile / Android**: Verify collapsible sub-row is hidden (`hide-on-mobile`) and mobile cards render clean right-aligned badges.
    - **Modal**: Verify searching, checking/unchecking candidates, live summary calculation, and multi-year CSV saving.
 3. **Cache Bursting**:
-   - Increment CSS/JS version parameters in `index.html` whenever updating refund modal or table sub-row styles.
+   - Increment CSS/JS version parameters in `webapp/index.html` whenever updating refund modal or table sub-row styles.

@@ -2,7 +2,7 @@
 
 A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and JavaScript, powered by a **Serverless Firebase Architecture**. Track expenses, visualize spending patterns with interactive analytics, manage recurring transactions, link refunds, track account balances, and securely sync your data across devices with client-side encryption.
 
-![Dashboard](https://img.shields.io/badge/Status-Active-34d399?style=flat-square) ![License](https://img.shields.io/badge/License-MIT-638aff?style=flat-square) ![Hosting](https://img.shields.io/badge/Hosting-Netlify-00C7B7?style=flat-square) ![Database](https://img.shields.io/badge/Storage-Firebase-FFCA28?style=flat-square)
+![Hosting](https://img.shields.io/badge/Hosting-Netlify-00C7B7?style=flat-square) ![Database](https://img.shields.io/badge/Storage-Firebase-FFCA28?style=flat-square)
 
 🌐 **Live:** [https://expense-manager-iq.netlify.app/](https://expense-manager-iq.netlify.app/)
 
@@ -12,37 +12,24 @@ A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and J
 
 ## ✨ Features
 
-- **Serverless Cloud Sync & ETag Caching** — Reads and writes raw CSV data (`data.csv`, `balance.csv`, `metadata.csv`, `scheduled_transaction.csv`, `user_settings.json`) directly to Google Firebase Storage with offline ETag caching and background sync.
-- **Client-Side End-to-End Encryption** — Uses the Web Crypto API (AES-GCM) to physically encrypt your data with your master passcode. The app cannot boot without the passcode when E2EE is enabled.
-- **Dashboard & Timeline Granularity** — Real-time summary cards (Income, Expense, Net Balance, Transaction count), timeline filters (All, Year, Month, Week, Day), monthly expense trend charts, category donuts, and quick recent transaction lists.
-- **Transactions Management** — Full-featured interactive transaction ledger with multi-column sorting, text search, and multi-criteria filters (time range, category, payment mode, transaction type, tag, location).
-- **Refund Tracking & Linking** — Parent-child transaction relationship linking. Refunds automatically attach to their original expense transactions with collapsible sub-rows and net expense calculations.
-- **Account Balance Tracker** — Comprehensive account balance ledger tracking opening and closing balances, daily reconciliations, and historical balance trajectory charts.
-- **Scheduled & Recurring Transactions** — Create and manage recurring income/expense schedules (daily, weekly, monthly, yearly) with automatic calculation of next due dates.
-- **Smart Tagging & Location Analytics** — Support for custom `#tags` and geographic location logging per transaction, with dedicated spending analytics breakdowns.
-- **Math Expressions in Amount Inputs** — Evaluates live arithmetic expressions directly inside the amount field (e.g., `1200 + 450 * 2`).
-- **Batch Update** — Bulk modify categories, payment modes, transaction types, dates, tags, and locations across multiple transactions simultaneously.
-- **SMS & Email Inbox Automation** — Companion Android app parses bank SMS alerts and emails using ML Kit entity extraction and regex, offering an approval inbox flow for 1-click recording.
-- **12+ Interactive Charts & Visualizations** — Deep spending analytics with Chart.js, customizable granularity, and cumulative / chart type toggling.
-- **Dark Glassmorphism UI & Touch Navigation** — Responsive design tailored for desktop, mobile browsers, tablets (split-screen/iPad), and native Android WebViews with smooth swipe gesture navigation.
+- **End-to-End Encryption (E2EE)** — Client-side AES-GCM encryption with zero plaintext cloud exposure.
+- **Serverless Cloud Sync** — Offline-first IndexedDB caching with automatic background sync to Firebase Storage CSVs.
+- **Transaction Ledger & Search** — Search and filter by category, payment mode, tags, and geolocation with multi-column sorting.
+- **Refund Linking** — Automatically groups refunds with original expenses and calculates net totals with collapsible sub-rows.
+- **Balance & Net Worth Tracker** — Historical pivot table, account grouping, and stacked asset/liability trajectory charts.
+- **Scheduled Transactions** — Manage recurring income and expenses with automated execution.
+- **SMS & Email Inbox Automation** — Companion Android app extracts bank alerts via ML Kit NLP for 1-click recording.
+- **Math Expressions in Amount Inputs** — Evaluates live arithmetic calculations directly in the amount field (`127+100+30`).
+- **Interactive Visualizations** — 12+ Chart.js visual analytics with time-series trends and custom breakdowns.
+- **Multi-Device Responsive UI** — Dark glassmorphic design optimized for desktop, tablets, mobile browsers, and Android WebViews.
 
 ---
 
 ## 📸 Screenshots
 
-### Desktop Views
 <p align="center">
-  <img src="media/desktop-ss1.jpg" width="49%" />
-  <img src="media/desktop-ss2.jpg" width="49%" />
-</p>
-
-### Mobile App Views
-<p align="center">
-  <img src="media/ss1.jpg" width="19%" />
-  <img src="media/ss2.jpg" width="19%" />
-  <img src="media/ss3.jpg" width="19%" />
-  <img src="media/ss4.jpg" width="19%" />
-  <img src="media/ss5.jpg" width="19%" />
+  <img src="media/desktop-ss1.jpg" width="67%" valign="middle" alt="Desktop Dashboard" />&nbsp;&nbsp;
+  <img src="media/ss1.jpg" width="28%" valign="middle" alt="Mobile App" />
 </p>
 
 ---
@@ -74,25 +61,25 @@ If you are the repository owner or have the secret key:
 > [!NOTE]
 > Public contributors can run and develop the app without `git-crypt` by running in local demo mode or connecting to their own Firebase instance.
 
-### 3. Configure Firebase Keys
-You must encrypt your Firebase keys before the app will run:
-1. Open `utils/encrypt_config.html` in your browser.
-2. Paste your raw Firebase JSON configuration and your chosen passcode.
-3. Click **Encrypt** and save the resulting file directly over `config.js`.
+### 3. Configure Firebase (Optional)
+By default, the application connects to the project's Firebase instance defined in `webapp/config.js`. If you wish to use your own Firebase backend:
+1. Open `webapp/config.js`.
+2. Update `FIREBASE_CONFIG` with your Firebase project credentials (`apiKey`, `authDomain`, `projectId`, `storageBucket`, etc.).
 
 ### 4. Start Local Server
 The app must be served over HTTP due to CORS and ES Modules.
 ```bash
-npx -y http-server -p 8080 -c-1
+npm run dev
+# or: npx -y http-server webapp -p 8080 -c-1
 ```
 Open `http://localhost:8080` in your browser.
 
 ### 5. Adding a New Domain (CORS / Auth)
 If you are accessing the app from a different device on your network (e.g., `http://192.168.x.x:8080`), you need to whitelist the domain in Firebase:
-1. **Update CORS Configuration**: Open `cors.json` and add your domain to the `origin` array.
+1. **Update CORS Configuration**: Open `webapp/cors.json` and add your domain to the `origin` array.
 2. **Apply Storage Rules**: Run the following command to deploy the updated CORS rules to your Firebase Storage bucket:
    ```bash
-   gsutil cors set cors.json gs://<your-bucket-url>
+   gsutil cors set webapp/cors.json gs://<your-bucket-url>
    ```
 3. **Update Firebase Authentication**: Go to the **Firebase Console** > **Authentication** > **Settings** > **Authorized domains** and add your IP address or domain.
 
@@ -110,8 +97,9 @@ Or on Windows PowerShell:
 #### Run Web Frontend Tests Individually
 The web frontend includes a comprehensive Jest unit test suite covering state, storage, encryption, UI builders, helpers, and expressions:
 ```bash
-npm install
 npm test
+# or from webapp directory:
+cd webapp && npm test
 ```
 
 #### Run Android Companion App Tests Individually
@@ -132,27 +120,29 @@ Test reports are generated in `expenseiq-android-app/app/build/reports/tests/tes
 
 ```
 expense-manager/
-├── index.html             # Single-page application markup & modals
-├── app.js                 # Frontend application bootstrap entry
-├── config.js              # Encrypted Firebase credentials configuration
-├── cors.json              # Firebase Storage CORS configuration rules
-├── firebase-rules         # Firebase Storage security rules
-├── privacy-policy.html    # Privacy policy for Google Play listing
-├── css/                   # Modular CSS architecture
-│   ├── base/              # Global CSS tokens, reset, typography
-│   ├── components/        # Buttons, cards, filters, forms, modals, tables, toasts
-│   ├── layout/            # App shell, header, sidebar navigation, responsive grids
-│   └── views/             # View-specific styles (e.g., settings, balance)
-├── js/                    # Modular ES6 JavaScript architecture
-│   ├── core/              # Initialization, reactive state management
-│   ├── services/          # Firebase Auth/Storage, ETag caching, Encryption, Gmail API
-│   ├── ui/                # UI controllers (Dashboard, Transactions, Charts, Balance, Modals, Forms)
-│   └── utils/             # Helper utilities, math expressions, swipe navigation, crypto
-├── tests/                 # Jest unit test suite (18+ test suites)
+├── webapp/                # Web application frontend (modular single-page app)
+│   ├── index.html         # Single-page application markup & modals
+│   ├── app.js             # Frontend application bootstrap entry
+│   ├── config.js          # Firebase configuration & app settings
+│   ├── cors.json          # Firebase Storage CORS configuration rules
+│   ├── firebase-rules     # Firebase Storage security rules
+│   ├── privacy-policy.html# Privacy policy for Google Play listing
+│   ├── css/               # Modular CSS architecture (base, components, layout, views)
+│   ├── js/                # Modular ES6 JavaScript architecture (core, services, ui, utils)
+│   ├── tests/             # Jest unit test suite (18+ test suites)
+│   ├── package.json       # Web application package definition & Jest dependencies
+│   └── package-lock.json  # Web application locked dependency tree
+├── expenseiq-android-app/ # Android companion app (Kotlin, ML Kit entity extraction, SMS processing)
+├── data/                  # Shared data folder: synced user CSV data (git-crypt) & test-data
+├── media/                 # Screenshots, icons, and graphic assets
+├── utils/                 # Development and helper tools (sync.py, download_emails.py)
 ├── scripts/               # Automation scripts (e.g., run_all_tests.js)
-├── utils/                 # Development and helper tools (sync.py, download_emails.py, encrypt_config.html)
-├── expenseiq-android-app/ # Android companion app with SMS processing & ML Kit
-└── media/                 # Screenshots, icons, and graphic assets
+├── netlify.toml           # Netlify build & deployment configuration
+├── run_all_tests.ps1      # PowerShell test runner for both Web and Android
+├── run.bat                # Quick-launch local web dev server
+├── sync.bat               # Automated local Firebase CSV synchronization
+├── package.json           # Root workspace scripts & orchestration
+└── README.md
 ```
 
 ---

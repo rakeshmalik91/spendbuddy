@@ -1,0 +1,17 @@
+{
+  "name": "expenseiq-webapp",
+  "version": "1.0.0",
+  "description": "ExpenseIQ Web Application frontend",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "babel-jest": "^30.4.1",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
+  }
+}

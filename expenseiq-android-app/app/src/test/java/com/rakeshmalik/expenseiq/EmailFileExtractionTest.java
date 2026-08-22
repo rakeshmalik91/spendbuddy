@@ -83,34 +83,11 @@ public class EmailFileExtractionTest {
     }
 
     private static File resolveTestDataFile(String relativePath) {
-        String[] candidates = new String[] {
-            "../../data/test-data/" + relativePath,
-            "../data/test-data/" + relativePath,
-            "data/test-data/" + relativePath,
-            relativePath
-        };
-        for (String path : candidates) {
-            File file = new File(path);
-            if (file.exists()) {
-                return file;
-            }
-        }
         return new File("../../data/test-data/" + relativePath);
     }
 
     private static File resolveFile(String filePath) {
-        File file = new File(filePath);
-        if (file.exists()) {
-            return file;
-        }
-        String[] prefixes = new String[] { "../../", "../", "" };
-        for (String prefix : prefixes) {
-            File candidate = new File(prefix + filePath);
-            if (candidate.exists()) {
-                return candidate;
-            }
-        }
-        return file;
+        return new File("../../" + filePath);
     }
 
     /**

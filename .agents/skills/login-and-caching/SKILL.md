@@ -32,8 +32,8 @@ flowchart TD
 
 ## 1. App Boot & Optimistic Loading (`startAuthFlow`)
 
-When the application loads, `startAuthFlow()` in `js/core/init.js` is triggered.
-- If `USE_LOCAL_DATA` is enabled in `config.js`, Firebase is skipped completely and the app boots directly.
+When the application loads, `startAuthFlow()` in `webapp/js/core/init.js` is triggered.
+- If `USE_LOCAL_DATA` is enabled in `webapp/config.js`, Firebase is skipped completely and the app boots directly.
 - Otherwise, it initializes Firebase Auth and Storage.
 - **Optimistic UI:** Before waiting for Firebase Auth to initialize (which requires a network round-trip), the app checks `localStorage` for the `expman_is_logged_in` flag. 
 - If `true`, it immediately hides the login screen and proceeds to the decryption flow, providing an instant visual transition.
