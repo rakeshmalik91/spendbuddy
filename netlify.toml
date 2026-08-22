@@ -1,0 +1,5 @@
+[build]
+  publish = "webapp"
+  command = "rm -rf webapp/tests/ webapp/node_modules/"
+  # Disable automatic deploys on git commit (Netlify deployments are triggered via GitHub Actions workflow)
+  ignore = "exit 0"

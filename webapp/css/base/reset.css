@@ -1,0 +1,112 @@
+/* ═══════════════════════════════════════════════════════════
+   SpendBuddy — Dark Glassmorphism Design System
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Reset & Tokens ── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Surfaces */
+    --bg-body: #0b0e14;
+    --bg-sidebar: rgba(14, 18, 27, 0.92);
+    --bg-card: rgba(22, 27, 40, 0.72);
+    --bg-card-hover: rgba(30, 37, 55, 0.82);
+    --bg-input: rgba(15, 19, 30, 0.85);
+    --border: rgba(255, 255, 255, 0.12);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-focus: rgba(99, 138, 255, 0.5);
+
+    /* Accent Palette */
+    --accent: #638aff;
+    --accent-dim: rgba(99, 138, 255, 0.15);
+    --green: #34d399;
+    --green-dim: rgba(52, 211, 153, 0.12);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.12);
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+
+    /* Text */
+    --text-main: #e8ecf4;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8b95a8;
+    --text-muted: #5a6478;
+
+    /* Layout */
+    --sidebar-w-expanded: 260px;
+    --sidebar-w-collapsed: 68px;
+    --sidebar-w: var(--sidebar-w-expanded);
+    --radius: 20px;
+    --radius-sm: 14px;
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Fonts */
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body.sidebar-collapsed {
+    --sidebar-w: var(--sidebar-w-collapsed);
+}
+
+html {
+    font-size: 15px;
+    scroll-behavior: smooth;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+/* Disable double-tap zoom for touch devices while preserving single-finger pan/scroll */
+html,
+body,
+button,
+a,
+input,
+select,
+textarea,
+.touchable-row,
+.row-btn,
+.data-table,
+.card,
+.btn {
+    touch-action: manipulation;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg-body);
+    color: var(--text-primary);
+    height: 100%;
+    display: flex;
+    overflow-x: hidden;
+    /* Stop native scroll to lock viewport */
+}
+
+/* Animated mesh background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    z-index: -1;
+    background:
+        radial-gradient(ellipse 800px 600px at 10% 20%, rgba(99, 138, 255, 0.15), transparent 70%),
+        radial-gradient(ellipse 600px 500px at 85% 80%, rgba(244, 114, 182, 0.15), transparent 70%),
+        radial-gradient(ellipse 500px 400px at 50% 50%, rgba(34, 211, 238, 0.12), transparent 70%);
+}
+
+@media (max-width: 860px) {
+    body::before {
+        display: none;
+    }
+}

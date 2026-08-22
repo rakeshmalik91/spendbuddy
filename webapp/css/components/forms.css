@@ -1,0 +1,737 @@
+/* ══════════════ FORM ══════════════ */
+.form-card {
+    max-width: 100%;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    scroll-margin-top: 130px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.req {
+    color: var(--red);
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font: 400 0.92rem var(--font);
+    transition: border var(--transition), box-shadow var(--transition);
+    outline: none;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(99, 138, 255, 0.12);
+}
+
+select {
+    cursor: pointer;
+}
+
+select option {
+    background: #161b28;
+    color: var(--text-primary);
+}
+
+
+/* color-scheme for date picker */
+input[type="date"] {
+    color-scheme: dark;
+}
+
+/* Remove spin buttons from number inputs */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Container locking during form submission to prevent race conditions */
+.form-submitting, .suggestions-disabled {
+    pointer-events: none !important;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    grid-column: 1 / -1;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border);
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #fff;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked+.toggle-slider {
+    background-color: var(--accent);
+}
+
+input:checked+.toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Creative Frequency Selector Grid */
+.frequency-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+}
+
+.frequency-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    text-align: center;
+    user-select: none;
+    gap: 4px;
+}
+
+.frequency-chip .chip-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.frequency-chip:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-main);
+    border-color: var(--border);
+    transform: translateY(-1px);
+}
+
+.frequency-chip.active {
+    background: rgba(99, 138, 255, 0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(99, 138, 255, 0.15);
+}
+
+.weekday-buttons { display: flex; gap: 4px; justify-content: space-between; margin-top: 5px; }
+.weekday-btn { flex: 1; padding: 12px 0; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-weight: 500; }
+.weekday-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--text-primary); }
+.weekday-btn.selected { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; box-shadow: 0 0 10px rgba(99, 138, 255, 0.2); }
+
+/* Transaction Type Colors */
+.chip.txntype-expense {
+    color: var(--red);
+}
+.chip.txntype-expense.active {
+    background: var(--red-dim);
+    border-color: var(--red);
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.15);
+}
+
+.chip.txntype-income {
+    color: var(--cyan);
+}
+.chip.txntype-income.active {
+    background: rgba(34, 211, 238, 0.12);
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.15);
+}
+
+.chip.txntype-refund {
+    color: var(--green);
+}
+.chip.txntype-refund.active {
+    background: var(--green-dim);
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.15);
+}
+
+.chip.txntype-investment {
+    color: var(--purple);
+}
+.chip.txntype-investment.active {
+    background: rgba(167, 139, 250, 0.12);
+    border-color: var(--purple);
+    box-shadow: 0 0 10px rgba(167, 139, 250, 0.15);
+}
+
+.chip.txntype-transfer {
+    color: var(--text-muted);
+}
+.chip.txntype-transfer.active {
+    background: rgba(90, 100, 120, 0.18);
+    border-color: var(--text-muted);
+    box-shadow: 0 0 10px rgba(90, 100, 120, 0.15);
+}
+
+.chip-text-short {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    #txntype-chips .chip-text-full { display: none; }
+    #txntype-chips .chip-text-short { display: inline; }
+    
+    #txntype-chips .chip.active .chip-text-full { display: inline; }
+    #txntype-chips .chip.active .chip-text-short { display: none; }
+}
+/* Balance Form Desktop Row */
+.balance-form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+.balance-suggestions-span {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+@media (min-width: 800px) {
+    .balance-form-row {
+        grid-template-columns: 1fr 1.5fr 1.5fr 1fr auto;
+        align-items: start;
+    }
+    .balance-form-row button[type="submit"] {
+        margin-top: 24px !important;
+        height: 42px;
+    }
+    .balance-suggestions-span {
+        grid-column: 2 / 4;
+        margin-top: -8px;
+    }
+}
+
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: #0f131e; /* Fully opaque solid background to hide text underneath */
+    /* Removed backdrop-filter to guarantee solid appearance */
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+}
+.autocomplete-dropdown.show {
+    display: flex;
+}
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    transition: background 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+.autocomplete-item:hover, .autocomplete-item.active {
+    background: var(--bg-card-hover, #1e2537);
+}
+
+/* ══════════════ INTERACTIVE CHIPS & SUGGESTIONS ══════════════ */
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+@media (hover: hover) {
+    .chip:hover {
+        background: var(--border);
+    }
+}
+
+.chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Note Suggestion Chips */
+.note-suggestions {
+    margin-top: 4px;
+    gap: 6px;
+}
+
+.note-suggestions:empty {
+    display: none;
+}
+
+.note-chip {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    border-radius: 16px;
+    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.2);
+    color: var(--text-secondary);
+}
+
+@media (hover: hover) {
+    .note-chip:hover {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--green);
+        border-color: rgba(52, 211, 153, 0.4);
+    }
+}
+
+.note-chip.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+}
+
+.date-quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.date-quick-actions .chip {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+/* Category Chip Emoji Compact */
+.chip.chip-emoji-only {
+    padding: 6px 10px;
+}
+
+.chip.chip-emoji-only .chip-label {
+    display: none;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
+@media (hover: hover) {
+    .chip.chip-emoji-only:hover .chip-label {
+        display: inline;
+    }
+}
+
+.chip.chip-emoji-only.active .chip-label {
+    display: inline;
+}
+
+.chip-emoji {
+    font-size: 1.05em;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* ══════════════ CUSTOM CALENDAR ══════════════ */
+.calendar-widget {
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.cal-nav {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.cal-nav:hover {
+    background: var(--border);
+}
+
+.cal-title {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+}
+
+.cal-day-header {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.cal-day {
+    padding: 6px 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.cal-day:hover {
+    background: var(--border);
+}
+
+.cal-day.empty {
+    cursor: default;
+    background: none;
+}
+
+.cal-day.active {
+    background: var(--accent);
+    color: white;
+    font-weight: bold;
+}
+
+.cal-day.today {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.cal-day.today.active {
+    color: white;
+}
+
+
+/* SpendBuddy page loading states */
+.page-loading-state {
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px 20px;
+    color: var(--text-muted, var(--text-dim));
+    text-align: center;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(128, 145, 180, 0.22);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spendbuddy-spin .8s linear infinite;
+}
+@keyframes spendbuddy-spin { to { transform: rotate(360deg); } }
+
+.split-bill-group-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(99, 132, 255, .12);
+    border: 1px solid rgba(99, 132, 255, .28);
+    color: var(--accent);
+}
+
+/* Prevent intrinsic input widths from forcing the balance form columns to overlap. */
+.balance-form-row,
+.balance-form-row .form-group {
+    min-width: 0;
+    width: 100%;
+}
+.balance-form-row input,
+.balance-form-row select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+@media (min-width: 800px) {
+    .balance-form-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1.35fr) minmax(0, .9fr) minmax(120px, auto);
+        column-gap: 14px;
+        row-gap: 14px;
+    }
+    .balance-form-row button[type="submit"] {
+        min-width: 120px;
+        max-width: 100%;
+        white-space: nowrap;
+    }
+}
+@media (min-width: 800px) and (max-width: 1150px) {
+    .balance-form-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .balance-form-row button[type="submit"] {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}
+
+/* Additional transaction fields: compact disclosure on mobile, unchanged desktop flow. */
+.form-extra-options {
+    min-width: 0;
+}
+.form-extra-options > summary {
+    display: none;
+}
+.form-extra-options-content {
+    display: contents;
+}
+
+/* Keep chip rows usable on narrow screens without wrapping into tall stacks. */
+@media (max-width: 1024px) {
+    .form-extra-options {
+        display: block;
+        grid-column: 1 / -1 !important;
+        justify-self: stretch;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md, 12px);
+        background: var(--bg-card, transparent);
+        padding: 0 12px;
+        min-width: 0;
+    }
+    .form-extra-options > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 44px;
+        cursor: pointer;
+        list-style: none;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        font-weight: 700;
+        user-select: none;
+    }
+    .form-extra-options > summary::-webkit-details-marker { display: none; }
+    .form-extra-options > summary::after {
+        content: '＋';
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+    .form-extra-options[open] > summary::after { content: '−'; }
+    .extra-options-hint {
+        margin-left: auto;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 500;
+    }
+    .form-extra-options-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 4px 0 12px;
+    }
+    .form-extra-options:not([open]) .form-extra-options-content { display: none; }
+
+    #expense-form .chip-scroll-shell {
+        position: relative;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding-bottom: 10px;
+        box-sizing: border-box;
+    }
+    #expense-form .chip-group {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 2px 1px 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        overscroll-behavior-x: contain;
+    }
+    #expense-form .chip-group::-webkit-scrollbar { display: none; }
+    #expense-form .chip-scrollbar {
+        display: none;
+        position: absolute;
+        left: 1px;
+        right: 1px;
+        bottom: 2px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--border-subtle);
+        pointer-events: none;
+        overflow: hidden;
+    }
+    #expense-form .chip-scrollbar-thumb {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        min-width: 18px;
+        border-radius: inherit;
+        background: var(--text-muted);
+        opacity: .9;
+        will-change: transform, width;
+    }
+    #expense-form .chip-scrollbar.visible { display: block; }
+    #expense-form .chip-group > .chip {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}
+
+
+/* Auto Tagging quick toggle on the Add Transaction form */
+.form-auto-tag-tool {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: var(--bg-card);
+}
+.form-auto-tag-tool[hidden] { display: none !important; }
+.form-auto-tag-label { color: var(--text-primary); font-weight: 650; }
+.form-auto-tag-name {
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    flex: 1;
+}
+.form-auto-tag-toggle {
+    min-width: 58px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    background: var(--bg-card-hover);
+    font-weight: 700;
+    cursor: pointer;
+}
+.form-auto-tag-toggle.active {
+    color: white;
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+
+/* Desktop: the advanced transaction fields are always visible; only compact
+   layouts use the collapsible disclosure controlled by the form script. */
+@media (min-width: 1025px) {
+    #form-extra-options {
+        display: block;
+        grid-column: 1 / -1;
+    }
+    #form-extra-options > summary {
+        display: none !important;
+    }
+    #form-extra-options > .form-extra-options-content {
+        display: contents !important;
+    }
+}

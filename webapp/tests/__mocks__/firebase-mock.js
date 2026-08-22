@@ -1,0 +1,20 @@
+module.exports = {
+  initializeApp: () => {},
+  getStorage: () => {},
+  ref: (storage, path) => ({ fullPath: path || '', name: path ? path.split('/').pop() : '' }),
+  getDownloadURL: () => Promise.resolve(''),
+  listAll: () => Promise.resolve({ items: [] }),
+  getBytes: () => Promise.resolve(new Uint8Array()),
+  getMetadata: () => Promise.resolve({}),
+  uploadString: () => Promise.resolve(),
+  getAuth: () => {},
+  onAuthStateChanged: () => {},
+  signInWithEmailAndPassword: () => {},
+  createUserWithEmailAndPassword: () => {},
+  signOut: () => {},
+  deleteUser: () => {},
+  sendPasswordResetEmail: () => {},
+  verifyPasswordResetCode: () => {},
+  confirmPasswordReset: () => {},
+  sendEmailVerification: () => {}
+};

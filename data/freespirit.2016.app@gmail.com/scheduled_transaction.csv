@@ -1,0 +1,2 @@
+ID,Disabled,Amount,Amount Expression,Currency,Category,Transaction Mode,Note,Frequency,Recur Month,Recur Day,Recur Weekday,Start Date,Last Run Date,Next Run Date,End Condition,End Date,Max Occurrences,Run Count,Transaction Type,Location
+1783823211312,false,10000.00,,INR,🍜 Food,📱 UPI,,monthly,1,1,3,2026-07-01,2026-08-01,2026-09-01,enabled,2027-04-01,10,2,Expense,Gurugram

@@ -1,0 +1,9 @@
+# git-crypt configuration
+# Encrypt all user CSV and data files
+data/** filter=git-crypt diff=git-crypt
+
+# Public test account data (unencrypted for demo & testing)
+data/freespirit.2016.app@gmail.com/** !filter !diff
+
+# Encrypt sync scripts that contain credentials
+sync.bat filter=git-crypt diff=git-crypt

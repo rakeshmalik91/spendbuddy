@@ -1,0 +1,31 @@
+
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'webapp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy webapp to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPENSE_MANAGER_IQ }}
+          projectId: expense-manager-iq
+          entryPoint: .
+          channelId: live

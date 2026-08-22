@@ -1,0 +1,520 @@
+/* ══════════════ MODAL ══════════════ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10020;
+}
+
+.modal-overlay.open {
+    display: flex;
+    animation: fadeInOverlay 0.2s ease forwards;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal {
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.modal h2 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.modal p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    font-size: 0.92rem;
+}
+
+
+.modal-edit-input {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+html.modal-open,
+body.modal-open,
+body.modal-open .main-content {
+    overflow: hidden !important;
+    touch-action: none;
+}
+
+/* ══════════════ BOTTOM SHEET (MOBILE ACTION MENU) ══════════════ */
+.bottom-sheet-overlay {
+    align-items: flex-end; /* Align to bottom */
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.bottom-sheet {
+    width: 100%;
+    max-width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg-card);
+    border-radius: 16px 16px 0 0;
+    padding: 24px 20px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-overlay.open .bottom-sheet {
+    animation: slideUpMenu 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpMenu {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.bottom-sheet-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.2s;
+}
+
+.bottom-sheet-btn:active {
+    background: var(--border);
+}
+
+.bottom-sheet-btn.danger {
+    color: var(--amount-negative);
+}
+
+.bottom-sheet-btn.danger:active {
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.bottom-sheet-drag-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-subtle);
+    border-radius: 4px;
+    margin: -10px auto 16px auto;
+}
+
+
+.mobile-txn-details {
+    padding: 0 4px 16px 4px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 45vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+}
+.mobile-txn-details.hidden {
+    display: none;
+}
+.mobile-txn-details-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.mobile-txn-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+.mobile-txn-details-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mobile-txn-details-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.mobile-txn-details-note {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.mobile-txn-details-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+    align-items: center;
+}
+.mobile-txn-details .badge-source {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+/* ══════════════ BATCH UPDATE MODAL ══════════════ */
+#modal-batch-update {
+    max-width: 520px;
+    width: 90%;
+    text-align: left;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.batch-modal-header {
+    flex-shrink: 0;
+    margin-bottom: 14px;
+}
+
+.batch-modal-header h2 {
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+}
+
+.batch-modal-header p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+    text-align: left;
+}
+
+#batch-update-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.batch-fields-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 6px;
+    margin-right: -4px;
+    padding-bottom: 4px;
+}
+
+.batch-modal-actions {
+    flex-shrink: 0;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.batch-field-row {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle, #1e293b);
+    border-radius: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.batch-field-row:has(.batch-field-toggle:checked) {
+    border-color: var(--accent, #638aff);
+    background: rgba(99, 138, 255, 0.06);
+}
+
+.batch-field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-main, #f8fafc);
+    margin-bottom: 8px;
+    user-select: none;
+}
+
+.batch-field-current {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--text-muted, #94a3b8);
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+}
+
+.batch-field-row:has(.batch-field-toggle:checked) .batch-field-current {
+    border-color: rgba(99, 138, 255, 0.3);
+    color: var(--accent, #638aff);
+    background: rgba(99, 138, 255, 0.1);
+}
+
+.batch-field-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border-radius: 20px;
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    margin: 0;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.batch-field-toggle::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.batch-field-toggle:hover {
+    border-color: rgba(99, 138, 255, 0.6);
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.batch-field-toggle:focus-visible {
+    box-shadow: 0 0 0 3px rgba(99, 138, 255, 0.4);
+}
+
+.batch-field-toggle:checked {
+    background: linear-gradient(135deg, #638aff 0%, #4f46e5 100%);
+    border-color: #638aff;
+    box-shadow: 0 0 10px rgba(99, 138, 255, 0.45);
+}
+
+.batch-field-toggle:checked::before {
+    transform: translateX(16px);
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.batch-field-input-wrap {
+    padding-left: 48px;
+}
+
+.batch-field-input-wrap .form-control {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-card, #121824);
+    border: 1px solid var(--border, #222d3d);
+    border-radius: 6px;
+    color: var(--text-main, #f8fafc);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+}
+
+.batch-field-input-wrap .form-control:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ══════════════ DESKTOP CHART POPUP MODAL ══════════════ */
+.chart-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 10030;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.chart-popup-overlay.open {
+    display: flex;
+    animation: fadeInOverlay 0.2s ease forwards;
+}
+
+.chart-popup-modal {
+    position: relative;
+    width: 92vw;
+    max-width: 1250px;
+    height: 85vh;
+    max-height: 800px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    text-align: left;
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.chart-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
+}
+
+.chart-popup-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.chart-popup-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.chart-popup-close-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    border-color: var(--border);
+    transform: scale(1.05);
+}
+
+.chart-popup-close-btn:active {
+    transform: scale(0.95);
+}
+
+.chart-popup-body {
+    position: relative;
+    flex: 1;
+    padding: 24px;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ══════════════ SCHEDULED APPROVAL MODAL ══════════════ */
+#scheduled-modal-overlay .modal {
+    max-width: 520px;
+    width: 92%;
+    padding: 24px;
+}
+
+.scheduled-card {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s, border-color 0.2s;
+    text-align: left;
+}
+
+.scheduled-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+}
+
+.scheduled-card-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+}
+
+.scheduled-checkbox {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.scheduled-category-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-body);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: left;
+}
+
+.scheduled-category-select:focus {
+    border-color: var(--accent);
+}
+

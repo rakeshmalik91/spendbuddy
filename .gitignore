@@ -1,0 +1,27 @@
+*.aab
+*.apk
+spendbuddy-android-app/app/release
+spendbuddy-android-app/app/debug
+spendbuddy-android-app/app/build
+spendbuddy-android-app/app/.cxx
+
+# git-crypt keys (Never commit encryption keys)
+*.key
+
+# brain & IDE
+brain
+.kiro
+.vscode
+.idea
+.shai
+.shai_backups
+
+# Node
+node_modules/
+webapp/node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+*.zip

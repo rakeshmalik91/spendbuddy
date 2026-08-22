@@ -1,0 +1,17 @@
+[
+  {
+    "origin": [
+      "https://spend-buddy.netlify.app",
+      "https://expense-manager-iq.web.app",
+      "https://expense-manager-iq.firebaseapp.com"
+    ],
+    "method": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

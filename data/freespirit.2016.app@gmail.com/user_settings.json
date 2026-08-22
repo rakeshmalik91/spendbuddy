@@ -1,0 +1,13 @@
+{
+  "encryptionEnabled": true,
+  "ui": {
+    "hideTransfer": false
+  },
+  "googleDrive": {
+    "clientId": "test"
+  },
+  "gmail": {
+    "email": "freespirit.2016.app@gmail.com",
+    "pass": "Test123*"
+  }
+}

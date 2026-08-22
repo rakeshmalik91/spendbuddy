@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Disable double-tap and pinch zoom on touch devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <meta name="description"
+        content="SpendBuddy — Track, visualize, and export your expenses with beautiful charts and CSV support.">
+    <title>SpendBuddy</title>
+    <link rel="icon" type="image/svg+xml" href="assets/spendbuddy-icon.svg">
+    <link rel="icon" href="assets/logo.svg">
+    <!--<link rel="apple-touch-icon" href="assets/spendbuddy-icon.svg">-->
+    <link rel="icon" type="image/png" href="/assets/spendbuddy-icon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/spendbuddy-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script defer src="lib/chart.umd.min.js"></script>
+    <script defer src="lib/chartjs-plugin-datalabels.min.js"></script>
+    <script defer src="lib/papaparse.min.js"></script>
+    <script defer src="lib/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script>
+        (function () {
+            var isIPad = (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) || /iPad/i.test(navigator.userAgent) || (window.location && window.location.search && window.location.search.indexOf('ipad') !== -1);
+            if (isIPad) {
+                document.documentElement.classList.add('is-ipad');
+            }
+        })();
+    </script>
+
+    <style>
+        html {
+            font-size: 15px;
+            height: 100%;
+            scroll-behavior: smooth;
+            overscroll-behavior: none;
+        }
+
+        @keyframes ptr-spin {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(360deg);
+            }
+        }
+
+        .ptr-spinning {
+            animation: ptr-spin 1s linear infinite !important;
+        }
+
+        #ptr-spinner-container {
+            position: fixed;
+            top: -36px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0b0e14;
+            color: #e8ecf4;
+            height: 100%;
+            display: flex;
+            overscroll-behavior: none;
+        }
+
+        #global-loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            touch-action: none;
+        }
+
+        #global-loader.hidden-loader {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
+        .loader-creative {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .money-bag {
+            font-size: 4rem;
+            line-height: 1;
+            filter: drop-shadow(0 10px 20px rgba(99, 138, 255, 0.3));
+            will-change: transform;
+            transform: translateZ(0);
+        }
+
+        .shadow {
+            width: 50px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 50%;
+            margin-top: 10px;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: translateY(0) scale(1.05, 0.95);
+            }
+
+            100% {
+                transform: translateY(-30px) scale(0.95, 1.05);
+            }
+        }
+
+        @keyframes pulse-shadow {
+            0% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(0.6);
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ═══════════ GLOBAL LOADER ═══════════ -->
+    <div id="global-loader">
+        <div class="loader-creative">
+            <img src="assets/spendbuddy-mascot.svg" alt="Loading..." class="money-bag" style="width: 4rem; height: 4rem;">
+            <div class="shadow"></div>
+        </div>
+    </div>
+    <script>
+        if (localStorage.getItem('expman_sidebar_collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+        // Start animations strictly after the First Paint to prevent timer drift "teleporting"
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.querySelector('.money-bag').style.animation = "bounce 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite alternate";
+                document.querySelector('.shadow').style.animation = "pulse-shadow 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite alternate";
+            });
+        });
+    </script>
+    <link rel="stylesheet" href="css/base/reset.css?v=12">
+    <link rel="stylesheet" href="css/base/scrollbar.css?v=4">
+    <link rel="stylesheet" href="css/layout/sidebar.css?v=11">
+    <link rel="stylesheet" href="css/layout/header.css?v=4">
+    <link rel="stylesheet" href="css/layout/main.css?v=13">
+    <link rel="stylesheet" href="css/components/buttons.css?v=11">
+    <link rel="stylesheet" href="css/components/cards.css?v=11">
+    <link rel="stylesheet" href="css/components/tables.css?v=61">
+    <link rel="stylesheet" href="css/components/forms.css?v=16">
+    <link rel="stylesheet" href="css/components/filters.css?v=10">
+    <link rel="stylesheet" href="css/components/modals.css?v=14">
+    <link rel="stylesheet" href="css/views/settings.css?v=6">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=50">
+    <link rel="stylesheet" href="css/components/toasts.css?v=22">
+    <link rel="stylesheet" href="css/base/animations.css?v=5">
+
+    <!-- ═══════════ LOGIN OVERLAY ═══════════ -->
+    <div id="password-overlay"
+        style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; touch-action: none; overscroll-behavior: none;">
+        <div class="card"
+            style="text-align: center; max-width: 400px; padding: 2.5rem; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🔒</div>
+            <h1 style="color: var(--text-main); font-size: 2rem; margin-bottom: 1rem;">SpendBuddy</h1>
+            <p style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.5;">Login to access your financial
+                data.</p>
+            <form id="password-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="email" id="app-email" placeholder="Email Address" required autocomplete="username"
+                    style="padding: 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-size: 1.1rem; outline: none; width: 100%; text-align: left;">
+                <input type="password" id="app-password" placeholder="Password" required autocomplete="current-password"
+                    style="padding: 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-size: 1.1rem; outline: none; width: 100%; text-align: left;">
+                <div id="signup-encryption-group" style="display: flex; flex-direction: column; gap: 6px; text-align: left; margin: -0.25rem 0 0.25rem 0; padding: 0.75rem; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);">
+                    <label for="signup-toggle-encryption" style="display: flex; align-items: center; gap: 8px; font-size: 0.92rem; color: var(--text-main); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="signup-toggle-encryption" style="accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-weight: 500;">🔐 Enable End-to-End Encryption</span>
+                    </label>
+                    <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.35; padding-left: 24px;">
+                        Encrypts your data on-device with your password before uploading. (For sign up / new accounts)
+                    </div>
+                    <div id="signup-encryption-warning" style="display: none; font-size: 0.76rem; color: var(--amount-negative); line-height: 1.35; padding-left: 24px;">
+                        ⚠️ Warning: If you forget or reset your password, your encrypted data cannot be recovered!
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" id="btn-login" class="btn btn-primary"
+                        style="flex: 1; padding: 1rem; font-size: 1.1rem;">Login</button>
+                    <button type="button" id="btn-signup" class="btn btn-secondary"
+                        style="flex: 1; padding: 1rem; font-size: 1.1rem;">Sign Up</button>
+                </div>
+                <div style="text-align: right; margin-top: 0.5rem;">
+                    <a href="#" id="btn-forgot-password"
+                        style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">Forgot Password?</a>
+                </div>
+            </form>
+            <p id="password-error" style="color: var(--amount-negative); margin-top: 1rem; display: none;">Login failed.
+                Please try again.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════ UNLOCK OVERLAY ═══════════ -->
+    <div id="unlock-overlay"
+        style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="card"
+            style="text-align: center; max-width: 400px; padding: 2.5rem; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🛡️</div>
+            <h1 style="color: var(--text-main); font-size: 1.8rem; margin-bottom: 1rem;">Data is Encrypted</h1>
+            <p style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.5;">Enter your account password to
+                unlock your data.</p>
+            <form id="unlock-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="password" id="app-unlock-password" placeholder="Password" required
+                    autocomplete="current-password"
+                    style="padding: 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-size: 1.1rem; outline: none; width: 100%; text-align: left;">
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" id="btn-unlock" class="btn btn-primary"
+                        style="flex: 1; padding: 1rem; font-size: 1.1rem;">Unlock</button>
+                    <button type="button" id="btn-unlock-logout" class="btn btn-secondary"
+                        style="flex: 1; padding: 1rem; font-size: 1.1rem;">Logout</button>
+                </div>
+            </form>
+            <p id="unlock-error" style="color: var(--amount-negative); margin-top: 1rem; display: none;">Unlock failed.
+                Please try again.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════ SIDEBAR ═══════════ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon"><img src="assets/logo.svg" alt="logo"
+                        style="width: 1.2em; height: 1.2em;"></span>
+                <span class="brand-text">SpendBuddy</span>
+            </div>
+            <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">
+                <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="m14 9-3 3 3 3"/>
+                </svg>
+                <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="m13 15 3-3-3-3"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-tagline">Track easily. Save effortlessly</div>
+        <div id="sidebar-user-id"
+            style="padding: 0 4px 24px 4px; font-size: 0.8rem; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-btn" data-view="add" id="nav-add" title="Add Entry">
+                <span class="nav-icon">➕</span> <span class="nav-text">Add Entry</span>
+            </button>
+            <button class="nav-btn active" data-view="dashboard" id="nav-dashboard" title="Dashboard">
+                <span class="nav-icon">📊</span> <span class="nav-text">Dashboard</span>
+            </button>
+            <button class="nav-btn" data-view="transactions" id="nav-transactions" title="Transactions">
+                <span class="nav-icon">📋</span> <span class="nav-text">Transactions</span>
+            </button>
+            <button class="nav-btn" data-view="charts" id="nav-charts" title="Charts">
+                <span class="nav-icon">📈</span> <span class="nav-text">Charts</span>
+            </button>
+            <button class="nav-btn" data-view="balance" id="nav-balance" title="Balance Tracker">
+                <span class="nav-icon">💰</span> <span class="nav-text">Balance</span>
+            </button>
+            <button class="nav-btn" data-view="split" id="nav-split" title="Split Tool">
+                <span class="nav-icon">➗</span> <span class="nav-text">Split Tool</span>
+            </button>
+            <button class="nav-btn" data-view="activity" id="nav-activity" title="Activity History">
+                <span class="nav-icon">🕘</span> <span class="nav-text">Activity</span>
+            </button>
+            <button class="nav-btn" data-view="settings" id="nav-settings" title="Settings">
+                <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
+            </button>
+            <div class="sidebar-spacer" style="flex: 1;"></div>
+            <button class="nav-btn" id="nav-lock" title="Lock App">
+                <span class="nav-icon">🔒</span> <span class="nav-text">Lock App</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- ═══════════ MOBILE HEADER ═══════════ -->
+    <header class="mobile-header" id="mobile-header">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="brand-text" style="display: flex; align-items: center; gap: 8px;"><img src="assets/logo.svg" alt="logo"
+                style="width: 1.2em; height: 1.2em;"> SpendBuddy</span>
+    </header>
+
+    <!-- ═══════════ MAIN CONTENT ═══════════ -->
+    <!-- PTR SPINNER -->
+    <div id="ptr-spinner-container">
+        <div id="ptr-spinner"
+            style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card); box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.5) rotate(0deg); transition: transform 0.3s ease, opacity 0.3s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-main);">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.67-1.63" />
+            </svg>
+        </div>
+    </div>
+
+    <main class="main-content" id="main-content">
+
+
+        <div class="sticky-header-wrapper">
+            <div class="global-time-filter" id="global-time-filter">
+                <div class="time-tabs" id="global-time-tabs">
+                    <button class="time-tab" data-mode="all">All Time</button>
+                    <button class="time-tab" data-mode="year">Year</button>
+                    <button class="time-tab active" data-mode="month">Month</button>
+                    <button class="time-tab" data-mode="week">Week</button>
+                    <button class="time-tab" data-mode="day">Day</button>
+                    <button class="time-tab" data-mode="custom">Custom</button>
+                </div>
+                <div class="time-nav" id="global-time-nav" style="visibility: hidden;">
+                    <button class="time-nav-btn time-prev-year" id="time-prev-year" style="display: none;">«</button>
+                    <button class="time-nav-btn time-prev">❮</button>
+                    <span class="time-label" id="global-time-label">All</span>
+                    <button class="time-nav-btn time-next">❯</button>
+                    <button class="time-nav-btn time-next-year" id="time-next-year" style="display: none;">»</button>
+                </div>
+                <div class="custom-time-nav" id="custom-time-nav"
+                    style="display: none; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; flex-basis: 100%; margin-top: 4px;">
+                    <div
+                        style="flex-basis: 100%; display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
+                        <button class="chip custom-preset-btn" data-days="7"><span class="chip-label">7
+                                Days</span></button>
+                        <button class="chip custom-preset-btn" data-days="15"><span class="chip-label">15
+                                Days</span></button>
+                        <button class="chip custom-preset-btn" data-days="30"><span class="chip-label">30
+                                Days</span></button>
+                        <button class="chip custom-preset-btn" data-days="60"><span class="chip-label">60
+                                Days</span></button>
+                        <button class="chip custom-preset-btn" data-days="90"><span class="chip-label">90
+                                Days</span></button>
+                        <button class="chip custom-preset-btn" data-fy="this"><span class="chip-label">This
+                                FY</span></button>
+                        <button class="chip custom-preset-btn" data-fy="last"><span class="chip-label">Last
+                                FY</span></button>
+                    </div>
+                    <div id="custom-inputs-wrapper"
+                        style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-left: auto; margin-right: auto;">
+                        <input type="date" id="custom-time-start" class="input-field"
+                            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; flex: 1 1 110px; max-width: 140px;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">to</span>
+                        <input type="date" id="custom-time-end" class="input-field"
+                            style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; flex: 1 1 110px; max-width: 140px;">
+                        <button id="btn-custom-time-apply" class="btn btn-primary"
+                            style="padding: 6px 16px; font-size: 0.9rem; border-radius: 6px;">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="views-container" id="views-container">
+            <!-- ── DASHBOARD VIEW ── -->
+            <section class="view active" id="view-dashboard">
+
+                <div class="dash-header-grid">
+                    <h1 class="view-title" style="margin-bottom: 0;">Dashboard</h1>
+
+                    <!-- Quick Add -->
+                    <div id="dashboard-quick-add" class="quick-add-container" style="display: none;">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div class="dash-header-actions" style="display: flex; align-items: center; gap: 8px;">
+                        <button class="btn btn-icon dash-eye-btn" id="dash-eye-btn" title="Toggle amount visibility" aria-label="Toggle amount visibility" style="padding: 8px; display: flex; align-items: center; justify-content: center;">
+                            <span class="eye-icon" style="font-size: 1.1rem;">👁️</span>
+                        </button>
+                        <button class="btn btn-primary dash-add-btn" id="dash-add-btn"
+                            style="padding: 8px 16px; font-size: 0.9rem;">
+                            <span style="font-size: 1.2rem; font-weight: bold; line-height: 1;">+</span> Add Entry
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card summary-card card-balance" id="card-balance">
+                        <div class="card-label">Net Spend</div>
+                        <div class="card-value" id="net-balance">₹0</div>
+                        <div class="card-details"
+                            style="display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 0.85rem; margin-top: 6px; font-weight: 600;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="color: var(--text-muted);">=</span>
+                                <span id="small-expense" style="color: var(--red);">₹0</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="color: var(--text-muted);">-</span>
+                                <span id="small-refunds" style="color: var(--green);">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card summary-card card-daily-avg" id="card-daily-avg">
+                        <div class="card-label">Daily Avg Spend</div>
+                        <div class="card-value" id="daily-avg-spend">₹0</div>
+                        <div id="daily-avg-trend" class="card-details"
+                            style="font-size: 0.85rem; margin-top: 6px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; flex-direction: column;">
+                        </div>
+                    </div>
+                    <div class="card summary-card card-income-total" id="card-income-total">
+                        <div class="card-label">Total Income</div>
+                        <div class="card-value" id="total-income-real">₹0</div>
+                    </div>
+                    <div class="card summary-card card-investment" id="card-investment">
+                        <div class="card-label">Total Investment</div>
+                        <div class="card-value" id="total-investment">₹0</div>
+                    </div>
+                    <div class="card summary-card card-transfer" id="card-transfer">
+                        <div class="card-label">Total Transfer</div>
+                        <div class="card-value" id="total-transfer">₹0</div>
+                    </div>
+                    <div class="card summary-card card-count" id="card-count">
+                        <div class="card-label">Number of Txns</div>
+                        <div class="card-value" id="total-count">0</div>
+                    </div>
+                </div>
+                <div
+                    style="font-size: 0.8rem; color: var(--text-dim); text-align: right; margin-top: 4px; margin-bottom: 20px;">
+                    * Net Spend excludes Income, Investment, and Transfer transactions.
+                </div>
+
+                <!-- Mobile Dashboard Tools Row (Round icons with text below) -->
+                <div class="dashboard-tools-section hide-on-desktop" id="dashboard-tools-section">
+                    <div class="dashboard-tools-header">Tools</div>
+                    <div class="dashboard-tools-row">
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('balance')" title="Balance Tracker">
+                            <span class="tool-icon-circle">💰</span>
+                            <span class="tool-label">Balance</span>
+                        </button>
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('split')" title="Split Tool">
+                            <span class="tool-icon-circle">➗</span>
+                            <span class="tool-label">Split Tool</span>
+                        </button>
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('activity')" title="Activity History">
+                            <span class="tool-icon-circle">🕘</span><span class="tool-label">Activity</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Charts -->
+                <div class="chart-grid">
+                    <div class="card chart-card" id="dash-trend-card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h2 class="chart-title" id="dash-trend-title" style="margin-bottom: 0;">Monthly Expense
+                                Trend</h2>
+                            <div class="trend-controls" style="display: flex; gap: 8px; display: none;">
+                                <button class="btn btn-sm btn-secondary btn-trend-type"
+                                    style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                    style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="dash-monthly-chart"></canvas></div>
+                    </div>
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Spending by Category (Expense+Refund)</h2>
+                        <div class="chart-wrap"><canvas id="dash-category-chart"></canvas></div>
+                    </div>
+                </div>
+
+
+
+                <!-- Recent Transactions -->
+                <div class="card">
+                    <h2 class="chart-title">Recent Transactions</h2>
+                    <div class="table-wrap">
+                        <table class="data-table" id="recent-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-date" data-col="date">Date</th>
+                                    <th class="col-category" data-col="category">Category</th>
+                                    <th>Note</th>
+                                    <th class="col-amount" data-col="amount" style="text-align: right;">Amount</th>
+                                    <th class="col-mode" data-col="mode">Mode</th>
+                                    <th class="col-actions" data-col="actions" style="text-align: right;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── TRANSACTIONS VIEW ── -->
+            <section class="view" id="view-transactions">
+
+                <div class="dash-header-grid txn-header-grid">
+                    <h1 class="view-title">All Transactions</h1>
+                    <div class="txn-header-actions" id="txn-header-actions">
+                        <button type="button" class="txn-menu-btn" id="txn-menu-btn" title="Display options" aria-label="Display options">
+                            <span>☰</span>
+                        </button>
+                        <div class="txn-menu-dropdown" id="txn-menu-dropdown">
+                            <div class="txn-refund-toggle-wrap">
+                                <label for="toggle-merge-refunds-txn" class="txn-refund-toggle-label">Merge Refunds</label>
+                                <label class="toggle-switch" title="Toggle merging refunds with expenses">
+                                    <input type="checkbox" id="toggle-merge-refunds-txn">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="txn-refund-toggle-wrap">
+                                <label for="toggle-hide-source-txnid" class="txn-refund-toggle-label">Compact View</label>
+                                <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
+                                    <input type="checkbox" id="toggle-hide-source-txnid">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="txn-menu-divider"></div>
+                            <button type="button" class="txn-menu-action-btn" id="btn-export-filtered-csv" title="Export currently filtered transactions to CSV">
+                                <span class="txn-menu-action-icon">📥</span>
+                                <span>Export to CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-bar card" id="transaction-filter-bar">
+                    <div class="filter-header" id="filter-toggle">
+                        <span
+                            style="font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                            <span>🔍</span> Filters
+                        </span>
+                        <span class="filter-icon" style="transition: transform 0.3s; color: var(--text-muted);">▼</span>
+                    </div>
+                    <div class="filter-content" id="filter-content">
+                        <div class="filter-group">
+                            <label for="filter-category">Category</label>
+                            <select id="filter-category">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-type">Transaction Mode</label>
+                            <select id="filter-type">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-transaction-type">Transaction Type</label>
+                            <select id="filter-transaction-type">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-location">Location</label>
+                            <select id="filter-location">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-tag">Tag</label>
+                            <select id="filter-tag">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div class="filter-search-action">
+                            <div class="filter-group filter-group-search">
+                                <label for="filter-search">Search Notes</label>
+                                <input type="text" id="filter-search" placeholder="Search…">
+                            </div>
+                            <div class="filter-group filter-group-action">
+                                <button type="button" class="btn-clear-filters" id="btn-clear-filters" title="Reset all filters" disabled>
+                                    <span>✕</span> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Action Bar (Desktop only, appears when >=1 transaction selected) -->
+                <div id="batch-action-bar" class="batch-action-bar hide-on-mobile">
+                    <div class="batch-action-left">
+                        <span class="batch-count-badge" id="batch-selected-count">0 selected</span>
+                        <button type="button" class="btn btn-sm btn-ghost" onclick="window.clearBatchSelection();">✕ Deselect All</button>
+                    </div>
+                    <div class="batch-action-right">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="window.openBatchUpdateModal();">
+                            <span>✏️</span> Batch Update
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="all-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-batch-select hide-on-mobile" style="width: 38px; text-align: center;"><input type="checkbox" id="batch-select-all" class="batch-select-checkbox" title="Select all filtered" onclick="window.toggleSelectAll(this.checked);"></th>
+                                    <th class="sortable col-date" data-col="date">Date & Location ⇅</th>
+                                    <th class="col-category" data-col="category">Category</th>
+                                    <th>Note</th>
+                                    <th class="sortable col-amount" data-col="amount" style="text-align: right;">Amount
+                                        ⇅</th>
+                                    <th class="col-mode" data-col="mode">Mode</th>
+                                    <th class="col-actions" data-col="actions" style="text-align: right;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── ADD ENTRY VIEW ── -->
+            <section class="view" id="view-add">
+                <h1 class="view-title" id="form-title">Add New Entry</h1>
+
+                <div id="sms-suggestions-container" style="margin-bottom: 24px; display: none;">
+                    <h2
+                        style="font-size: 1.15rem; margin-bottom: 15px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                        <span>💬</span> Inbox Suggestions (SMS & Email)
+                    </h2>
+                    <div class="card" style="padding: 15px;">
+                        <div id="sms-suggestions-list" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card form-card">
+                    <form id="expense-form" autocomplete="off" novalidate>
+                        <div id="form-auto-tag-tool" class="form-auto-tag-tool" hidden>
+                            <span class="form-auto-tag-label">🏷️ Auto Tagging</span>
+                            <span class="form-auto-tag-name" id="form-auto-tag-name"></span>
+                            <button type="button" id="form-auto-tag-toggle" class="form-auto-tag-toggle" aria-pressed="false">OFF</button>
+                        </div>
+                        <input type="hidden" id="edit-index" value="-1">
+                        <input type="hidden" id="edit-scheduled-index" value="-1">
+
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Date <span class="req">*</span></label>
+                                <input type="hidden" id="input-date" required>
+                                <div class="calendar-widget">
+
+                                    <div class="date-quick-actions"
+                                        style="justify-content: center; margin-bottom: 10px;">
+                                        <button type="button" class="chip" id="btn-date-yesterday">Yesterday</button>
+                                        <button type="button" class="chip" id="btn-date-today">Today</button>
+                                        <button type="button" class="chip" id="btn-date-tomorrow">Tomorrow</button>
+                                    </div>
+                                    <div class="calendar-grid">
+                                        <div class="cal-day-header">Su</div>
+                                        <div class="cal-day-header">Mo</div>
+                                        <div class="cal-day-header">Tu</div>
+                                        <div class="cal-day-header">We</div>
+                                        <div class="cal-day-header">Th</div>
+                                        <div class="cal-day-header">Fr</div>
+                                        <div class="cal-day-header">Sa</div>
+                                        <!-- injected by JS -->
+                                        <div id="cal-days-container" style="display: contents;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="fg-amount">
+                                <label for="input-amount">Amount <span class="req">*</span></label>
+                                <input type="text" id="input-amount"
+                                    placeholder="e.g. 500 or 127+100+30 (positive = expense, negative = refund)"
+                                    pattern="^(-?)(\d+\.?\d*)([+\-](\d+\.?\d*))*$"
+                                    title="Please enter a valid amount or mathematical expression (e.g. 500, 100+50)"
+                                    required>
+                                <small class="hint">Positive = Expense, negative = refund. Supports expressions like
+                                    127+100+30</small>
+                                <small id="amount-error" style="color: #ff453a; display: none; margin-top: 4px;">Please
+                                    enter a valid amount or mathematical expression (e.g. 500, 100+50)</small>
+                            </div>
+                            <div class="form-group" id="fg-currency">
+                                <label for="input-currency">Currency</label>
+                                <select id="input-currency">
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="input-note">Note</label>
+                                <div id="note-suggestions" class="chip-group note-suggestions"></div>
+                                <input type="text" id="input-note" placeholder="Optional description…">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="input-category">Category <span class="req">*</span></label>
+                                <input type="hidden" id="input-category" required>
+                                <div id="category-chips" class="chip-group"></div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="input-transaction-type">Transaction Type <span class="req">*</span></label>
+                                <input type="hidden" id="input-transaction-type" required>
+                                <div id="txntype-chips" class="chip-group"></div>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="input-txn-type">Transaction Mode</label>
+                                <input type="hidden" id="input-txn-type">
+                                <div id="txnmode-chips" class="chip-group"></div>
+                            </div>
+                            <details id="form-extra-options" class="form-extra-options full-width">
+                                <summary><span>Tags, location & scheduling</span><span class="extra-options-hint">Tap to expand</span></summary>
+                                <div class="form-extra-options-content">
+                                    <div class="form-group full-width">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <label for="input-location" style="margin-bottom: 0;">Location</label>
+                                            <button type="button" id="btn-detect-location" class="btn-detect-location" title="Detect Current Location" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px;">
+                                                <span>📍 Detect</span>
+                                            </button>
+                                        </div>
+                                        <div id="location-suggestions" class="chip-group note-suggestions"></div>
+                                        <input type="text" id="input-location" placeholder="e.g. Gurugram">
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label for="input-tag">Tag</label>
+                                        <div id="tag-suggestions" class="chip-group note-suggestions"></div>
+                                        <input type="text" id="input-tag" placeholder="e.g. Vacation, Project, Tax">
+                                    </div>
+                                    <div class="form-group full-width" id="frequency-group">
+                                        <label for="input-frequency">Frequency (For Scheduled Txns)</label>
+                                        <select id="input-frequency" style="display: none;">
+                                            <option value="one-off" selected>One-off</option>
+                                            <option value="instant">Instant (Quick Add)</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="biweekly">Biweekly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="bimonthly">Bimonthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                        <div id="frequency-chips" class="frequency-selector-grid"></div>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <div class="form-group full-width" id="freq-options-wrapper"
+                                style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; display: none;">
+                                <div id="freq-weekly-options" style="display:none; flex: 1; min-width: 250px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <label style="margin: 0; min-width: max-content;">Every</label>
+                                        <div id="input-freq-weekdays" class="weekday-buttons" style="flex: 1;">
+                                            <button type="button" class="weekday-btn" data-val="0">S</button>
+                                            <button type="button" class="weekday-btn" data-val="1">M</button>
+                                            <button type="button" class="weekday-btn" data-val="2">T</button>
+                                            <button type="button" class="weekday-btn" data-val="3">W</button>
+                                            <button type="button" class="weekday-btn" data-val="4">T</button>
+                                            <button type="button" class="weekday-btn" data-val="5">F</button>
+                                            <button type="button" class="weekday-btn" data-val="6">S</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="freq-monthly-options" style="display:none; flex: 1; min-width: 250px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <label for="input-freq-day"
+                                            style="margin: 0; min-width: max-content;">Every</label>
+                                        <select id="input-freq-day" style="flex: 1;">
+                                            <!-- Populated by JS: 1 to 31 -->
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="freq-yearly-options"
+                                    style="display:none; gap: 12px; flex-direction: row; flex-wrap: wrap; flex: 1; min-width: 250px; align-items: center;">
+                                    <label for="input-freq-month"
+                                        style="margin: 0; min-width: max-content;">Every</label>
+                                    <select id="input-freq-month" style="flex: 1; min-width: 100px;">
+                                        <option value="1">January</option>
+                                        <option value="2">February</option>
+                                        <option value="3">March</option>
+                                        <option value="4">April</option>
+                                        <option value="5">May</option>
+                                        <option value="6">June</option>
+                                        <option value="7">July</option>
+                                        <option value="8">August</option>
+                                        <option value="9">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                    <select id="input-freq-yearly-day" style="flex: 1; min-width: 80px;">
+                                        <!-- Populated by JS: 1 to 31 -->
+                                    </select>
+                                </div>
+                                <div id="freq-start-date-hint"
+                                    style="display:none; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0; min-width: max-content;">
+                                    Select a start date on the calendar above.
+                                </div>
+                                <div id="freq-quick-add-hint"
+                                    style="display:none; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin: 0; min-width: max-content;">
+                                    ⚡ Quick Add templates appear on your Dashboard for 1-click logging.
+                                </div>
+                            </div>
+                            <div class="form-group full-width" id="end-condition-group" style="display: none;">
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <label class="toggle-switch" style="margin: 0; flex-shrink: 0;">
+                                            <input type="checkbox" id="input-end-enable">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <label for="input-end-enable"
+                                            style="margin: 0; min-width: max-content; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">End
+                                            after</label>
+                                    </div>
+                                    <div id="end-condition-inputs"
+                                        style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex: 1; opacity: 0.5;">
+                                        <input type="text" id="input-end-date" class="input-field" placeholder="Never"
+                                            style="flex: 1; min-width: 130px;" disabled onfocus="(this.type='date')"
+                                            onblur="if(!this.value) this.type='text'">
+                                        <span
+                                            style="min-width: max-content; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">/</span>
+                                        <div
+                                            style="display: flex; gap: 6px; align-items: center; flex: 1; min-width: 130px;">
+                                            <input type="number" id="input-max-occurrences" class="input-field"
+                                                placeholder="∞" min="1" step="1" style="flex: 1; min-width: 60px;"
+                                                disabled>
+                                            <span
+                                                style="min-width: max-content; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">occurrences</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary" id="btn-submit">Add Entry</button>
+                                <button type="button" class="btn btn-ghost" id="btn-cancel" style="display:none;">Cancel
+                                    Edit</button>
+                            </div>
+                    </form>
+                </div>
+
+                <div style="margin-top: 40px; margin-bottom: 20px;">
+                    <h2
+                        style="font-size: 1.15rem; margin-bottom: 15px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                        <span>📅</span> Transactions on Selected Date
+                    </h2>
+                    <div class="card table-card">
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-date" data-col="date">Date</th>
+                                        <th class="col-category" data-col="category">Category</th>
+                                        <th>Note</th>
+                                        <th class="col-amount" data-col="amount" style="text-align: right;">Amount</th>
+                                        <th class="col-mode" data-col="mode">Mode</th>
+                                        <th class="hide-on-mobile col-actions" data-col="actions"
+                                            style="text-align: right; width: 60px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="selected-day-tbody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
+            </section>
+
+            <!-- ── CHARTS VIEW ── -->
+            <section class="view" id="view-charts">
+
+                <h1 class="view-title">Analytics & Charts</h1>
+
+                <div class="chart-grid">
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Spending by Category (Expense+Refund)</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-category-donut"></canvas></div>
+                    </div>
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Transaction Mode Distribution (Expense+Refund)</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-txn-type"></canvas></div>
+                    </div>
+                </div>
+
+
+                <div class="chart-grid" id="category-top-grid">
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Category Breakdown (Expense+Refund)</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-category-bar"></canvas></div>
+                    </div>
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Tag Breakdown (Expense+Refund)</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-tag-bar"></canvas></div>
+                    </div>
+                    <div class="card chart-card">
+                        <h2 class="chart-title">Top 10 Expenses</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-top-expenses"></canvas></div>
+                    </div>
+                </div>
+
+                <div id="trends-section">
+
+                    <hr style="margin: 40px 0 20px 0; border: 0; border-top: 1px solid var(--border); width: 100%;">
+                    <h2 class="view-title" style="margin-bottom: 20px; font-size: 1.5rem;">
+                        Trend by Transaction Type
+                    </h2>
+                    <div>
+                        <div class="card chart-card" id="card-txntype-yearly-trend"
+                            style="grid-column: 1 / -1; margin-bottom: 20px;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-txntype-yearly-trend-title" style="margin-bottom: 0;">
+                                    Yearly Trend
+                                    by Transaction Type</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-type"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-txntype-yearly-trend"></canvas>
+                            </div>
+                        </div>
+                        <div class="card chart-card" id="card-txntype-trend" style="grid-column: 1 / -1;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-txntype-trend-title" style="margin-bottom: 0;">Trend
+                                    by Transaction Type</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-type"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-txntype-trend"></canvas></div>
+                        </div>
+                    </div>
+
+                    <hr style="margin: 40px 0 20px 0; border: 0; border-top: 1px solid var(--border); width: 100%;">
+                    <h2 class="view-title" style="margin-bottom: 20px; font-size: 1.5rem;">Spending Trends</h2>
+
+                    <div class="filter-bar"
+                        style="margin-bottom: 20px; flex-direction: column; align-items: stretch; gap: 15px;">
+                        <div>
+                            <div
+                                style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Filter Category</div>
+                            <div id="trend-filter-category" class="chip-group"></div>
+                        </div>
+                        <div>
+                            <div
+                                style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Filter Transaction Mode</div>
+                            <div id="trend-filter-txnmode" class="chip-group"></div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid" id="trends-grid">
+                        <div class="card chart-card" id="card-yearly-trend">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-yearly-trend-title" style="margin-bottom: 0;">Yearly
+                                    Spending Trend (Expense+Refund)</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-type"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-yearly-trend"></canvas></div>
+                        </div>
+                        <div class="card chart-card" id="card-monthly-trend">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-monthly-trend-title" style="margin-bottom: 0;">Monthly
+                                    Spending Trend (Expense+Refund)</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-type"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-monthly-trend"></canvas></div>
+                        </div>
+                        <div class="card chart-card" id="card-weekly-trend">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-weekly-trend-title" style="margin-bottom: 0;">Weekly
+                                    Spending Trend (Expense+Refund)</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-type"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Type: LINE</button>
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-weekly-trend"></canvas></div>
+                        </div>
+                        <div class="card chart-card" id="card-daily-trend">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h2 class="chart-title" id="chart-daily-trend-title" style="margin-bottom: 0;">Daily
+                                    Spending Trend (Expense+Refund)</h2>
+                                <div class="trend-controls" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-sm btn-secondary btn-trend-cum"
+                                        style="font-size: 0.8rem; padding: 4px 10px;">Cumulative: OFF</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-daily-trend"></canvas></div>
+                        </div>
+                    </div>
+                </div> <!-- End trends-section -->
+
+                <hr style="margin: 40px 0 20px 0; border: 0; border-top: 1px solid var(--border); width: 100%;">
+                <h2 class="view-title" style="margin-bottom: 20px; font-size: 1.5rem;">Relative Balance</h2>
+                <div class="chart-grid">
+                    <div class="card chart-card" style="grid-column: 1 / -1;">
+                        <h2 class="chart-title">Balance (Income + Expense + Refund + Investment)</h2>
+                        <div class="chart-wrap chart-wrap-lg"><canvas id="chart-daily-balance"></canvas></div>
+                    </div>
+                </div>
+
+                <div id="location-trends-section">
+                    <hr style="margin: 40px 0 20px 0; border: 0; border-top: 1px solid var(--border); width: 100%;">
+                    <h2 class="view-title" style="margin-bottom: 20px; font-size: 1.5rem;">Location Trends</h2>
+                    <div class="chart-grid">
+                        <div class="card chart-card" style="grid-column: 1 / -1;">
+                            <h2 class="chart-title">Daily Average Spending by Location (Expense+Refund)</h2>
+                            <div class="chart-wrap chart-wrap-lg"><canvas id="chart-location-trend"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── SCHEDULED TRANSACTIONS VIEW ── -->
+            <section class="view" id="view-scheduled">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Scheduled Transactions</h1>
+                </div>
+                <div class="card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="scheduled-table">
+                            <thead>
+                                <tr>
+                                    <th data-col="category">Category</th>
+                                    <th data-col="type">Type</th>
+                                    <th data-col="mode">Mode</th>
+                                    <th data-col="note">Note</th>
+                                    <th data-col="amount" style="text-align: right;">Amount</th>
+                                    <th data-col="freq">Freq</th>
+                                    <th data-col="next-run">Next Run</th>
+                                    <th data-col="last-run">Last Run</th>
+                                    <th class="col-actions" data-col="actions" style="text-align: right;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduled-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── SETTINGS VIEW ── -->
+            <section class="view" id="view-settings">
+                <h1 class="view-title">Settings</h1>
+
+                <!-- Section 1: Settings -->
+                <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                    <span>⚙️</span> Settings
+                </h2>
+                <div class="settings-grid" style="margin-bottom: 28px;">
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('account')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">👤</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Account</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Profile and passwords</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('backups')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">💾</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Backup & Restore</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Google Drive backups, ZIP export & restore</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card" id="sync-nav-card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('syncing')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">🔄</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Syncing</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Gmail IMAP and SMS integration</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('scheduled')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">⏰</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Scheduled Transactions</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage recurring expenses</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('categories')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">🏷️</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Categories</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Customize spending categories</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('txnmodes')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">💳</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Transaction Modes</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage payment methods</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('locations')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">📍</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Locations</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">View all transaction locations</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('visibility')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">👁️</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Visibility Preferences</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide data, display preferences, refund merging</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('keyword-mappings')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">🔤</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Keyword Mappings</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Override category, tag, txn type, and mode</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
+                    <!-- Auto Tagging uses the same grid cell sizing as the other settings buttons -->
+                    <div class="card"
+                        style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:20px;"
+                        onclick="window.switchView('auto-tagging')">
+                        <div style="display:flex; align-items:center; gap:16px; min-width:0;">
+                            <span style="font-size:1.8rem; flex:0 0 auto;">🏷️</span>
+                            <div style="min-width:0;">
+                                <div style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Auto Tagging</div>
+                                <div style="font-size:0.85rem; color:var(--text-dim); margin-top:4px;">Choose a tag to apply automatically to new transactions</div>
+                            </div>
+                        </div>
+                        <span style="color:var(--text-muted); font-size:1.2rem; flex:0 0 auto;">❯</span>
+                    </div>
+                </div>
+
+                <!-- Section 2: Tools -->
+                <div class="hide-on-desktop" style="margin-bottom:28px;">
+                    <h2 class="settings-section-heading" style="font-size:1.15rem;font-weight:700;color:var(--text-secondary);margin:0 0 14px 4px;display:flex;align-items:center;gap:8px;"><span>🛠️</span> Tools</h2>
+                    <div class="settings-grid about-settings-grid">
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('balance')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">💰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Balance Tracker</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Track account balances and net worth</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
+                    </div>
+                </div>
+
+                <!-- Section 3: About -->
+                <div>
+                    <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                        <span>ℹ️</span> About
+                    </h2>
+                    <div class="settings-grid about-settings-grid" style="margin-bottom: 24px;">
+                        <div class="card"
+                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                            onclick="window.switchView('about')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">ℹ️</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">About</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">App info, copyright and credits</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
+            </section>
+            <!-- ── ABOUT VIEW ── -->
+            <section class="view" id="view-about">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">About</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card" style="padding: 28px; text-align: center;">
+                        <img src="assets/spendbuddy-icon.svg" alt="SpendBuddy"
+                            style="width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 16px; display: block;">
+                        <div
+                            style="font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                            SpendBuddy
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 6px;">Track easily. Save
+                            effortlessly</div>
+                        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <div style="font-size: 0.9rem; color: var(--text-primary);">© Rakesh Malik 2026</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">Co authored by:
+                                Gemini 3.8 Flash, Space Bunny Alpha, Claude Opus 4.6</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── VISIBILITY VIEW ── -->
+            <section class="view" id="view-visibility">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Visibility Preferences</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>👁️</span> Hide Data
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
+                            Hide specific transaction types across the entire app (Dashboard, Transactions list, and Charts). Hidden records remain stored safely in your data.
+                        </p>
+
+                        <!-- Hide Income Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Income</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude income records from dashboard totals and lists</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-hide-income">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Hide Investments Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Investments</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude investment records from dashboard totals and lists</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-hide-investment">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Hide Transfers Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Transfers</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude transfer records from dashboard totals and lists</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-hide-transfer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <!-- Display Preferences Card -->
+                    <div class="card">
+                        <h2 class="chart-title" style="display:flex;align-items:center;gap:8px;"><span>🖥️</span> Display Preferences</h2>
+                        <p style="color:var(--text-dim);margin-bottom:20px;font-size:0.9rem;">Control how transaction details and amounts are displayed.</p>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle);">
+                            <div><div style="font-weight:500;color:var(--text-main);">Compact View</div><div style="font-size:0.85rem;color:var(--text-dim);margin-top:2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes</div></div>
+                            <label class="toggle-switch"><input type="checkbox" id="toggle-hide-source-txnid-settings"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
+                            <div><div style="font-weight:500;color:var(--text-main);">Hide Amounts</div><div style="font-size:0.85rem;color:var(--text-dim);margin-top:2px;">Mask transaction amounts and dashboard totals</div></div>
+                            <label class="toggle-switch"><input type="checkbox" id="toggle-hide-amounts-settings"><span class="toggle-slider"></span></label>
+                        </div>
+                    </div>
+
+                    <!-- Refund Preferences Card -->
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>↩️</span> Refund Preferences
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
+                            Control how refunds are displayed and calculated in the dashboard and transaction tables.
+                        </p>
+
+                        <!-- Merge Refunds Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div style="max-width: 80%;">
+                                <div style="font-weight: 500; color: var(--text-main);">Merge Refunds with Expenses</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">
+                                    Auto-group matching refunds into collapsible expense rows to show net amounts. When disabled, refunds appear as independent standalone entries.
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-merge-refunds">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── AUTO TAGGING VIEW ── -->
+            <section class="view" id="view-auto-tagging">
+                <div class="view-header-with-back"
+                    style="display:flex; align-items:center; gap:16px; margin-bottom:24px; cursor:pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size:1.5rem; color:var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom:0;">Auto Tagging</h1>
+                </div>
+                <div class="card auto-tagging-card">
+                    <div class="auto-tagging-heading">
+                        <span class="auto-tagging-icon" aria-hidden="true">🏷️</span>
+                        <div class="auto-tagging-title-group">
+                            <div class="auto-tagging-title">Auto Tagging</div>
+                            <div class="auto-tagging-description">Choose a tag to apply automatically to new transactions.</div>
+                        </div>
+                    </div>
+                    <div class="auto-tagging-settings">
+                        <label for="settings-auto-tag">Tag to apply to new transactions</label>
+                        <select id="settings-auto-tag" aria-describedby="settings-auto-tag-help">
+                            <option value="">Select a tag</option>
+                        </select>
+                        <div id="settings-auto-tag-help" class="auto-tagging-help">Applies to manual, Quick Add, SMS and email transactions. Existing transactions and scheduled transactions are not changed.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── KEYWORD MAPPINGS VIEW ── -->
+            <section class="view" id="view-keyword-mappings">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Keyword Mappings</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h2 class="chart-title" style="margin-bottom: 4px;">Custom Keyword Rules</h2>
+                                <p style="color: var(--text-dim); font-size: 0.9rem; margin: 0;">
+                                    Override default categorization, transaction type, or payment mode when keywords match.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-sm" id="btn-run-all-rules"
+                                    style="padding: 10px 16px; white-space: nowrap;">⚡ Run on Existing Txns</button>
+                                <button class="btn btn-primary btn-sm" id="btn-add-keyword-mapping"
+                                    style="padding: 10px 18px; white-space: nowrap;">➕ Add Rule</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <input type="text" id="kw-search-input" placeholder="🔍 Search keyword or override..."
+                                style="width: 100%; max-width: 320px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table" id="keyword-mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th data-col="keyword">Keyword</th>
+                                        <th data-col="category">Category</th>
+                                        <th data-col="txntype">Txn Type</th>
+                                        <th data-col="txnmode">Txn Mode</th>
+                                        <th data-col="tags">Tags</th>
+                                        <th data-col="status">Status</th>
+                                        <th data-col="actions" style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keyword-mapping-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── CATEGORIES VIEW ── -->
+            <section class="view" id="view-categories">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Categories</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <h2 class="chart-title">Categories</h2>
+                        <div class="settings-add-row">
+                            <input type="text" id="new-category-input" placeholder="e.g. 🎭 Entertainment">
+                            <button class="btn btn-primary btn-sm" id="btn-add-category">Add</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table" id="category-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th style="width:120px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="category-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── TRANSACTION MODES VIEW ── -->
+            <section class="view" id="view-txnmodes">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Transaction Modes</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <h2 class="chart-title">Transaction Modes</h2>
+                        <div class="settings-add-row">
+                            <input type="text" id="new-txnmode-input" placeholder="e.g. Wallet">
+                            <button class="btn btn-primary btn-sm" id="btn-add-txnmode">Add</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table" id="txnmode-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th style="width:120px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="txnmode-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── LOCATIONS VIEW ── -->
+            <section class="view" id="view-locations">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Locations</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <h2 class="chart-title">Configured Locations</h2>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; font-size: 0.9rem;">Auto-tag locations
+                            based on GPS distance.</p>
+                        <div style="margin-bottom: 16px;">
+                            <button class="btn btn-primary btn-sm" onclick="addNewLocation()"
+                                style="padding: 10px 20px;">➕ Add Location</button>
+                        </div>
+                        <div id="location-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── ACCOUNT VIEW ── -->
+            <section class="view" id="view-account">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Account</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card" id="profile-info-card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>👤</span> Profile Information
+                        </h2>
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Logged In As</div>
+                                <div id="account-user-id"
+                                    style="font-size: 0.95rem; color: var(--accent); margin-top: 4px; word-break: break-all;">
+                                    Loading...</div>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-ghost" id="btn-change-password"
+                                    style="padding: 10px 20px; font-size: 0.95rem;">
+                                    Change Password
+                                </button>
+                                <button class="btn btn-ghost" id="btn-account-logout"
+                                    style="padding: 10px 20px; font-size: 0.95rem; border: 1px solid var(--red); color: var(--red);">
+                                    Logout / Lock
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="encryption-settings-card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>🔐</span> End-to-End Encryption
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
+                            Encrypt all your expense data in the cloud using your account password. Only you can unlock
+                            and read your data.
+                        </p>
+                        <div
+                            style="background: rgba(255, 69, 58, 0.1); border-left: 4px solid var(--amount-negative); padding: 12px 16px; margin-bottom: 24px; border-radius: 0 8px 8px 0;">
+                            <span
+                                style="color: var(--amount-negative); font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">⚠️
+                                Critical Warning</span>
+                            <span
+                                style="color: var(--text-dim); font-size: 0.95rem; line-height: 1.5; display: block;">If
+                                you lose or reset your password via email, your encrypted data cannot be
+                                recovered.</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Enable Cloud Encryption</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-encryption">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="chart-title"
+                            style="display: flex; align-items: center; gap: 8px; color: var(--amount-negative);">
+                            <span>⚠️</span> Danger Zone
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
+                            Permanently delete your account and all associated data. This action cannot be undone.
+                        </p>
+                        <button class="btn btn-danger" id="btn-delete-account"
+                            style="padding: 12px 24px; font-size: 1rem;">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── BACKUP & RESTORE VIEW ── -->
+            <section class="view" id="view-backups">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Backup & Restore</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card" id="card-google-drive-backup">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>☁️</span> Google Drive Backup
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
+                            Automatically or manually backup your data to your personal Google Drive in an <strong>SpendBuddy Backups</strong> folder.
+                        </p>
+
+                        <div style="margin-bottom: 16px;">
+                            <details style="font-size: 0.85rem; color: var(--text-dim); background: var(--bg-alt); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                                <summary style="cursor: pointer; font-weight: 500; color: var(--text-main);">⚙️ Google OAuth Client ID (Click to configure)</summary>
+                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                                    <label style="font-size: 0.8rem; color: var(--text-muted);">Enter your OAuth 2.0 Web Client ID from Google Cloud Console:</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="input-gdrive-client-id" class="form-control" placeholder="123456789-xxxx.apps.googleusercontent.com" style="flex: 1; padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <button type="button" class="btn btn-secondary" id="btn-save-gdrive-client-id" style="padding: 6px 12px; font-size: 0.85rem;">Save</button>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin-top: 4px;">
+                                        <strong>Quick 2-Minute Setup:</strong><br>
+                                        1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #3b82f6; text-decoration: underline;">Google Cloud Console → Credentials</a>.<br>
+                                        2. Click <strong>Create Credentials → OAuth client ID</strong> (Type: <strong>Web application</strong>).<br>
+                                        3. Under <strong>Authorized JavaScript origins</strong>, add: <code id="gdrive-current-origin" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 2px 4px; border-radius: 4px;">https://spend-buddy.netlify.app</code><br>
+                                        4. Enable the <a id="gdrive-enable-api-link" href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">Google Drive API</a> for your project.<br>
+                                        5. Copy and paste the Client ID above.
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        
+                        <div id="gdrive-status-container" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-alt); border-radius: 8px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-weight: 500; font-size: 0.95rem; color: var(--text-main);" id="gdrive-status-label">Google Account</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim);" id="gdrive-status-email">Not connected</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-secondary" id="btn-gdrive-connect" style="padding: 8px 16px; font-size: 0.9rem;">
+                                    Connect
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btn-gdrive-disconnect" style="padding: 8px 16px; font-size: 0.9rem; display: none; color: var(--amount-negative);">
+                                    Disconnect
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <button type="button" class="btn btn-primary" id="btn-gdrive-backup-now" style="width: 100%; padding: 12px 20px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span>☁️</span> Backup Now to Google Drive
+                            </button>
+                            <div id="gdrive-error-banner" style="font-size: 0.85rem; margin-top: 8px; text-align: center; display: none;"></div>
+                            <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 6px; text-align: center;" id="gdrive-last-backup-text">
+                                Last backup: Never
+                            </div>
+                        </div>
+
+                        <details id="gdrive-settings-panel" style="display: none; font-size: 0.88rem; color: var(--text-dim); background: var(--bg-alt); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                            <summary style="cursor: pointer; font-weight: 500; color: var(--text-main);">⚙️ Auto-Backup & Retention Settings</summary>
+                            
+                            <div style="margin-top: 8px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle);">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Auto Backup on App Launch</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">Trigger backup when app opens if frequency period elapsed</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="toggle-gdrive-auto">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div id="gdrive-frequency-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle); transition: opacity 0.2s ease;">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Backup Frequency</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">How often automatic backup should occur</div>
+                                    </div>
+                                    <select id="select-gdrive-frequency" class="form-control" style="width: 140px; padding: 6px 12px; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+
+                                <div id="gdrive-retention-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle); transition: opacity 0.2s ease;">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Auto-Delete Older Backups</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">Automatically clean up outdated backup files in Google Drive</div>
+                                    </div>
+                                    <select id="select-gdrive-retention" class="form-control" style="width: 160px; padding: 6px 12px; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <option value="keep_all">Keep All (No delete)</option>
+                                        <option value="7_days">Older than 7 days</option>
+                                        <option value="30_days">Older than 30 days</option>
+                                        <option value="60_days">Older than 60 days</option>
+                                        <option value="90_days">Older than 90 days</option>
+                                        <option value="180_days">Older than 6 months</option>
+                                        <option value="365_days">Older than 1 year</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>💾</span> Data Backup (ZIP)
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
+                            Download all your expense data and settings as a ZIP archive. If cloud encryption is
+                            enabled, data will be automatically decrypted before downloading.
+                        </p>
+                        <button class="btn btn-primary" id="btn-export-data"
+                            style="padding: 12px 24px; font-size: 1rem; margin-bottom: 12px;">
+                            Download All Data (ZIP)
+                        </button>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
+                            Restore your data from a previously downloaded ZIP backup.
+                        </p>
+                        <input type="file" id="input-restore-zip" accept=".zip" style="display: none;">
+                        <button class="btn btn-secondary" id="btn-restore-data"
+                            style="padding: 12px 24px; font-size: 1rem;">
+                            Restore Data (ZIP)
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ── SYNCING VIEW ── -->
+            <section class="view" id="view-syncing">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Syncing</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card" id="android-sync-card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>📧</span> Gmail IMAP Integration
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
+                            Connect your Gmail account via IMAP to automatically extract expenses and refunds from
+                            transaction emails (e.g., from banks or UPI). This runs locally on your device.
+                            <br><br>
+                            <strong>Note:</strong> You must use a 16-character <a
+                                href="https://myaccount.google.com/apppasswords" target="_blank"
+                                style="color: var(--accent); text-decoration: underline;">Google App Password</a>
+                            instead of your regular password.
+                        </p>
+                        <div
+                            style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                            <button class="btn btn-primary" id="btn-setup-gmail"
+                                style="padding: 12px 24px; font-size: 1rem;">
+                                Setup / Sync Gmail IMAP
+                            </button>
+                            <button class="btn btn-ghost" id="btn-unlink-gmail"
+                                style="display: none; padding: 12px 24px; font-size: 1rem; color: var(--red);">
+                                Unlink Account
+                            </button>
+                        </div>
+                        <p id="gmail-linked-text"
+                            style="color: var(--text-dim); margin-top: 10px; font-size: 0.9rem; display: none;">
+                            Linked to: <strong id="gmail-linked-email" style="color: var(--text-main);"></strong>
+                        </p>
+
+                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
+
+                        <h3 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-secondary);">Sync Settings
+                        </h3>
+
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Enable Email Syncing</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Automatically
+                                    fetch and process transaction emails.</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-email-sync" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Enable SMS Syncing</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Automatically
+                                    extract expenses from incoming SMS messages.</div>
+                            </div>
+
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-sms-sync" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── SPLIT TOOL VIEW ── -->
+            <section class="view" id="view-activity">
+              <div class="view-header-with-back activity-view-header"><button type="button" class="split-view-back" onclick="window.goBackView()" aria-label="Go back">❮</button><h1 class="view-title" style="margin:0;">Activity History</h1></div>
+              <div id="activity-history-list" class="card"><div class="text-muted">Loading activity…</div></div>
+            </section>
+
+            <section class="view" id="view-split">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div class="split-view-title-wrap">
+                        <button type="button" class="split-view-back" onclick="window.goBackView ? window.goBackView() : window.switchView('dashboard')" aria-label="Go back">❮</button>
+                        <h1 class="view-title" style="margin: 0;">Split Tool</h1>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-create-split" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span>➕</span> New Split Bill
+                    </button>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="summary-cards grid-count-4" style="margin-bottom: 24px;">
+                    <div class="card summary-card card-balance">
+                        <div class="card-label">Total Bills Split</div>
+                        <div class="card-value" id="split-stat-count">0</div>
+                    </div>
+                    <div class="card summary-card card-daily-avg">
+                        <div class="card-label">Total Volume Split</div>
+                        <div class="card-value" id="split-stat-volume">₹0</div>
+                    </div>
+                    <div class="card summary-card card-income-total">
+                        <div class="card-label">Active People</div>
+                        <div class="card-value" id="split-stat-people">0</div>
+                    </div>
+                    <div class="card summary-card card-balance">
+                        <div class="card-label">My Total Share</div>
+                        <div class="card-value" id="split-stat-my-share">₹0.00</div>
+                    </div>
+                </div>
+
+                <div id="split-group-filters" class="split-group-filters" aria-label="Filter bills by group"></div>
+
+                <!-- Split Builder / Editor Card -->
+                <div class="card" id="split-editor-card" style="display: none; margin-bottom: 28px; padding: 24px; border: 1px solid var(--border-focus);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-main);" id="split-editor-heading">
+                            Bill Breakdown & Calculator
+                        </h2>
+                        <button type="button" class="close-btn" onclick="window.closeSplitEditor()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 18px; min-width: 0;">
+                        <div>
+                            <label for="split-input-title" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Bill Title / Description</label>
+                            <input type="text" id="split-input-title" class="form-control" placeholder="e.g. Dinner with Friends" style="width: 100%;" />
+                        </div>
+                        <div>
+                            <label for="split-input-group" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Group (Optional)</label>
+                            <input type="text" id="split-input-group" class="form-control" list="split-known-groups-list" placeholder="e.g. Kashmir Trip, Flatmates" style="width: 100%;" />
+                            <datalist id="split-known-groups-list"></datalist>
+                        </div>
+                        <div style="min-width: 0; max-width: 240px;">
+                            <label for="split-input-date" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Date</label>
+                            <input type="date" id="split-input-date" class="form-control" style="width: 210px; max-width: 100%; min-width: 0; box-sizing: border-box;" />
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <div>
+                            <label for="split-input-total" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                                Bill Amount (tax inclusive; supports + - * / and ()) <span style="color: var(--red);">*</span>
+                            </label>
+                            <input type="text" id="split-input-total" class="form-control" placeholder="e.g. 1500 or (350*3)+450" style="width: 100%;" />
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the final amount payable, including tax. The tax amount below is extracted from this total.</small>
+                        </div>
+                        <div>
+                            <label for="split-input-tax" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                                Tax included (Optional)
+                            </label>
+                            <input type="text" id="split-input-tax" class="form-control" placeholder="e.g. 18% or 180 or 120+60" style="width: 100%;" />
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the tax already included in the bill, as a flat amount or rate (e.g. 18%).</small>
+                        </div>
+                    </div>
+
+                    <!-- Split Method & Tax Method Toggles -->
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px 16px; background: rgba(0, 0, 0, 0.2); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Bill Split Method</label>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary split-method-tab active" data-method="equal" style="flex: 1;">Equal Split</button>
+                                <button type="button" class="btn btn-sm btn-secondary split-method-tab" data-method="expression" style="flex: 1;">Custom Expressions</button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Tax Distribution</label>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary tax-method-tab active" data-tax-method="percentage" style="flex: 1;">Percentage-wise</button>
+                                <button type="button" class="btn btn-sm btn-secondary tax-method-tab" data-tax-method="equal" style="flex: 1;">Equal Share</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- People Reuse Chips -->
+                    <div id="split-people-reuse-container" style="margin-bottom: 16px; display: none;"></div>
+
+                    <!-- Add Person Input Row -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: center; max-width: 450px;">
+                        <input type="text" id="split-input-new-person" class="form-control" placeholder="Add person name (e.g. David)" style="flex: 1;" />
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-add-split-person" style="white-space: nowrap;">+ Add Person</button>
+                    </div>
+
+                    <!-- Participants Table -->
+                    <div class="table-wrap" style="margin-bottom: 18px;">
+                        <table class="data-table" id="split-participants-table">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 130px;">Person</th>
+                                    <th style="min-width: 140px;">Base Share (Expr)</th>
+                                    <th style="min-width: 100px; text-align: right;">Tax Share</th>
+                                    <th style="min-width: 110px; text-align: right;">End Amount</th>
+                                    <th style="width: 60px; text-align: center;">Paid</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="split-participants-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Balance Summary Bar -->
+                    <div id="split-balance-indicator" style="padding: 12px 16px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); margin-bottom: 20px;"></div>
+
+                    <!-- Form Actions -->
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                        <button type="button" class="btn btn-secondary" id="split-btn-cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="split-btn-save">Save Split Bill</button>
+                    </div>
+                </div>
+
+                <!-- Split Bills History List -->
+                <div style="margin-bottom: 16px;">
+                    <h2 class="chart-title" style="margin-bottom: 16px;">Split Bills History</h2>
+                    <div id="split-history-list"></div>
+                    <div id="split-empty-state" class="card" style="text-align: center; padding: 36px 20px; display: none;">
+                        <div style="font-size: 2.5rem; margin-bottom: 12px;">🧾</div>
+                        <h3 style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 6px;">No Split Bills Yet</h3>
+                        <p style="color: var(--text-dim); max-width: 420px; margin: 0 auto 18px; font-size: 0.9rem;">
+                            Easily split group dinner bills, shared rentals, or trip expenses equally or using custom mathematical expressions with tax.
+                        </p>
+                        <button type="button" class="btn btn-primary" onclick="window.openSplitEditor()">
+                            <span>➕</span> Create First Split Bill
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
+            </section>
+
+            <!-- ── BALANCE TRACKER VIEW ── -->
+            <section class="view" id="view-balance">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="if(window.innerWidth <= 768) { if(window.goBackView) window.goBackView(); else window.switchView('dashboard'); }">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);" class="mobile-only-inline">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Balance Tracker</h1>
+                </div>
+
+
+                <div class="card" style="margin-bottom: 24px;">
+                    <h2 class="chart-title">Net Balance Over Time</h2>
+                    <div class="chart-wrap chart-wrap-lg" style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="balance-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="chart-title">History</h2>
+                    <div class="table-wrap"
+                        style="margin-top: 16px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+                        <table class="data-table matrix-table">
+                            <thead id="balance-table-head">
+                                <!-- Populated by JS -->
+                            </thead>
+                            <tbody id="balance-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                            <tfoot id="balance-table-foot">
+                                <!-- Populated by JS -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <style>
+                    @media (min-width: 769px) {
+                        .add-data-point-card {
+                            display: none !important;
+                        }
+                    }
+                </style>
+                <div class="card add-data-point-card" style="margin-top: 24px; margin-bottom: 24px;">
+                    <h2 class="chart-title">Add Data Point</h2>
+                    <form id="form-balance" class="balance-form-row" style="margin-top: 16px;">
+                        <div class="form-group">
+                            <label for="input-balance-date">Date</label>
+                            <input type="date" id="input-balance-date" required>
+                        </div>
+                        <div class="form-group" style="position: relative;">
+                            <label for="input-balance-account">Account</label>
+                            <input type="text" id="input-balance-account" placeholder="e.g. HDFC" required
+                                autocomplete="off">
+                        </div>
+                        <div class="form-group" style="position: relative;">
+                            <label for="input-balance-type">Account Type</label>
+                            <input type="text" id="input-balance-type" placeholder="e.g. Savings, FD, CC" required
+                                autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="input-balance-amount">Amount</label>
+                            <input type="text" inputmode="decimal" id="input-balance-amount" placeholder="e.g. 100+50"
+                                required>
+                        </div>
+                        <input type="hidden" id="edit-balance-id" value="">
+                        <button type="submit" id="btn-balance-submit" class="btn btn-primary"
+                            style="margin-top: 8px;">Save Balance</button>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ═══════════ TOAST ═══════════ -->
+    <div class="toast-container" id="toast-container">
+        <div id="sync-indicator" class="sync-indicator hidden">
+            <div class="sync-spinner"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════ MOBILE TXN ACTION MENU ═══════════ -->
+    <div class="modal-overlay bottom-sheet-overlay" id="mobile-txn-menu-overlay">
+        <div class="bottom-sheet">
+            <div class="bottom-sheet-drag-handle"></div>
+            <div id="mobile-txn-details" class="mobile-txn-details hidden"></div>
+            <button class="bottom-sheet-btn" id="btn-mobile-toggle" style="display: none;">
+                <span>⏸️</span> Disable Schedule
+            </button>
+            <button class="bottom-sheet-btn" id="btn-mobile-link" style="display: none;">
+                <span>🔗</span> Link Transaction
+            </button>
+            <button class="bottom-sheet-btn" id="btn-mobile-go-schedule" style="display: none;">
+                <span>🗓️</span> Go to Schedule
+            </button>
+            <button class="bottom-sheet-btn" id="btn-mobile-edit">
+                <span>✏️</span> Edit Transaction
+            </button>
+            <button class="bottom-sheet-btn" id="btn-mobile-refund">
+                <span>↩️</span> Refund Transaction
+            </button>
+            <button class="bottom-sheet-btn danger" id="btn-mobile-delete">
+                <span>🗑️</span> Delete Transaction
+            </button>
+            <button class="bottom-sheet-btn danger" id="btn-mobile-delete-refund" style="display: none;">
+                <span>↩️🗑️</span> Delete Refund
+            </button>
+            <button class="bottom-sheet-btn" id="btn-mobile-cancel">
+                <span>❌</span> Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════ MAP LOCATION PICKER ═══════════ -->
+    <div id="map-picker-backdrop"
+        style="display:none; position:fixed; inset:0; z-index:10020; background:rgba(0,0,0,0.6); justify-content:center; align-items:center;">
+        <div id="map-picker-overlay"
+            style="display:flex; flex-direction:column; background:var(--bg-body); border-radius:16px; overflow:hidden; width:90vw; max-width:700px; height:80vh; max-height:650px; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+            <!-- Top bar -->
+            <div
+                style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button id="map-picker-cancel" class="btn btn-ghost"
+                        style="padding:6px 12px; font-size:0.95rem;">✕</button>
+                    <h2 style="margin:0; font-size:1.05rem;" id="map-picker-title">Select Location</h2>
+                </div>
+                <button id="map-picker-save" class="btn btn-primary" style="padding:8px 20px;">Save</button>
+            </div>
+            <!-- Controls bar -->
+            <div
+                style="display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap; align-items:center; flex-shrink:0;">
+                <input type="text" id="map-picker-tag" placeholder="Tag (e.g. Home)"
+                    style="flex:1; min-width:100px; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem;">
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <input type="number" id="map-picker-radius" value="500" min="50" max="50000" step="50"
+                        style="width:70px; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem;">
+                    <span style="font-size:0.8rem; color:var(--text-dim);">m</span>
+                </div>
+                <button id="map-picker-gps" class="btn btn-secondary" style="padding:8px 12px; font-size:0.9rem;"
+                    title="Go to current GPS">📍 My Location</button>
+            </div>
+            <!-- Search bar -->
+            <div
+                style="display:flex; gap:8px; padding:8px 16px; border-bottom:1px solid var(--border); align-items:center; flex-shrink:0; background:var(--bg-body);">
+                <input type="text" id="map-picker-search" placeholder="Search location (e.g. Mumbai)"
+                    style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem;">
+                <button id="map-picker-search-btn" class="btn btn-secondary"
+                    style="padding:8px 16px; font-size:0.9rem;">🔍 Search</button>
+            </div>
+            <!-- Map container -->
+            <div id="map-picker-container" style="flex:1; min-height:0;"></div>
+            <!-- Coordinate display -->
+            <div
+                style="display:flex; align-items:center; justify-content:center; gap:16px; padding:6px 16px; border-top:1px solid var(--border); flex-shrink:0; font-size:0.8rem; color:var(--text-dim);">
+                <span>Lat: <strong id="map-picker-lat-display">-</strong></span>
+                <span>Lon: <strong id="map-picker-lon-display">-</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ DELETE CONFIRM MODAL ═══════════ -->
+    <div class="modal-overlay" id="modal-overlay" style="z-index: 10005;">
+        <div class="modal card">
+            <h2 id="modal-title">Confirm</h2>
+            <p id="modal-msg">Are you sure?</p>
+            <!-- inline edit field (hidden by default) -->
+            <input type="text" id="modal-edit-input" class="modal-edit-input" style="display:none;"
+                placeholder="New name…">
+            <input type="password" id="modal-password-input" class="modal-edit-input" style="display:none;"
+                placeholder="Enter your password…">
+            <input type="password" id="modal-new-password-input" class="modal-edit-input" style="display:none;"
+                placeholder="Enter new password…">
+            <select id="modal-select-input" class="modal-edit-input" style="display:none;"></select>
+            <div id="modal-custom-html" style="display:none; margin-top: 15px; width: 100%;"></div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="modal-confirm">Delete</button>
+                <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ KEYWORD MAPPING MODAL ═══════════ -->
+    <div class="modal-overlay" id="keyword-mapping-modal-overlay" style="z-index: 10006;">
+        <div class="modal card" style="max-width: 480px; width: 90%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 id="kw-modal-title" style="font-size: 1.35rem; margin: 0;">Add Keyword Mapping</h2>
+                <button type="button" id="kw-modal-close-btn" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 0.9rem; line-height: 1.4;">
+                When this keyword matches a transaction's merchant or note, the selected fields will override default logic.
+            </p>
+
+            <form id="kw-mapping-form" onsubmit="event.preventDefault(); window.saveKeywordMapping();">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label for="kw-input-keyword" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Keyword / Substring <span style="color: var(--red);">*</span>
+                        </label>
+                        <input type="text" id="kw-input-keyword" class="form-control" placeholder="e.g. swiggy, uber, salary" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                    </div>
+
+                    <div>
+                        <label for="kw-input-category" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Category Override
+                        </label>
+                        <select id="kw-input-category" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="kw-input-txntype" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Transaction Type Override
+                        </label>
+                        <select id="kw-input-txntype" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="kw-input-tags" style="display:block;font-weight:500;font-size:0.9rem;margin-bottom:6px;color:var(--text-main);">Tags (comma separated)</label>
+                        <input type="text" id="kw-input-tags" class="form-control" placeholder="e.g. groceries, recurring" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.95rem;">
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <label for="kw-input-enabled" style="font-weight:500;color:var(--text-main);">Enable this rule</label>
+                        <input type="checkbox" id="kw-input-enabled" checked>
+                    </div>
+                    <div>
+                        <label for="kw-input-txnmode" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Transaction Mode Override
+                        </label>
+                        <select id="kw-input-txnmode" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" id="kw-modal-cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="kw-modal-save">Save Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════ SMS & EMAIL APPROVAL MODAL ═══════════ -->
+    <div class="modal-overlay" id="sms-modal-overlay">
+        <div class="modal card" style="max-width: 500px; width: 90%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h2 style="font-size: 1.5rem; margin: 0;">Pending SMS & Email Transactions</h2>
+                <button type="button" id="sms-modal-close-btn" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;" title="Close modal">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 0.95rem; line-height: 1.4;">Review the
+                following transactions extracted from your SMS inbox or emails.</p>
+
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" id="sms-select-all" checked
+                        style="width: 16px; height: 16px; cursor: pointer;">
+                    <span style="font-size: 0.9rem; font-weight: 600;">Select All</span>
+                </label>
+                <span id="sms-count" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">0
+                    transactions</span>
+            </div>
+
+            <div id="sms-approval-list"
+                style="max-height: 400px; overflow-y: auto; margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
+                <!-- Populated via JS -->
+            </div>
+
+            <div class="modal-actions" style="display: flex; gap: 12px;">
+                <button class="btn btn-ghost" id="sms-modal-discard"
+                    style="flex: 1; padding: 12px; font-weight: 600;">Discard All</button>
+                <button class="btn btn-primary" id="sms-modal-approve"
+                    style="flex: 1; padding: 12px; font-weight: 600;">Approve Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ SCHEDULED TRANSACTIONS APPROVAL MODAL ═══════════ -->
+    <div class="modal-overlay" id="scheduled-modal-overlay">
+        <div class="modal card" style="max-width: 520px; width: 92%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h2 style="font-size: 1.5rem; margin: 0;">Approve Scheduled Transactions</h2>
+                <button type="button" id="scheduled-modal-close-btn" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;" title="Close modal">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 0.95rem; line-height: 1.4;">Review and approve the scheduled transactions due to be logged.</p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" id="scheduled-select-all" checked style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);">
+                    <span style="font-size: 0.9rem; font-weight: 600;">Select All</span>
+                </label>
+                <span id="scheduled-count" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">0 transactions</span>
+            </div>
+
+            <div id="scheduled-approval-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
+                <!-- Populated via JS -->
+            </div>
+
+            <div class="modal-actions" style="display: flex; gap: 12px;">
+                <button class="btn btn-ghost" id="scheduled-modal-discard" style="flex: 1; padding: 12px; font-weight: 600;">Discard All</button>
+                <button class="btn btn-primary" id="scheduled-modal-approve" style="flex: 1; padding: 12px; font-weight: 600;">Approve Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── BATCH UPDATE MODAL (Desktop) ── -->
+    <div class="modal-overlay hide-on-mobile" id="modal-batch-update-overlay">
+        <div class="modal card" id="modal-batch-update">
+            <div class="batch-modal-header">
+                <h2>
+                    <span>✏️</span> Batch Update Transactions
+                </h2>
+                <p>
+                    Select the fields you wish to update. Only checked fields will overwrite values on the selected transactions.
+                </p>
+            </div>
+
+            <form id="batch-update-form" onsubmit="event.preventDefault(); window.applyBatchUpdate();">
+                <div class="batch-fields-list">
+                    <!-- Category Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-category">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-category" class="batch-field-toggle">
+                                <span class="batch-field-label">Category</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-category"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <select id="batch-input-category" class="form-control" disabled>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Mode Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-txn-mode">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-txn-mode" class="batch-field-toggle">
+                                <span class="batch-field-label">Transaction Mode</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-txn-mode"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <select id="batch-input-txn-mode" class="form-control" disabled>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Type Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-txn-type">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-txn-type" class="batch-field-toggle">
+                                <span class="batch-field-label">Transaction Type</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-txn-type"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <select id="batch-input-txn-type" class="form-control" disabled>
+                                <option value="Expense">Expense</option>
+                                <option value="Income">Income</option>
+                                <option value="Refund">Refund</option>
+                                <option value="Investment">Investment</option>
+                                <option value="Transfer">Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Date Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-date">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-date" class="batch-field-toggle">
+                                <span class="batch-field-label">Date</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-date"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <input type="date" id="batch-input-date" class="form-control" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Location Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-location">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-location" class="batch-field-toggle">
+                                <span class="batch-field-label">Location</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-location"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <div id="batch-location-suggestions" class="chip-group note-suggestions" style="margin-bottom: 6px; display: none;"></div>
+                            <input type="text" id="batch-input-location" class="form-control" placeholder="e.g. Gurugram, Delhi" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Tag Field -->
+                    <div class="batch-field-row">
+                        <label class="batch-field-header" for="batch-enable-tag">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="checkbox" id="batch-enable-tag" class="batch-field-toggle">
+                                <span class="batch-field-label">Tag</span>
+                            </div>
+                            <span class="batch-field-current" id="batch-current-tag"></span>
+                        </label>
+                        <div class="batch-field-input-wrap">
+                            <div id="batch-tag-suggestions" class="chip-group note-suggestions" style="margin-bottom: 6px; display: none;"></div>
+                            <input type="text" id="batch-input-tag" class="form-control" placeholder="e.g. Vacation, Project" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions batch-modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-batch-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-batch-apply">Apply Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════ BOTTOM NAVIGATION (MOBILE) ═══════════ -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <button class="nav-btn active" data-view="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Dash</span>
+        </button>
+        <button class="nav-btn" data-view="transactions">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">Txns</span>
+        </button>
+        <div class="fab-wrapper">
+            <button class="nav-btn fab-btn" data-view="add">
+                <span class="nav-icon" style="font-family: Arial, sans-serif; font-weight: 300;">+</span>
+            </button>
+        </div>
+        <button class="nav-btn" data-view="charts">
+            <span class="nav-icon">📈</span>
+            <span class="nav-text">Charts</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">Settings</span>
+        </button>
+    </nav>
+
+    <!-- ═══════════ CHART FULLSCREEN POPUP (DESKTOP) ═══════════ -->
+    <div class="modal-overlay chart-popup-overlay" id="chart-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-popup-title">
+        <div class="chart-popup-modal card">
+            <div class="chart-popup-header">
+                <h2 class="chart-popup-title" id="chart-popup-title">Chart Details</h2>
+                <button type="button" class="chart-popup-close-btn" id="chart-popup-close-btn" title="Close (Esc)" aria-label="Close">✕</button>
+            </div>
+            <div class="chart-popup-body">
+                <canvas id="chart-popup-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/jszip.min.js"></script>
+    <script>
+        (function () {
+            var isIPad = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1 || /iPad/i.test(navigator.userAgent);
+            var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^[0-9\.]+$/.test(window.location.hostname);
+
+            if (isIPad && isLocal) {
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+                script.onload = function () { eruda.init(); };
+                document.body.appendChild(script);
+            }
+        })();
+    </script>
+    <!-- Keyboard handling & scroll stabilization for touch devices (iPad/tablets/phones) -->
+    <script>
+        (function () {
+            var mc = null;
+            function getMainContent() {
+                if (!mc) mc = document.querySelector('.main-content');
+                return mc;
+            }
+
+            function resetWindowScroll() {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+
+                var c = getMainContent();
+                if (c) {
+                    var maxScroll = c.scrollHeight - c.clientHeight;
+                    if (maxScroll <= 0) {
+                        c.scrollTop = 0;
+                    } else if (c.scrollTop > maxScroll) {
+                        c.scrollTop = maxScroll;
+                    }
+                }
+            }
+
+            // Proactively position focused inputs cleanly below sticky headers and above the virtual keyboard.
+            // With .form-bottom-spacer providing headroom, all fields (including Tag at bottom)
+            // can cleanly reach the safe zone without window-level pan or header clipping.
+            function positionFocusedInput(target) {
+                if (!target || document.activeElement !== target) return;
+                var tag = target.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+                if (target.type === 'hidden' || target.type === 'checkbox' || target.type === 'radio') return;
+                if (target.closest('.modal-overlay')) return;
+
+                var c = getMainContent();
+                if (!c) return;
+
+                var mcRect = c.getBoundingClientRect();
+                var scrollTarget = target.closest('.form-group, .filter-group') || target;
+                var groupRect = scrollTarget.getBoundingClientRect();
+                var targetRect = target.getBoundingClientRect();
+
+                // Compute sticky header bottom dynamically
+                var header = c.querySelector('.sticky-header-wrapper');
+                var headerBottom = mcRect.top;
+                if (header && header.offsetHeight > 0 && window.getComputedStyle(header).display !== 'none') {
+                    headerBottom = header.getBoundingClientRect().bottom;
+                }
+                var mobileHeader = document.getElementById('mobile-header');
+                if (mobileHeader && mobileHeader.offsetHeight > 0 && window.getComputedStyle(mobileHeader).display !== 'none') {
+                    headerBottom = Math.max(headerBottom, mobileHeader.getBoundingClientRect().bottom);
+                }
+                // Generous 16px buffer below sticky header to clear mask gradient
+                var safeTop = headerBottom + 16;
+
+                // On touch devices (iPad/tablets/phones), account for the software keyboard
+                var isTouch = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+                var effectiveVpHeight = window.visualViewport ? (window.visualViewport.offsetTop + window.visualViewport.height) : window.innerHeight;
+                var estimatedKbHeight = isTouch ? Math.max(320, window.innerHeight * 0.42) : 0;
+                var maxVisibleBottom = isTouch ? Math.min(effectiveVpHeight, window.innerHeight - estimatedKbHeight) : mcRect.bottom;
+                var safeBottom = maxVisibleBottom - 16;
+
+                // If element is behind/touching header OR covered/touching keyboard:
+                // Scroll so that the form group's top is positioned cleanly at safeTop
+                if (groupRect.top < safeTop || targetRect.bottom > safeBottom) {
+                    var delta = groupRect.top - safeTop;
+                    if (Math.abs(delta) > 6) {
+                        if (window.innerWidth <= 860) {
+                            window.scrollBy(0, delta);
+                        } else {
+                            c.scrollTop += delta;
+                        }
+                    }
+                }
+            }
+
+            document.addEventListener('focusin', function (e) {
+                var target = e.target;
+                if (!target) return;
+                var tag = target.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+                if (target.type === 'hidden' || target.type === 'checkbox' || target.type === 'radio') return;
+
+                // Run immediately to establish position before WebKit viewport pan
+                positionFocusedInput(target);
+                // Follow-up ticks to counter any native browser focus-scroll that pushed element behind header
+                setTimeout(function () { positionFocusedInput(target); }, 60);
+                setTimeout(function () { positionFocusedInput(target); }, 250);
+            }, true);
+
+            // Catch keyboard dismiss via Visual Viewport resize
+            // (e.g. when user taps the iPad "Hide Keyboard" button without blurring the input)
+            if (window.visualViewport) {
+                var lastVPHeight = window.visualViewport.height;
+                window.visualViewport.addEventListener('resize', function () {
+                    var currentHeight = window.visualViewport.height;
+                    // If viewport grew significantly (keyboard closed)
+                    if (currentHeight - lastVPHeight > 80) {
+                        var active = document.activeElement;
+                        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+                            active.blur();
+                        }
+                        resetWindowScroll();
+                        setTimeout(resetWindowScroll, 50);
+                        setTimeout(resetWindowScroll, 200);
+                    }
+                    lastVPHeight = currentHeight;
+                });
+            }
+
+            // On input blur / focusout
+            document.addEventListener('focusout', function (e) {
+                var tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+                    setTimeout(function () {
+                        var active = document.activeElement;
+                        var isAnotherInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+                        if (!isAnotherInput) {
+                            resetWindowScroll();
+                        }
+                    }, 50);
+                }
+            });
+
+            // Guardian: On desktop/tablet layout (width > 860px), window itself should NEVER scroll
+            window.addEventListener('scroll', function () {
+                if (window.innerWidth > 860 && (window.scrollY > 0 || window.pageYOffset > 0 || document.documentElement.scrollTop > 0)) {
+                    resetWindowScroll();
+                }
+            }, { passive: true });
+        })();
+    </script>
+    <script type="module" src="app.js?v=427"></script>
+
+    <script>
+        // Keep the mobile footer outside view containers so iOS Safari can
+        // anchor it to the viewport rather than a scrolling/transformed pane.
+        (() => {
+            const keepBottomNavFixed = () => {
+                const nav = document.getElementById('bottom-nav');
+                if (nav && nav.parentElement !== document.body) {
+                    document.body.appendChild(nav);
+                }
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', keepBottomNavFixed, { once: true });
+            } else {
+                keepBottomNavFixed();
+            }
+        })();
+    </script>
+</body>
+
+</html>
