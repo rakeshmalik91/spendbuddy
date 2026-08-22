@@ -1,0 +1,16 @@
+/* ══════════════ SETTINGS ══════════════ */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+}
+
+.settings-add-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.settings-add-row input {
+    flex: 1;
+}

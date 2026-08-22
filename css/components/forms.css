@@ -1,0 +1,498 @@
+/* ══════════════ FORM ══════════════ */
+.form-card {
+    max-width: 100%;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.req {
+    color: var(--red);
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font: 400 0.92rem var(--font);
+    transition: border var(--transition), box-shadow var(--transition);
+    outline: none;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(99, 138, 255, 0.12);
+}
+
+select {
+    cursor: pointer;
+}
+
+select option {
+    background: #161b28;
+    color: var(--text-primary);
+}
+
+
+/* color-scheme for date picker */
+input[type="date"] {
+    color-scheme: dark;
+}
+
+/* Remove spin buttons from number inputs */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Container locking during form submission to prevent race conditions */
+.form-submitting, .suggestions-disabled {
+    pointer-events: none !important;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    grid-column: 1 / -1;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border);
+    transition: .3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #fff;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked+.toggle-slider {
+    background-color: var(--accent);
+}
+
+input:checked+.toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Creative Frequency Selector Grid */
+.frequency-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+}
+
+.frequency-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    text-align: center;
+    user-select: none;
+    gap: 4px;
+}
+
+.frequency-chip .chip-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.frequency-chip:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-main);
+    border-color: var(--border);
+    transform: translateY(-1px);
+}
+
+.frequency-chip.active {
+    background: rgba(99, 138, 255, 0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(99, 138, 255, 0.15);
+}
+
+.weekday-buttons { display: flex; gap: 4px; justify-content: space-between; margin-top: 5px; }
+.weekday-btn { flex: 1; padding: 12px 0; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-weight: 500; }
+.weekday-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--text-primary); }
+.weekday-btn.selected { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; box-shadow: 0 0 10px rgba(99, 138, 255, 0.2); }
+
+/* Transaction Type Colors */
+.chip.txntype-expense {
+    color: var(--red);
+}
+.chip.txntype-expense.active {
+    background: var(--red-dim);
+    border-color: var(--red);
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.15);
+}
+
+.chip.txntype-income {
+    color: var(--cyan);
+}
+.chip.txntype-income.active {
+    background: rgba(34, 211, 238, 0.12);
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.15);
+}
+
+.chip.txntype-refund {
+    color: var(--green);
+}
+.chip.txntype-refund.active {
+    background: var(--green-dim);
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.15);
+}
+
+.chip.txntype-investment {
+    color: var(--purple);
+}
+.chip.txntype-investment.active {
+    background: rgba(167, 139, 250, 0.12);
+    border-color: var(--purple);
+    box-shadow: 0 0 10px rgba(167, 139, 250, 0.15);
+}
+
+.chip.txntype-transfer {
+    color: var(--text-muted);
+}
+.chip.txntype-transfer.active {
+    background: rgba(90, 100, 120, 0.18);
+    border-color: var(--text-muted);
+    box-shadow: 0 0 10px rgba(90, 100, 120, 0.15);
+}
+
+.chip-text-short {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    #txntype-chips .chip-text-full { display: none; }
+    #txntype-chips .chip-text-short { display: inline; }
+    
+    #txntype-chips .chip.active .chip-text-full { display: inline; }
+    #txntype-chips .chip.active .chip-text-short { display: none; }
+}
+/* Balance Form Desktop Row */
+.balance-form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+.balance-suggestions-span {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+@media (min-width: 800px) {
+    .balance-form-row {
+        grid-template-columns: 1fr 1.5fr 1.5fr 1fr auto;
+        align-items: start;
+    }
+    .balance-form-row button[type="submit"] {
+        margin-top: 24px !important;
+        height: 42px;
+    }
+    .balance-suggestions-span {
+        grid-column: 2 / 4;
+        margin-top: -8px;
+    }
+}
+
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: #0f131e; /* Fully opaque solid background to hide text underneath */
+    /* Removed backdrop-filter to guarantee solid appearance */
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+}
+.autocomplete-dropdown.show {
+    display: flex;
+}
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    transition: background 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+.autocomplete-item:hover, .autocomplete-item.active {
+    background: var(--bg-card-hover, #1e2537);
+}
+
+/* ══════════════ INTERACTIVE CHIPS & SUGGESTIONS ══════════════ */
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+@media (hover: hover) {
+    .chip:hover {
+        background: var(--border);
+    }
+}
+
+.chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Note Suggestion Chips */
+.note-suggestions {
+    margin-top: 4px;
+    gap: 6px;
+}
+
+.note-suggestions:empty {
+    display: none;
+}
+
+.note-chip {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    border-radius: 16px;
+    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.2);
+    color: var(--text-secondary);
+}
+
+@media (hover: hover) {
+    .note-chip:hover {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--green);
+        border-color: rgba(52, 211, 153, 0.4);
+    }
+}
+
+.note-chip.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+}
+
+.date-quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.date-quick-actions .chip {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+/* Category Chip Emoji Compact */
+.chip.chip-emoji-only {
+    padding: 6px 10px;
+}
+
+.chip.chip-emoji-only .chip-label {
+    display: none;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
+@media (hover: hover) {
+    .chip.chip-emoji-only:hover .chip-label {
+        display: inline;
+    }
+}
+
+.chip.chip-emoji-only.active .chip-label {
+    display: inline;
+}
+
+.chip-emoji {
+    font-size: 1.05em;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* ══════════════ CUSTOM CALENDAR ══════════════ */
+.calendar-widget {
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.cal-nav {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.cal-nav:hover {
+    background: var(--border);
+}
+
+.cal-title {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+}
+
+.cal-day-header {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.cal-day {
+    padding: 6px 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.cal-day:hover {
+    background: var(--border);
+}
+
+.cal-day.empty {
+    cursor: default;
+    background: none;
+}
+
+.cal-day.active {
+    background: var(--accent);
+    color: white;
+    font-weight: bold;
+}
+
+.cal-day.today {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+.cal-day.today.active {
+    color: white;
+}

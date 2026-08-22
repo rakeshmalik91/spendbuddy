@@ -1,0 +1,1160 @@
+import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
+import { getUserEmail, getRequiredEmail } from "../services/auth.js";
+import { switchView } from "./navigation.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag } from "../utils/helpers.js";
+import { $, hideLoader, showLoader, $$ } from "../core/init.js";
+import { state } from "../core/state.js";
+import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
+import { renderSettings } from "./settings.js";
+import { renderSelectedDayTransactions } from "./dashboard.js";
+import { renderAll } from "./render_all.js";
+import { USE_LOCAL_DATA } from "../../config.js";
+import { getTxnTypeFromMapping } from "../utils/txn_mode_mapping.js";
+import { getRawSmsSuggestionsForDate, consumeRawSmsTransaction, discardRawSmsTransaction, isDuplicateTxn, recomputePendingSmsTransactions } from "./sms_approval.js";
+
+/* ══════════════ FORM ══════════════ */
+let currentSuggestionSource = '';
+let currentSuggestionTxnId = '';
+let currentSelectedSuggestionTxn = null;
+let isFormSubmitting = false;
+let lastSubmitStartTime = 0;
+let lastFormFillTime = 0;
+
+/**
+ * Returns whether form is currently submitting (saving to cloud)
+ */
+export function getIsFormSubmitting() {
+    return isFormSubmitting;
+}
+
+/**
+ * Record timestamp when form values are populated (e.g. from suggestions)
+ */
+export function recordFormFillTime() {
+    lastFormFillTime = Date.now();
+}
+
+/**
+ * Toggle form submitting state, lock inputs/buttons, and prevent race condition clicks
+ */
+export function setFormSubmittingState(submitting) {
+    isFormSubmitting = submitting;
+    const form = $('#expense-form');
+    const btnSubmit = $('#btn-submit');
+    const btnCancel = $('#btn-cancel');
+    const smsSuggestionsContainer = $('#sms-suggestions-container');
+    const noteSuggestions = $('#note-suggestions');
+    const locationSuggestions = $('#location-suggestions');
+    const tagSuggestions = $('#tag-suggestions');
+
+    if (submitting) {
+        lastSubmitStartTime = Date.now();
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.dataset.origText = btnSubmit.textContent;
+            btnSubmit.textContent = 'Saving...';
+        }
+        if (btnCancel) btnCancel.disabled = true;
+
+        if (form) form.classList.add('form-submitting');
+        if (smsSuggestionsContainer) smsSuggestionsContainer.classList.add('form-submitting');
+        if (noteSuggestions) noteSuggestions.classList.add('form-submitting');
+        if (locationSuggestions) locationSuggestions.classList.add('form-submitting');
+        if (tagSuggestions) tagSuggestions.classList.add('form-submitting');
+    } else {
+        if (btnSubmit) {
+            btnSubmit.disabled = false;
+            updateFormActionButtons();
+        }
+        if (btnCancel) btnCancel.disabled = false;
+
+        if (form) form.classList.remove('form-submitting');
+        if (smsSuggestionsContainer) smsSuggestionsContainer.classList.remove('form-submitting');
+        if (noteSuggestions) noteSuggestions.classList.remove('form-submitting');
+        if (locationSuggestions) locationSuggestions.classList.remove('form-submitting');
+        if (tagSuggestions) tagSuggestions.classList.remove('form-submitting');
+    }
+}
+
+/**
+ * Evaluate a mathematical expression (e.g., "127+100+30")
+ * Returns the calculated value as a number
+ */
+export function evaluateExpression(expr) {
+    if (!expr || typeof expr !== 'string') return 0;
+    
+    // If it's just a plain number, return it
+    const plainNum = parseFloat(expr);
+    if (!isNaN(plainNum) && !expr.includes('+') && !expr.includes('-') && !expr.includes('*')) {
+        return plainNum;
+    }
+    
+    try {
+        // Remove spaces and validate the expression contains only numbers, +, -, *, ., and whitespace
+        const cleaned = expr.replace(/\s/g, '');
+        if (!/^[\d.+\-*]+$/.test(cleaned)) {
+            // Invalid characters, return as plain number or 0
+            return isNaN(plainNum) ? 0 : plainNum;
+        }
+        
+        // Split by + and - operators while keeping the operators
+        const parts = cleaned.split(/([+\-])/);
+        let result = 0;
+        let currentOp = '+';
+        
+        for (const part of parts) {
+            if (part === '+' || part === '-') {
+                currentOp = part;
+            } else if (part) {
+                let num;
+                if (part.includes('*')) {
+                    const factors = part.split('*');
+                    num = factors.reduce((acc, val) => acc * (parseFloat(val) || 0), 1);
+                } else {
+                    num = parseFloat(part);
+                }
+                
+                if (!isNaN(num)) {
+                    result = currentOp === '+' ? result + num : result - num;
+                }
+            }
+        }
+        
+        return result;
+    } catch (e) {
+        console.warn('Failed to evaluate expression:', expr, e);
+        return isNaN(plainNum) ? 0 : plainNum;
+    }
+}
+
+export async function saveYearCSV(year) {
+    if (USE_LOCAL_DATA) {
+        toast('Running locally: Cloud sync disabled', 'info');
+        return;
+    }
+    // Guard against undefined, null, or invalid year arguments to prevent creating invalid cloud files like 'undefined.csv'
+    if (!year || typeof year !== 'string' || year === 'undefined') {
+        console.warn('[Storage] saveYearCSV called with missing or invalid year:', year, '- defaulting to current year');
+        year = new Date().getFullYear().toString();
+    }
+
+    // Always sort state.expenses date descending
+    state.expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const yearExpenses = state.expenses.filter(e => e.date && e.date.startsWith(year));
+    const csvContent = expensesToCSV(yearExpenses);
+
+    const userEmail = getRequiredEmail();
+    const fileRef = ref(state.storage, `${userEmail}/${year}.csv`);
+    await uploadFile(fileRef, csvContent);
+}
+
+export async function saveMetadataCSV() {
+    if (USE_LOCAL_DATA) return;
+    const header = 'Type,Value\n';
+    const catRows = state.categories.map(c => `Category,${csvEscape(c)}`);
+    const txnRows = state.txnModes.map(c => `Transaction Mode,${csvEscape(c)}`);
+    const csvContent = header + catRows.concat(txnRows).join('\n');
+    const userEmail = getRequiredEmail();
+    const fileRef = ref(state.storage, `${userEmail}/metadata.csv`);
+    await uploadFile(fileRef, csvContent);
+}
+
+export async function saveLocationCSV() {
+    if (USE_LOCAL_DATA) return;
+    const header = 'tag,lat,lon,radius\n';
+    const rows = state.locationsConfig.map(c => `${csvEscape(c.tag)},${c.lat},${c.lon},${c.radius}`);
+    const csvContent = header + rows.join('\n');
+    const userEmail = getRequiredEmail();
+    const fileRef = ref(state.storage, `${userEmail}/location.csv`);
+    await uploadFile(fileRef, csvContent);
+}
+
+export async function bulkUpdateCSVs(field, oldValue, newValue) {
+    if (USE_LOCAL_DATA) return;
+    const userEmail = getRequiredEmail();
+    const storageRef = ref(state.storage, `${userEmail}/`);
+    const res = await listAll(storageRef);
+
+    const yearFiles = res.items.filter(itemRef => /^\d{4}\.csv$/.test(itemRef.name));
+
+    for (const fileRef of yearFiles) {
+        try {
+            const url = await getDownloadURL(fileRef);
+            const response = await fetch(url);
+            if (!response.ok) continue;
+            const text = await response.text();
+
+            const parsed = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
+            let modified = false;
+
+            parsed.data.forEach(row => {
+                let actualField = field === 'category' ? 'Category' : 'Transaction Mode';
+                if (row[actualField] === oldValue) {
+                    row[actualField] = newValue || '';
+                    modified = true;
+                }
+            });
+
+            if (modified) {
+                // Re-normalise each raw Papa row so Transaction Type is preserved
+                const normalized = parsed.data.map(normalizeRow).filter(r => r !== null);
+                const newCsv = expensesToCSV(normalized);
+                await uploadFile(fileRef, newCsv);
+            }
+        } catch (e) {
+            console.error('Error bulk updating file:', fileRef.name, e);
+        }
+    }
+}
+
+export function setupForm() {
+    const form = $('#expense-form');
+
+    // Restrict amount input to numbers and math operators
+    $('#input-amount')?.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9.+\-]/g, '');
+    });
+
+    // Populate select options for days
+    let daysHtml = '';
+    for (let i = 1; i <= 31; i++) daysHtml += `<option value="${i}">${i}</option>`;
+    if ($('#input-freq-day')) $('#input-freq-day').innerHTML = daysHtml;
+    if ($('#input-freq-yearly-day')) $('#input-freq-yearly-day').innerHTML = daysHtml;
+
+    const freqInput = $('#input-frequency');
+
+    const syncEndConditions = (source) => {
+        const enableCb = $('#input-end-enable');
+        const dateInput = $('#input-end-date');
+        const occInput = $('#input-max-occurrences');
+        const inputsContainer = $('#end-condition-inputs');
+        if (!enableCb || !dateInput || !occInput) return;
+
+        if (!enableCb.checked) {
+            dateInput.disabled = true;
+            occInput.disabled = true;
+            if (inputsContainer) inputsContainer.style.opacity = '0.5';
+            return;
+        }
+
+        dateInput.disabled = false;
+        occInput.disabled = false;
+        if (inputsContainer) inputsContainer.style.opacity = '1';
+
+        const frequency = freqInput ? freqInput.value : 'one-off';
+        const startDate = $('#input-date') ? $('#input-date').value : '';
+        
+        if (dateInput && startDate) {
+            dateInput.min = startDate;
+        }
+
+        if (!startDate || frequency === 'one-off' || frequency === 'instant') return;
+
+        let entry = {
+            frequency,
+            recur_month: parseInt($('#input-freq-month').value),
+            recur_day: (['monthly', 'bimonthly', 'quarterly'].includes(frequency)) ? parseInt($('#input-freq-day').value) : parseInt($('#input-freq-yearly-day').value),
+            recur_weekdays: Array.from(document.querySelectorAll('.weekday-btn.selected')).map(b => parseInt(b.dataset.val)).sort((a,b) => a-b)
+        };
+        entry.recur_weekday = entry.recur_weekdays.length > 0 ? entry.recur_weekdays[0] : NaN;
+
+        if (source === 'date') {
+            let endDate = dateInput.value;
+            if (!endDate) return;
+            if (endDate < startDate) {
+                dateInput.type = 'date';
+                dateInput.value = startDate;
+                endDate = startDate;
+            }
+            
+            let count = 0;
+            let currentNext = calculateNextRunDate(frequency, entry, startDate, true);
+            let maxLoops = 10000;
+            while (currentNext <= endDate && count < maxLoops) {
+                count++;
+                let next = calculateNextRunDate(frequency, entry, currentNext);
+                if (next <= currentNext) break;
+                currentNext = next;
+            }
+            occInput.value = count;
+        } else if (source === 'occurrences') {
+            let count = parseInt(occInput.value);
+            if (isNaN(count) || count < 1) return;
+
+            let currentNext = calculateNextRunDate(frequency, entry, startDate, true);
+            let maxLoops = 10000;
+            let c = 1;
+            while (c < count && c < maxLoops) {
+                let next = calculateNextRunDate(frequency, entry, currentNext);
+                if (next <= currentNext) break;
+                currentNext = next;
+                c++;
+            }
+            dateInput.type = 'date';
+            dateInput.value = currentNext;
+        }
+    };
+
+        const updateRecurrenceFields = () => {
+        if (!freqInput) return;
+        const val = freqInput.value;
+        const wrapper = $('#freq-options-wrapper');
+        
+        if (wrapper) {
+            wrapper.style.display = (val === 'one-off') ? 'none' : 'flex';
+        }
+
+        $('#freq-weekly-options').style.display = 'none';
+        $('#freq-monthly-options').style.display = 'none';
+        $('#freq-yearly-options').style.display = 'none';
+
+        if (['weekly', 'biweekly'].includes(val)) $('#freq-weekly-options').style.display = 'block';
+        if (['monthly', 'bimonthly', 'quarterly'].includes(val)) $('#freq-monthly-options').style.display = 'block';
+        if (val === 'yearly') $('#freq-yearly-options').style.display = 'flex';
+
+        const dateVal = $('#input-date').value;
+        if (dateVal && val !== 'one-off' && val !== 'instant') {
+            const d = parseLocalDate(dateVal);
+            if (['weekly', 'biweekly'].includes(val)) {
+                const currentDay = d.getDay();
+                let btn = document.querySelector(`.weekday-btn[data-val="${currentDay}"]`);
+                if (btn) btn.classList.add('selected');
+            } else if (['monthly', 'bimonthly', 'quarterly'].includes(val)) {
+                $('#input-freq-day').value = d.getDate();
+                $('#input-freq-day').disabled = false;
+            } else if (val === 'yearly') {
+                $('#input-freq-yearly-day').value = d.getDate();
+                $('#input-freq-month').value = d.getMonth() + 1;
+                $('#input-freq-yearly-day').disabled = false;
+                $('#input-freq-month').disabled = false;
+            }
+        }
+
+        const hint = $('#freq-start-date-hint');
+        if (hint) {
+            const recurringFreqs = ['daily', 'weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'yearly'];
+            hint.style.display = recurringFreqs.includes(val) ? 'block' : 'none';
+            if (recurringFreqs.includes(val) && dateVal) {
+                hint.innerHTML = `Starting from <strong style="color: var(--accent);">${formatDate(dateVal)}</strong>`;
+            } else {
+                hint.textContent = 'Select a start date on the calendar above.';
+            }
+        }
+
+        const qaHint = $('#freq-quick-add-hint');
+        if (qaHint) {
+            qaHint.style.display = val === 'instant' ? 'block' : 'none';
+        }
+
+        const endConditionGroup = $('#end-condition-group');
+        if (endConditionGroup) {
+            if (val === 'one-off' || val === 'instant') {
+                endConditionGroup.style.display = 'none';
+            } else {
+                endConditionGroup.style.display = 'block';
+                syncEndConditions('occurrences');
+            }
+        }
+    };
+
+    if ($('#input-end-enable')) {
+        $('#input-end-enable').addEventListener('change', () => syncEndConditions('occurrences'));
+    }
+    if ($('#input-end-date')) {
+        $('#input-end-date').addEventListener('change', () => syncEndConditions('date'));
+    }
+    if ($('#input-max-occurrences')) {
+        $('#input-max-occurrences').addEventListener('input', () => syncEndConditions('occurrences'));
+    }
+
+    if (freqInput) {
+        freqInput.addEventListener('change', () => {
+            updateRecurrenceFields();
+            updateFormActionButtons();
+        });
+        updateFormActionButtons();
+    }
+
+    const adjustStartDateFromRecurrence = () => {
+        if (!freqInput) return;
+        const val = freqInput.value;
+        const dateVal = $('#input-date').value;
+        if (!dateVal) return;
+        const d = parseLocalDate(dateVal);
+
+        if (['weekly', 'biweekly'].includes(val)) {
+            let selectedBtns = Array.from(document.querySelectorAll('.weekday-btn.selected'));
+            if (selectedBtns.length === 0) return;
+            let selectedDays = selectedBtns.map(b => parseInt(b.dataset.val)).sort((a,b) => a-b);
+            
+            const currentWeekday = d.getDay();
+            let nextWeekday = selectedDays.find(w => w >= currentWeekday);
+            let diff;
+            if (nextWeekday !== undefined) {
+                diff = nextWeekday - currentWeekday;
+            } else {
+                diff = (7 - currentWeekday) + selectedDays[0];
+            }
+            d.setDate(d.getDate() + diff);
+        } else if (['monthly', 'bimonthly', 'quarterly'].includes(val)) {
+            const targetDay = parseInt($('#input-freq-day').value);
+            d.setDate(targetDay);
+        } else if (val === 'yearly') {
+            const targetDay = parseInt($('#input-freq-yearly-day').value);
+            const targetMonth = parseInt($('#input-freq-month').value) - 1;
+            d.setMonth(targetMonth);
+            d.setDate(targetDay);
+        }
+
+        const newDateStr = getLocalDateString(d);
+        if (newDateStr !== dateVal) {
+            $('#input-date').value = newDateStr;
+            $('#input-date').dispatchEvent(new Event('change'));
+        }
+    };
+
+    document.querySelectorAll('.weekday-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('selected');
+            let selectedBtns = document.querySelectorAll('.weekday-btn.selected');
+            if (selectedBtns.length === 0) {
+                btn.classList.add('selected'); // prevent zero selection
+                return;
+            }
+            adjustStartDateFromRecurrence();
+        });
+    });
+
+    if ($('#input-freq-day')) $('#input-freq-day').addEventListener('change', adjustStartDateFromRecurrence);
+    if ($('#input-freq-yearly-day')) $('#input-freq-yearly-day').addEventListener('change', adjustStartDateFromRecurrence);
+    if ($('#input-freq-month')) $('#input-freq-month').addEventListener('change', adjustStartDateFromRecurrence);
+
+    // Auto-update selected day's transactions
+    $('#input-date').addEventListener('change', () => {
+        updateRecurrenceFields();
+        renderSelectedDayTransactions();
+        renderSmsSuggestions();
+        updateFormActionButtons();
+        if (typeof renderCalendar === 'function') renderCalendar();
+
+        const inputDate = $('#input-date').value;
+        const todayStr = getLocalDateString();
+
+        let yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = getLocalDateString(yesterday);
+
+        let tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = getLocalDateString(tomorrow);
+
+        $('#btn-date-yesterday')?.classList.toggle('active', inputDate === yesterdayStr);
+        $('#btn-date-today')?.classList.toggle('active', inputDate === todayStr);
+        $('#btn-date-tomorrow')?.classList.toggle('active', inputDate === tomorrowStr);
+    });
+
+    // Old Calendar navigation removed
+
+    $('#btn-date-yesterday').addEventListener('click', () => {
+        let d = new Date();
+        d.setDate(d.getDate() - 1);
+        $('#input-date').value = getLocalDateString(d);
+        $('#input-date').dispatchEvent(new Event('change'));
+        state.calViewDate = new Date(d);
+        renderCalendar();
+        fetchYearCSVIfNeeded(d.getFullYear());
+    });
+    $('#btn-date-today').addEventListener('click', () => {
+        let d = new Date();
+        $('#input-date').value = getLocalDateString(d);
+        $('#input-date').dispatchEvent(new Event('change'));
+        state.calViewDate = new Date(d);
+        renderCalendar();
+        fetchYearCSVIfNeeded(d.getFullYear());
+    });
+    $('#btn-date-tomorrow').addEventListener('click', () => {
+        let d = new Date();
+        d.setDate(d.getDate() + 1);
+        $('#input-date').value = getLocalDateString(d);
+        $('#input-date').dispatchEvent(new Event('change'));
+        state.calViewDate = new Date(d);
+        renderCalendar();
+        fetchYearCSVIfNeeded(d.getFullYear());
+    });
+
+    const today = getLocalDateString();
+    $('#input-date').value = today;
+    $('#input-date').dispatchEvent(new Event('change'));
+
+    $('#input-amount')?.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const errEl = $('#amount-error');
+        if (val && !/^(-?)(\d+\.?\d*)([+\-*](\d+\.?\d*))*$/.test(val)) {
+            if (errEl) errEl.style.display = 'block';
+        } else {
+            if (errEl) errEl.style.display = 'none';
+        }
+        updateTxnTypeAuto();
+    });
+
+    $('#input-note')?.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+            let fallbackCategory = state.categories.find(c => c.toLowerCase().includes('other')) || 'Others';
+            let bestMatch = getCategoryForMerchant(val);
+            if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
+            
+            if (bestMatch !== fallbackCategory) {
+                $('#input-category').value = bestMatch;
+                syncChips('#category-chips', bestMatch);
+            }
+
+            const currentTxnType = $('#input-transaction-type').value;
+            let bestTxnType = getTxnTypeForMerchant(val, currentTxnType);
+            if (bestTxnType && bestTxnType !== currentTxnType) {
+                $('#input-transaction-type').value = bestTxnType;
+                syncChips('#txntype-chips', bestTxnType);
+            }
+        }
+    });
+
+
+    // We can expose updateTxnTypeAuto globally for category changes
+    window.updateTxnTypeAuto = updateTxnTypeAuto;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // Block submissions if already submitting or if cloud sync is refreshing data
+        if (isFormSubmitting || state.cloudSyncInProgress) {
+            if (state.cloudSyncInProgress) toast('Please wait for cloud sync to complete...', 'error');
+            return;
+        }
+
+        // Manual validation for required fields
+        if (!$('#input-date').value) {
+            toast('Please select a Date', 'error');
+            return;
+        }
+        if (!$('#input-category').value) {
+            toast('Please select a Category', 'error');
+            return;
+        }
+        if (!$('#input-transaction-type').value) {
+            toast('Please select a Transaction Type', 'error');
+            return;
+        }
+        const rawAmount = $('#input-amount').value;
+        if (!rawAmount) {
+            toast('Please enter an amount', 'error');
+            return;
+        }
+        const parsedAmt = roundAmount(evaluateExpression(rawAmount));
+        if (isNaN(parsedAmt)) {
+            toast('Please enter a valid amount', 'error');
+            return;
+        }
+
+        const idx = parseInt($('#edit-index').value);
+        const sIdxElement = $('#edit-scheduled-index');
+        const sIdx = sIdxElement ? parseInt(sIdxElement.value) : -1;
+
+        const frequency = $('#input-frequency')?.value || 'one-off';
+        const isFutureDate = $('#input-date') && $('#input-date').value > getLocalDateString();
+        const scheduleMode = sIdx >= 0 || frequency !== 'one-off' || (frequency === 'one-off' && isFutureDate);
+
+        // Lock form inputs, disable buttons, and prevent race condition clicks
+        setFormSubmittingState(true);
+
+        try {
+            if (scheduleMode) {
+                const startDate = $('#input-date').value;
+                const amountInputValue = $('#input-amount').value;
+                const entry = {
+                    id: sIdx >= 0 ? state.scheduledTransactions[sIdx].id : Date.now().toString(),
+                    date: startDate,
+                    amount: (() => {
+                        let a = roundAmount(evaluateExpression(amountInputValue));
+                        const t = $('#input-transaction-type').value;
+                        if (t === 'Income' || t === 'Refund') return -Math.abs(a);
+                        if (t === 'Investment') return a;
+                        return Math.abs(a);
+                    })(),
+                    amountExpression: amountInputValue.split(/[-+]/).filter(Boolean).length > 1 ? amountInputValue.trim() : '',
+                    currency: $('#input-currency').value,
+                    category: $('#input-category').value,
+                    txnType: $('#input-transaction-type').value,
+                    txnMode: $('#input-txn-type').value,
+                    note: $('#input-note').value.trim(),
+                    location: $('#input-location').value.trim(),
+                    tag: $('#input-tag')?.value.trim() || '',
+                    frequency: frequency,
+                    end_condition: $('#input-end-enable') && $('#input-end-enable').checked ? 'enabled' : 'never',
+                    end_date: $('#input-end-date') ? $('#input-end-date').value : '',
+                    max_occurrences: $('#input-max-occurrences') && $('#input-max-occurrences').value ? parseInt($('#input-max-occurrences').value) : NaN,
+                };
+
+                if (frequency === 'instant') {
+                    // For instant templates, do not store start_date, last_run_date, next_run_date, or any recurrence fields
+                    entry.start_date = '';
+                    entry.last_run_date = '';
+                    entry.next_run_date = '';
+                    entry.recur_month = NaN;
+                    entry.recur_day = NaN;
+                    entry.recur_weekday = NaN;
+                } else if (frequency === 'one-off') {
+                    // For one-off schedules, store start_date and next_run_date but no recurrence fields
+                    entry.start_date = startDate;
+                    entry.last_run_date = sIdx >= 0 ? state.scheduledTransactions[sIdx].last_run_date : '';
+                    entry.next_run_date = startDate;
+                    entry.recur_month = NaN;
+                    entry.recur_day = NaN;
+                    entry.recur_weekday = NaN;
+                } else {
+                    // Recurring schedules store all dates and recurrence settings
+                    entry.start_date = startDate;
+                    entry.last_run_date = sIdx >= 0 ? state.scheduledTransactions[sIdx].last_run_date : '';
+                    entry.recur_month = parseInt($('#input-freq-month').value);
+                    entry.recur_day = (['monthly', 'bimonthly', 'quarterly'].includes(frequency)) ? parseInt($('#input-freq-day').value) : parseInt($('#input-freq-yearly-day').value);
+                    let selectedBtns = document.querySelectorAll('.weekday-btn.selected');
+                    entry.recur_weekdays = Array.from(selectedBtns).map(b => parseInt(b.dataset.val)).sort((a,b) => a-b);
+                    entry.recur_weekday = entry.recur_weekdays.length > 0 ? entry.recur_weekdays[0] : NaN;
+                    
+                    entry.next_run_date = calculateNextRunDate(frequency, entry, startDate, true);
+                }
+
+                if (isNaN(entry.amount)) {
+                    toast('Please enter a valid amount', 'error');
+                    return;
+                }
+
+                if (entry.end_condition === 'enabled' && !entry.end_date && isNaN(entry.max_occurrences)) {
+                    toast('Please provide either an end date or a maximum number of occurrences', 'error');
+                    return;
+                }
+                if (['biweekly', 'bimonthly', 'quarterly'].includes(frequency)) {
+                    if (!startDate) {
+                        toast('Please select a start date', 'error');
+                        return;
+                    }
+                    entry.next_run_date = startDate;
+                }
+
+                if (entry.location) {
+                    localStorage.setItem('expman_last_location', entry.location);
+                }
+
+                if (sIdx >= 0) {
+                    const existing = state.scheduledTransactions[sIdx];
+                    const oldExisting = { ...existing };
+                    const oldWeekdaysStr = (existing.recur_weekdays || []).join(',');
+                    const newWeekdaysStr = (entry.recur_weekdays || []).join(',');
+                    const freqChanged = existing.frequency !== entry.frequency || existing.recur_month !== entry.recur_month || existing.recur_day !== entry.recur_day || existing.recur_weekday !== entry.recur_weekday || oldWeekdaysStr !== newWeekdaysStr || existing.start_date !== entry.start_date;
+
+                    existing.amount = entry.amount;
+                    existing.amountExpression = entry.amountExpression;
+                    existing.currency = entry.currency;
+                    existing.category = entry.category;
+                    existing.txnType = entry.txnType;
+                    existing.txnMode = entry.txnMode;
+                    existing.note = entry.note;
+                    existing.location = entry.location;
+                    existing.tag = entry.tag;
+                    existing.frequency = entry.frequency;
+                    existing.recur_month = entry.recur_month;
+                    existing.recur_day = entry.recur_day;
+                    existing.recur_weekday = entry.recur_weekday;
+                    existing.recur_weekdays = entry.recur_weekdays;
+                    existing.end_condition = entry.end_condition;
+                    existing.end_date = entry.end_date;
+                    existing.max_occurrences = entry.max_occurrences;
+                    existing.start_date = entry.start_date;
+                    existing.last_run_date = entry.last_run_date;
+                    existing.next_run_date = entry.next_run_date;
+
+                    if (freqChanged) existing.next_run_date = entry.next_run_date;
+
+                    toast('Updating schedule to cloud...', 'info');
+                    try {
+                        await saveScheduledCSV();
+                        await processScheduledTransactions();
+                        toast('Scheduled transaction updated!', 'success');
+                        const targetView = state.editOriginView || 'scheduled';
+                        resetForm();
+                        state.editOriginView = null;
+                        renderAll();
+                        switchView(targetView);
+                    } catch (error) {
+                        if (error.message === "CONFLICT_DETECTED") {
+                            state.scheduledTransactions[sIdx] = oldExisting;
+                            renderAll();
+                            toast('Conflict! Schedule modified elsewhere. Please refresh.', 'error');
+                            return;
+                        } else {
+                            toast('Error saving to cloud', 'error');
+                        }
+                    }
+                } else {
+                    state.scheduledTransactions.push(entry);
+                    toast('Saving schedule to cloud...', 'info');
+                    try {
+                        await saveScheduledCSV();
+                        await processScheduledTransactions();
+                        toast('Scheduled transaction added!', 'success');
+                        resetForm();
+                        renderAll();
+                        switchView('scheduled');
+                    } catch (error) {
+                        if (error.message === "CONFLICT_DETECTED") {
+                            const addedIdx = state.scheduledTransactions.indexOf(entry);
+                            if (addedIdx > -1) state.scheduledTransactions.splice(addedIdx, 1);
+                            renderAll();
+                            toast('Conflict! Schedule modified elsewhere. Please refresh.', 'error');
+                            return;
+                        } else {
+                            toast('Error saving to cloud', 'error');
+                        }
+                    }
+                }
+            } else {
+                const amountInputValue = $('#input-amount').value;
+                const entry = {
+                    date: $('#input-date').value,
+                    amount: (() => {
+                        let a = roundAmount(evaluateExpression(amountInputValue));
+                        const t = $('#input-transaction-type').value;
+                        if (t === 'Income' || t === 'Refund') return -Math.abs(a);
+                        if (t === 'Investment') return a;
+                        return Math.abs(a);
+                    })(),
+                    amountExpression: amountInputValue.split(/[-+]/).filter(Boolean).length > 1 ? amountInputValue.trim() : '',
+                    currency: $('#input-currency').value,
+                    category: $('#input-category').value,
+                    txnType: $('#input-transaction-type').value,
+                    txnMode: $('#input-txn-type').value,
+                    note: $('#input-note').value.trim(),
+                    location: $('#input-location').value.trim(),
+                    tag: $('#input-tag')?.value.trim() || '',
+                    source: idx >= 0 ? state.expenses[idx].source : currentSuggestionSource,
+                    txnId: idx >= 0 ? state.expenses[idx].txnId : currentSuggestionTxnId
+                };
+
+                if (idx >= 0) {
+                    const oldEntry = { ...state.expenses[idx] };
+                    const oldYear = state.expenses[idx].date.split('-')[0];
+                    state.expenses[idx] = entry;
+                    state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const newYear = entry.date.split('-')[0];
+                    const newIdx = state.expenses.indexOf(entry);
+
+                    toast('Saving to cloud...', 'info');
+                    try {
+                        if (oldYear === newYear) {
+                            await saveYearCSV(newYear);
+                        } else {
+                            await saveYearCSV(oldYear);
+                            await saveYearCSV(newYear);
+                        }
+                        toast('Transaction updated!', 'success');
+                        const targetView = state.editOriginView || state.previousView || 'dashboard';
+                        resetForm();
+                        state.editOriginView = null;
+                        renderAll();
+
+                        switchView(targetView);
+                        setTimeout(() => {
+                            const rowId = state.previousView === 'dashboard' ? `dash-row-${newIdx}` : `txn-row-${newIdx}`;
+                            const row = document.getElementById(rowId);
+                            if (row) {
+                                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                row.style.transition = 'background-color 0.5s';
+                                const oldBg = row.style.backgroundColor;
+                                row.style.backgroundColor = 'rgba(99, 138, 255, 0.3)';
+                                setTimeout(() => row.style.backgroundColor = oldBg, 1500);
+                            }
+                        }, 100);
+                        return;
+                    } catch (error) {
+                        if (error.message === "CONFLICT_DETECTED") {
+                            const currentIdx = state.expenses.indexOf(entry);
+                            if (currentIdx > -1) state.expenses[currentIdx] = oldEntry;
+                            state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+                            renderAll();
+                            toast('Conflict! Data modified on another device. Please refresh.', 'error');
+                            return;
+                        } else {
+                            toast('Error saving to cloud', 'error');
+                        }
+                    }
+                } else {
+                    state.expenses.unshift(entry);
+                    state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const newYear = entry.date.split('-')[0];
+
+                    toast('Saving to cloud...', 'info');
+                    try {
+                        await saveYearCSV(newYear);
+                        toast('Transaction added!', 'success');
+                    } catch (error) {
+                        if (error.message === "CONFLICT_DETECTED") {
+                            const addedIdx = state.expenses.indexOf(entry);
+                            if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
+                            renderAll();
+                            toast('Conflict! Data modified on another device. Please refresh.', 'error');
+                            return;
+                        } else {
+                            toast('Error saving to cloud', 'error');
+                        }
+                    }
+                }
+
+                if (currentSelectedSuggestionTxn) {
+                    consumeRawSmsTransaction(currentSelectedSuggestionTxn);
+                    currentSelectedSuggestionTxn = null;
+                } else {
+                    recomputePendingSmsTransactions();
+                }
+
+                if (entry.location) {
+                    localStorage.setItem('expman_last_location', entry.location);
+                }
+                resetForm();
+                renderAll();
+                renderSmsSuggestions();
+            }
+        } finally {
+            setFormSubmittingState(false);
+        }
+    });
+    $('#btn-cancel').addEventListener('click', () => {
+        const targetView = state.editOriginView || state.previousView || 'dashboard';
+        resetForm();
+        state.editOriginView = null;
+        switchView(targetView);
+    });
+}
+
+export function updateTxnTypeAuto() {
+    const typeInput = $('#input-transaction-type');
+    if (!typeInput) return;
+    const amtStr = $('#input-amount')?.value;
+    const cat = ($('#input-category')?.value || '').toLowerCase();
+    
+    let expectedType = typeInput.value;
+    
+    const mappedType = getTxnTypeFromMapping(cat);
+    if (mappedType) {
+        expectedType = mappedType;
+    } else {
+        // Evaluate expression to get the actual numeric value
+        const amt = evaluateExpression(amtStr);
+        if (!isNaN(amt)) {
+            if (amt < 0) {
+                if (expectedType !== 'Income' && expectedType !== 'Refund' && expectedType !== 'Investment') {
+                    expectedType = 'Refund';
+                }
+            } else {
+                if (expectedType !== 'Expense' && expectedType !== 'Income' && expectedType !== 'Refund' && expectedType !== 'Investment' && expectedType !== 'Transfer') {
+                    expectedType = 'Expense';
+                }
+            }
+        }
+    }
+    
+    typeInput.value = expectedType;
+    syncChips('#txntype-chips', expectedType);
+}
+
+export function updateFormActionButtons() {
+    const btnSubmit = $('#btn-submit');
+    if (!btnSubmit) return;
+
+    const frequency = $('#input-frequency')?.value || 'one-off';
+    const sIdxElement = $('#edit-scheduled-index');
+    const editingScheduled = sIdxElement && parseInt(sIdxElement.value) >= 0;
+    const isFutureDate = $('#input-date') && $('#input-date').value > getLocalDateString();
+
+    if (editingScheduled) {
+        btnSubmit.textContent = 'Update Schedule';
+    } else if (frequency === 'instant') {
+        btnSubmit.textContent = 'Save Quick Add Template';
+    } else if (frequency !== 'one-off' || isFutureDate) {
+        btnSubmit.textContent = 'Schedule Entry';
+    } else {
+        const editIdxEl = $('#edit-index');
+        const idx = editIdxEl ? parseInt(editIdxEl.value) : -1;
+        btnSubmit.textContent = idx >= 0 ? 'Update Entry' : 'Add Entry';
+    }
+}
+
+export function prefillLocation() {
+    const locInput = $('#input-location');
+    if (!locInput) return Promise.resolve();
+    
+    // Check if user is typing manually; don't override if they are
+    if (locInput.value && locInput.value !== getLastLocation()) return Promise.resolve();
+
+    return getCurrentLocationTag().then(tag => {
+        if (!locInput.value || locInput.value === getLastLocation()) {
+            locInput.value = tag;
+        }
+    });
+}
+
+export function resetForm(force = false) {
+    // If a suggestion or form input was filled after submission started, skip reset unless forced
+    if (!force && (isFormSubmitting || (lastFormFillTime > lastSubmitStartTime && lastSubmitStartTime > 0))) {
+        console.warn('[Form] Skipping resetForm to prevent overwriting new user input from race condition.');
+        return;
+    }
+    const form = $('#expense-form');
+    if (!form) return;
+    const inputDateEl = $('#input-date');
+    const prevDate = inputDateEl ? inputDateEl.value : '';
+    const prevCalViewDate = new Date(state.calViewDate.getTime());
+
+    form.reset();
+    if ($('#input-end-date')) $('#input-end-date').type = 'text';
+    if ($('#input-tag')) $('#input-tag').value = '';
+    currentSuggestionSource = '';
+    currentSuggestionTxnId = '';
+    currentSelectedSuggestionTxn = null;
+
+    $$('#note-suggestions .chip, #location-suggestions .chip, #tag-suggestions .chip').forEach(c => c.classList.remove('active'));
+
+    prefillLocation();
+    
+    // Restore the date selection instead of resetting to today
+    if (prevDate) $('#input-date').value = prevDate;
+    $('#input-date').dispatchEvent(new Event('change'));
+    state.calViewDate = prevCalViewDate;
+    if ($('#cal-days-container')) renderCalendar();
+    $('#edit-index').value = -1;
+    if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = -1;
+    $('#form-title').textContent = 'Add New Entry';
+    $('#btn-submit').textContent = 'Add Entry';
+    $('#btn-submit').style.display = 'inline-block';
+    $('#btn-cancel').style.display = 'none';
+
+    if ($('#input-frequency')) {
+        // Triggers updateFormActionButtons via change event
+        $('#input-frequency').value = 'one-off';
+        $('#input-frequency').dispatchEvent(new Event('change'));
+    }
+
+    // Set default category and transaction type
+    if (state.categories.length > 0) {
+        $('#input-category').value = state.categories[0];
+        syncChips('#category-chips', state.categories[0]);
+    }
+    if (state.txnModes.length > 0) {
+        $('#input-txn-type').value = state.txnModes[0];
+        syncChips('#txnmode-chips', state.txnModes[0]);
+    }
+    if (state.txnTypes && state.txnTypes.length > 0) {
+        $('#input-transaction-type').value = state.txnTypes[0];
+        syncChips('#txntype-chips', state.txnTypes[0]);
+    }
+
+    // Clear note suggestion chip active states
+    $$('#note-suggestions .chip').forEach(c => c.classList.remove('active'));
+}
+
+export async function editEntry(idx) {
+    state.editOriginView = window.location.hash.replace('#', '') || 'dashboard';
+    const e = state.expenses[idx];
+    if (!e) return;
+
+    // Lazy-load state.categories & txn types if not yet loaded
+    if (!state.masterDataLoaded) {
+        showLoader('Fetching state.categories...');
+        await loadMetadata();
+        populateFormDropdowns();
+        renderSettings();
+        state.masterDataLoaded = true;
+        hideLoader();
+    }
+
+    $('#edit-index').value = idx;
+    $('#input-date').value = e.date;
+    $('#input-date').dispatchEvent(new Event('change'));
+    state.calViewDate = new Date(e.date);
+    if ($('#cal-days-container')) renderCalendar();
+    // Show expression if it exists, otherwise show the calculated amount
+    const displayAmount = (e.txnType === 'Refund' || e.txnType === 'Income' || e.amount < 0) ? -Math.abs(e.amount) : Math.abs(e.amount);
+    $('#input-amount').value = e.amountExpression || amountToStr(displayAmount);
+    $('#input-currency').value = e.currency;
+    $('#input-category').value = e.category;
+    syncChips('#category-chips', e.category);
+    const initialTxnType = e.txnType || (e.amount < 0 ? 'Refund' : 'Expense');
+    $('#input-transaction-type').value = initialTxnType;
+    syncChips('#txntype-chips', initialTxnType);
+    $('#input-txn-type').value = e.txnMode;
+    syncChips('#txnmode-chips', e.txnMode);
+    $('#input-note').value = e.note;
+    if ($('#input-location')) $('#input-location').value = e.location || '';
+    if ($('#input-tag')) $('#input-tag').value = e.tag || '';
+    $$('#tag-suggestions .chip').forEach(c => c.classList.toggle('active', c.dataset.value === (e.tag || '')));
+    $('#form-title').textContent = 'Edit Transaction';
+    $('#btn-submit').textContent = 'Update Entry';
+    $('#btn-submit').style.display = 'inline-block';
+    $('#btn-cancel').style.display = 'inline-flex';
+    updateFormActionButtons();
+    switchView('add');
+}
+
+export async function generateRefund(idx) {
+    const e = state.expenses[idx];
+    if (!e) return;
+
+    // Ensure original expense has a Txn ID if missing
+    if (!e.txnId || !e.txnId.trim()) {
+        e.txnId = '__TXN_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    }
+
+    const baseNote = e.note || '';
+    const noteText = baseNote.toLowerCase().startsWith('refund:') 
+        ? baseNote 
+        : (baseNote ? `Refund: ${baseNote}` : `Refund: ${e.category}`);
+
+    const refundTxn = {
+        date: e.date,
+        amount: -Math.abs(e.amount),
+        expression: '',
+        currency: e.currency || 'INR',
+        category: e.category,
+        txnType: 'Refund',
+        txnMode: e.txnMode || 'UPI',
+        note: noteText,
+        source: 'Refund Action',
+        txnId: e.txnId.trim(),
+        location: e.location || '',
+        tag: e.tag || ''
+    };
+
+    state.expenses.push(refundTxn);
+
+    toast('Generating refund...', 'info');
+    try {
+        const yr = e.date.slice(0, 4);
+        await saveYearCSV(yr);
+        toast('Refund generated and linked!', 'success');
+        renderAll();
+    } catch (err) {
+        toast('Error saving refund', 'error');
+    }
+}
+
+export function renderSmsSuggestions() {
+    const container = $('#sms-suggestions-container');
+    const list = $('#sms-suggestions-list');
+    if (!container || !list) return;
+
+    const date = $('#input-date').value;
+    if (!date) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const suggestions = getRawSmsSuggestionsForDate(date);
+
+    if (suggestions.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    list.innerHTML = '';
+
+    suggestions.forEach(txn => {
+
+        const isExpense = txn.amount >= 0;
+        const amountColor = isExpense ? 'var(--red)' : 'var(--green)';
+        const amountPrefix = isExpense ? '' : '+';
+
+        const div = document.createElement('div');
+        div.className = 'sms-suggestion-card';
+        div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;';
+
+        const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
+
+        div.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-weight: 600; color: var(--text-main);">${txn.merchant || 'Unknown'}</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">${txn.source} &bull; ${mappedMode}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="font-weight: 700; color: ${amountColor}; font-size: 1.1rem;">
+                    ${amountPrefix}₹${amountToStr(Math.abs(txn.amount))}
+                </div>
+                <button type="button" class="btn-dismiss-suggestion" title="Dismiss suggestion" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1;">&times;</button>
+            </div>
+        `;
+
+        const dismissBtn = div.querySelector('.btn-dismiss-suggestion');
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                discardRawSmsTransaction(txn);
+                if (currentSelectedSuggestionTxn && isDuplicateTxn(currentSelectedSuggestionTxn, txn)) {
+                    resetForm();
+                }
+                renderAll();
+            });
+        }
+
+        div.addEventListener('mouseover', () => div.style.background = 'var(--bg-card-hover)');
+        div.addEventListener('mouseout', () => div.style.background = 'var(--bg-body)');
+
+        div.addEventListener('click', () => {
+            if (isFormSubmitting) return;
+            recordFormFillTime();
+
+            let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
+            if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
+
+            $('#input-category').value = bestMatch;
+            syncChips('#category-chips', bestMatch);
+
+            const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
+            if (mappedMode && state.txnModes.includes(mappedMode)) {
+                $('#input-txn-type').value = mappedMode;
+                syncChips('#txnmode-chips', mappedMode);
+            }
+
+            const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
+            const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
+            
+            $('#input-transaction-type').value = bestTxnType;
+            syncChips('#txntype-chips', bestTxnType);
+
+            const fillAmount = (bestTxnType === 'Income' || bestTxnType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
+            $('#input-amount').value = fillAmount;
+
+            $('#input-note').value = txn.merchant || '';
+            currentSuggestionSource = txn.source;
+            currentSuggestionTxnId = txn.transactionId || '';
+            currentSelectedSuggestionTxn = txn;
+
+            // Highlight form
+            const formCard = document.querySelector('.form-card');
+            if (formCard) {
+                formCard.style.transition = 'box-shadow 0.3s';
+                formCard.style.boxShadow = '0 0 0 2px var(--accent)';
+                setTimeout(() => formCard.style.boxShadow = '', 1000);
+            }
+            const amountInput = $('#input-amount');
+            if (amountInput) {
+                amountInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+
+        list.appendChild(div);
+    });
+
+    if (list.children.length === 0) {
+        container.style.display = 'none';
+    }
+}
+

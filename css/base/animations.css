@@ -1,0 +1,26 @@
+/* -------------- SWIPE ANIMATIONS -------------- */
+body.swipe-anim-left .view.active {
+    animation: slideInFromRight 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+/* -------------- 1:1 SWIPE ANIMATIONS -------------- */
+.views-container {
+    display: grid;
+    overflow-x: hidden;
+    width: 100%;
+    touch-action: pan-y;
+}
+.view {
+    grid-area: 1 / 1;
+    width: 100%;
+    min-width: 0;
+    transform: translateX(0);
+}
+.view.sliding {
+    animation: none !important;
+    display: block !important;
+    z-index: 2;
+}
+.view.slide-snap {
+    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}

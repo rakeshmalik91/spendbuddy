@@ -1,0 +1,951 @@
+/* ══════════════ TABLE ══════════════ */
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    table-layout: auto;
+}
+
+.data-table th {
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.data-table th[data-col="amount"],
+.data-table th.text-right {
+    text-align: right;
+}
+
+.data-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.data-table td[data-label="Amount"],
+.month-header-total,
+.day-separator-total {
+    text-align: right;
+}
+
+.data-table td[data-label="Category"] {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 18px;
+}
+
+.data-table td[data-label="Note"] {
+    white-space: normal;
+    word-break: break-word;
+    min-width: 100px;
+}
+
+.data-table td[data-label="Mode"],
+.data-table td[data-label="Txn Mode"] {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 8px;
+}
+
+/* Mode cell wrapper for bulletproof truncation and boundary constraint across all table layouts */
+.mode-cell {
+    display: inline-block;
+    max-width: 125px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.data-table td[data-label="Actions"] {
+    text-align: right;
+    padding-left: 8px;
+    padding-right: 10px;
+    white-space: nowrap;
+}
+
+/* Fix column widths and enforce strict cell clipping to prevent column overlap on desktop layout */
+@media (min-width: 861px) {
+    .data-table:not(.matrix-table) {
+        table-layout: auto;
+        width: 100%;
+    }
+
+    .data-table th.col-batch-select,
+    .data-table td.col-batch-select {
+        width: 38px !important;
+        box-sizing: border-box;
+        padding: 6px 4px 6px 12px !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+        line-height: 1 !important;
+    }
+
+    .data-table tr.month-header td.col-batch-select {
+        padding: 8px 4px 8px 12px !important;
+    }
+
+    .data-table tr.day-separator td.col-batch-select {
+        padding: 4px 4px 2px 12px !important;
+        height: auto !important;
+    }
+
+    .data-table th[data-col="date"],
+    .data-table th.col-date,
+    .data-table td[data-label="Date"],
+    .data-table td[data-label="Date & Location"] {
+        width: 190px;
+        box-sizing: border-box;
+        padding-right: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .data-table th[data-col="category"],
+    .data-table th.col-category,
+    .data-table td[data-label="Category"] {
+        width: 135px;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 10px;
+    }
+
+    .data-table th[data-col="amount"],
+    .data-table th.col-amount,
+    .data-table td[data-label="Amount"] {
+        width: auto;
+        box-sizing: border-box;
+        padding-right: 10px;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .data-table th[data-col="mode"],
+    .data-table th.col-mode,
+    .data-table td[data-label="Mode"],
+    .data-table td[data-label="Txn Mode"] {
+        width: 130px;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 8px;
+    }
+
+    .data-table th[data-col="actions"],
+    .data-table th.col-actions,
+    .data-table td[data-label="Actions"] {
+        width: 60px;
+        box-sizing: border-box;
+        text-align: right;
+        padding-left: 8px;
+        padding-right: 16px;
+        white-space: nowrap;
+    }
+
+    .data-table th[data-col="note"],
+    .data-table th.col-note,
+    .data-table td[data-label="Note"] {
+        width: auto;
+        box-sizing: border-box;
+        padding-right: 10px;
+    }
+}
+
+.data-table tbody tr {
+    transition: background var(--transition);
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.amount-positive {
+    color: var(--red);
+    font-weight: 600;
+}
+
+.amount-negative {
+    color: var(--green);
+    font-weight: 600;
+}
+
+.amount-negative.net-zero {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.amount-cell-wrap {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 4px;
+    text-align: right;
+}
+
+/* Ensure the main amount stays right-aligned against cell border/actions button */
+.amount-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    white-space: nowrap;
+    order: 2;
+    font-variant-numeric: tabular-nums;
+}
+
+.amount-sign {
+    display: inline-block;
+    width: 0.85em;
+    text-align: right;
+    margin-right: 1px;
+    flex-shrink: 0;
+}
+
+.amount-symbol {
+    display: inline-block;
+    margin-right: 1px;
+    flex-shrink: 0;
+}
+
+.amount-val {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Display expression to the left of the main amount so mode cell always aligns under amount-main */
+.amount-expr {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: normal;
+    white-space: nowrap;
+    order: 1;
+}
+
+@media (min-width: 768px) {
+    .amount-negative.net-zero {
+        margin-top: 4px;
+        margin-left: 0;
+    }
+}
+
+.amount-transfer {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.amount-income {
+    color: var(--cyan);
+    font-weight: 600;
+}
+
+.amount-investment {
+    color: var(--purple);
+    font-weight: 600;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable:hover {
+    color: var(--accent);
+}
+
+.table-footer {
+    padding: 14px 0 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* Row action buttons */
+.row-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.row-btn {
+    background: none;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+
+.row-btn.mobile-menu-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.row-btn:hover {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Lock badge for built-in (non-editable) items */
+.protected-badge {
+    cursor: default;
+    opacity: 0.5;
+    border-color: transparent !important;
+}
+
+.protected-badge:hover {
+    background: none;
+    color: var(--text-secondary);
+    border-color: transparent;
+}
+
+
+/* ══════════════ TABLE BADGES ══════════════ */
+.note-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.note-content > span {
+    white-space: nowrap;
+}
+
+.note-content > span:empty,
+.note-content > span.empty-dash {
+    display: none !important;
+}
+
+.badges-wrapper {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.badge-source,
+.badge-txn,
+.badge-tag {
+    font-size: 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.badge-mode {
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.badge-tag {
+    background: rgba(99, 138, 255, 0.1);
+    border: 1px solid rgba(99, 138, 255, 0.25);
+    color: var(--accent);
+}
+
+.badge-source {
+    max-width: 400px;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Transaction type badge for Income, Investment, Transfer */
+.badge-txn-type {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.badge-txn-type.type-income {
+    background: rgba(34, 211, 238, 0.12);
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    color: var(--cyan);
+}
+
+.badge-txn-type.type-investment {
+    background: rgba(167, 139, 250, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    color: var(--purple);
+}
+
+.badge-txn-type.type-transfer {
+    background: rgba(90, 100, 120, 0.18);
+    border: 1px solid rgba(90, 100, 120, 0.35);
+    color: var(--text-muted);
+}
+
+@media (min-width: 861px) {
+    .data-table th.col-mode,
+    .data-table th[data-col="mode"],
+    .data-table td[data-label="Mode"],
+    .data-table td[data-label="Txn Mode"] {
+        display: none !important;
+    }
+
+    .note-content {
+        justify-content: flex-start;
+    }
+
+    .badges-wrapper {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 860px) {
+    .badge-mode {
+        display: none !important;
+    }
+}
+
+.account-name-span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ══════════════ COLLAPSIBLE REFUND SUB-ROW (DESKTOP ONLY) ══════════════ */
+.badge-refund-toggle {
+    transition: all 0.2s ease;
+}
+
+.badge-refund-toggle:hover {
+    background: rgba(167, 139, 250, 0.25) !important;
+    border-color: rgba(167, 139, 250, 0.6) !important;
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.3);
+}
+
+.refund-collapsible-row {
+    background: rgba(15, 23, 42, 0.25);
+}
+
+.refund-collapsible-row.hidden {
+    display: none !important;
+}
+
+.refund-collapsible-row td {
+    padding: 4px 16px 12px 24px !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    white-space: normal !important;
+}
+
+.refund-collapsible-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--purple);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.refund-collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px dashed var(--border-subtle);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+}
+
+.refund-summary-net {
+    font-size: 0.78rem;
+    font-weight: normal;
+    color: var(--text-muted);
+}
+
+.refund-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.refund-item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    font-size: 0.82rem;
+    gap: 12px;
+}
+
+.refund-item-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Prevent refund-item-left contents (date, category, note, badges, mode) from overflowing over refund-item-right actions */
+.refund-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.refund-item-date {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    flex-shrink: 0;
+}
+
+.refund-item-category {
+    font-weight: 500;
+    color: var(--text-main);
+    flex-shrink: 0;
+}
+
+.refund-item-note {
+    color: var(--text-main);
+    font-style: normal;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.refund-item-left .badges-wrapper {
+    margin-left: 0;
+    justify-content: flex-start;
+    min-width: 0;
+    max-width: 100%;
+    flex-shrink: 1;
+}
+
+.refund-item-mode {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.refund-item-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* ══════════════ DASHBOARD DESKTOP OVERRIDES ══════════════ */
+/* 1. Date column width optimization (no location on dashboard, reduced from 190px to 115px) */
+@media (min-width: 861px) {
+    #view-dashboard #recent-table th.col-date,
+    #view-dashboard #recent-table th[data-col="date"],
+    #view-dashboard #recent-table td[data-label="Date"] {
+        width: 115px !important;
+    }
+}
+
+/* ══════════════ ACTIONS DROPDOWN MENU ══════════════ */
+.action-dropdown-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.action-dropdown-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.action-dropdown-btn:hover,
+.action-dropdown-wrap:hover .action-dropdown-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+.action-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 1000;
+    min-width: 170px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 6px 0;
+    backdrop-filter: blur(12px);
+    animation: fadeInDropdown 0.15s ease-out;
+}
+
+.action-dropdown-menu.show {
+    display: flex;
+    flex-direction: column;
+}
+
+.action-dropdown-menu.drop-up {
+    top: auto;
+    bottom: calc(100% + 4px);
+    transform-origin: bottom right;
+}
+
+@keyframes fadeInDropdown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.action-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+    white-space: nowrap;
+}
+
+.action-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.action-dropdown-item.delete {
+    color: var(--red, #ef4444);
+}
+
+.action-dropdown-item.delete:hover {
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.action-dropdown-item .action-icon {
+    font-size: 0.95rem;
+    display: inline-block;
+    width: 18px;
+    text-align: center;
+}
+
+/* ══════════════ BATCH SELECTION & ACTION BAR ══════════════ */
+.batch-select-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    vertical-align: middle;
+    margin: 0;
+    line-height: 1;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.batch-select-checkbox:hover {
+    border-color: var(--accent, #638aff);
+    background: rgba(99, 138, 255, 0.14);
+    box-shadow: 0 0 8px rgba(99, 138, 255, 0.35);
+    transform: scale(1.06);
+}
+
+.batch-select-checkbox:focus-visible {
+    box-shadow: 0 0 0 2.5px rgba(99, 138, 255, 0.4);
+}
+
+.batch-select-checkbox:checked {
+    background: linear-gradient(135deg, #638aff 0%, #4338ca 100%);
+    border-color: #638aff;
+    box-shadow: 0 0 10px rgba(99, 138, 255, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+    animation: checkboxPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.batch-select-checkbox:checked::after {
+    content: '';
+    width: 4px;
+    height: 7.5px;
+    border: solid #ffffff;
+    border-width: 0 1.8px 1.8px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px);
+    display: block;
+}
+
+.batch-select-checkbox:indeterminate {
+    background: linear-gradient(135deg, #638aff 0%, #4338ca 100%);
+    border-color: #638aff;
+    box-shadow: 0 0 10px rgba(99, 138, 255, 0.5);
+}
+
+.batch-select-checkbox:indeterminate::after {
+    content: '';
+    width: 7px;
+    height: 2px;
+    background: #ffffff;
+    border-radius: 1.5px;
+    display: block;
+}
+
+@keyframes checkboxPop {
+    0% {
+        transform: scale(0.85);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.data-table tr.row-selected {
+    background-color: rgba(99, 138, 255, 0.09) !important;
+}
+
+.data-table tr.row-selected:hover {
+    background-color: rgba(99, 138, 255, 0.15) !important;
+}
+
+.batch-action-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-card, #121824);
+    border: 1px solid var(--border, #222d3d);
+    border-radius: var(--radius-md, 8px);
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    animation: fadeInSlide 0.2s ease forwards;
+}
+
+.batch-action-bar.show {
+    display: flex;
+}
+
+.batch-action-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.batch-action-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.batch-count-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    background: rgba(99, 138, 255, 0.15);
+    border: 1px solid rgba(99, 138, 255, 0.3);
+    color: var(--accent, #638aff);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ══════════════ TABLE SEPARATORS (MONTH & DAY) ══════════════ */
+.month-separator td {
+    padding: 0 !important;
+    height: 8px;
+    background: rgba(99, 138, 255, 0.6);
+    border: none !important;
+}
+
+.month-header {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.month-header td:not(.col-batch-select):not(.month-header-total):not(.month-header-empty) {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 12px 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.month-header td.col-batch-select {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    padding-left: 12px !important;
+    padding-right: 4px !important;
+    width: 38px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Monthly net total aligned to the Amount column on desktop */
+.month-header td.month-header-total {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    text-align: right !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    padding: 12px 10px 12px 14px !important;
+    white-space: nowrap;
+}
+
+td.month-header-empty {
+    padding: 0 !important;
+    height: auto !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+tr.day-separator {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.day-separator td {
+    border: none !important;
+}
+
+td.day-separator-empty {
+    padding: 0 !important;
+    height: auto !important;
+    background: transparent !important;
+}
+
+td.day-separator-total {
+    padding: 10px 10px 4px 14px !important;
+    font-weight: 600;
+    font-size: 0.88rem !important;
+    background: transparent !important;
+    text-align: right;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+td.day-separator-total .amount-positive,
+td.month-header-total .amount-positive {
+    color: rgba(248, 113, 113, 0.85) !important;
+}
+
+td.day-separator-total .amount-negative,
+td.month-header-total .amount-negative {
+    color: rgba(52, 211, 153, 0.85) !important;
+}

@@ -1,0 +1,179 @@
+/* ══════════════ BUTTONS ══════════════ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: 600 0.9rem var(--font);
+    cursor: pointer;
+    transition: all var(--transition);
+    outline: none;
+}
+
+/* Button Disabled & Loading States */
+.btn:disabled, .btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    gap: 4px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(99, 138, 255, 0.25);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(99, 138, 255, 0.35);
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+
+/* ══════════════ QUICK ADD ══════════════ */
+.quick-add-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-quick-add {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all var(--transition);
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.btn-quick-add:hover {
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.btn-quick-add .qa-amount {
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.btn-quick-add .qa-note {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 18ch;
+}
+
+/* ══════════════ TOOLTIPS ══════════════ */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+    position: absolute;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    background: rgba(15, 23, 42, 0.95);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-50%, 0) scale(0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+[data-tooltip]:hover::after {
+    transform: translate(-50%, -8px) scale(1);
+}
+
+/* Tooltip position: bottom */
+[data-tooltip][data-tooltip-pos="bottom"]::after {
+    bottom: auto;
+    top: 100%;
+    transform: translate(-50%, 0) scale(0.95);
+}
+
+[data-tooltip][data-tooltip-pos="bottom"]:hover::after {
+    transform: translate(-50%, 8px) scale(1);
+}
+
+/* Tooltip position: left */
+[data-tooltip][data-tooltip-pos="left"]::after {
+    bottom: auto;
+    top: 50%;
+    left: auto;
+    right: 100%;
+    transform: translate(0, -50%) scale(0.95);
+}
+
+[data-tooltip][data-tooltip-pos="left"]:hover::after {
+    transform: translate(-8px, -50%) scale(1);
+}
+

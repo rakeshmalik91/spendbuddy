@@ -1,0 +1,29 @@
+/* ── Mobile Header ── */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 76px;
+    z-index: 101;
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(20px);
+    border-bottom: none;
+    align-items: flex-start;
+    padding-top: 16px;
+    gap: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 20px), transparent 100%);
+}
+
+.hamburger {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px;
+}

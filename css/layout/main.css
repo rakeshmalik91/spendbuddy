@@ -1,0 +1,90 @@
+/* ══════════════ MAIN ══════════════ */
+.main-content {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 0 40px 60px;
+    height: 100%;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    min-width: 0;
+}
+
+/* ══════════════ VIEW SWITCHING & TITLES ══════════════ */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+    animation: fadeUp 0.35s ease;
+}
+
+.view.active.no-fade {
+    animation: none;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.view-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ══════════════ DASHBOARD HEADER ══════════════ */
+.dash-header-grid {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-top: 4px; /* Prevent hover animations from clipping top edge */
+}
+
+.dash-header-grid .view-title {
+    margin-right: auto;
+    margin-bottom: 0;
+}
+
+.dash-header-grid .quick-add-container {
+    /* No longer need justify-self */
+}
+
+@media (max-width: 768px) {
+    .dash-header-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 16px 12px;
+    }
+
+    .dash-header-grid .view-title {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+    }
+
+    .dash-header-grid .dash-add-btn {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+    }
+
+    .dash-header-grid .quick-add-container {
+        grid-column: 1 / 3;
+        grid-row: 2 / 3;
+        justify-self: stretch;
+        justify-content: flex-start;
+    }
+}

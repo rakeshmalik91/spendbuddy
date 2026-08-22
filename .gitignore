@@ -1,0 +1,21 @@
+*.aab
+*.apk
+expenseiq-android-app/app/release
+expenseiq-android-app/app/debug
+expenseiq-android-app/app/build
+expenseiq-android-app/app/.cxx
+
+# git-crypt keys (Never commit encryption keys)
+*.key
+
+# brain & IDE
+brain
+.kiro
+.vscode
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+.pnpm-debug.log*

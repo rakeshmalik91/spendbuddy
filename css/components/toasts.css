@@ -1,0 +1,114 @@
+/* ══════════════ TOAST ══════════════ */
+.toast-container {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        bottom: 110px;
+        right: 16px;
+        left: auto;
+        align-items: flex-end;
+    }
+}
+
+.toast {
+    padding: 14px 22px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-weight: 500;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    animation: slideIn 0.35s ease, slideOut 0.35s ease 2.6s forwards;
+    pointer-events: auto;
+}
+
+.toast.success {
+    border-left: 3px solid var(--green);
+}
+
+.toast.error {
+    border-left: 3px solid var(--red);
+}
+
+.toast.info {
+    border-left: 3px solid var(--accent);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+}
+
+/* ══════════════ SYNC INDICATOR ══════════════ */
+.sync-indicator {
+    background: rgba(30, 41, 59, 0.9);
+    padding: 10px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(8px);
+    width: max-content;
+    align-self: flex-end;
+    pointer-events: auto;
+}
+
+#sync-indicator {
+    order: 999;
+}
+
+.sync-indicator.hidden {
+    display: none;
+}
+
+.sync-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid #fff;
+    animation: sync-spin 1s linear infinite;
+}
+
+@keyframes sync-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes emoji-pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.4); }
+}

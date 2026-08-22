@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Encrypt Firebase Config</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background: #1a1a24; color: #fff; }
+        textarea, input, button { display: block; width: 100%; max-width: 600px; padding: 0.5rem; font-size: 1rem; margin-bottom: 1rem; background: #2a2a35; color: #fff; border: 1px solid #444; border-radius: 4px; }
+        button { cursor: pointer; background: #638aff; border: none; font-weight: bold; }
+        pre { background: #000; padding: 1rem; border-radius: 4px; overflow-x: auto; color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>Encrypt Firebase Config</h1>
+    <p>Paste your raw Firebase configuration object below (just the `{ ... }` part), enter your passcode, and click Encrypt.</p>
+    
+    <textarea id="config" rows="10" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+    <input type="password" id="pwd" placeholder="Enter your app passcode (e.g. admin123)">
+    <button id="btn">Encrypt Configuration</button>
+
+    <div id="output" style="display:none;">
+        <h3>Your Encrypted Credentials</h3>
+        <p>Copy and paste this into app.js:</p>
+        <pre id="result"></pre>
+    </div>
+
+    <script>
+        async function deriveKey(password) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                "raw",
+                enc.encode(password),
+                { name: "PBKDF2" },
+                false,
+                ["deriveBits", "deriveKey"]
+            );
+            return crypto.subtle.deriveKey(
+                {
+                    name: "PBKDF2",
+                    salt: enc.encode("expense-iq-salt"),
+                    iterations: 100000,
+                    hash: "SHA-256"
+                },
+                keyMaterial,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        function bufferToBase64(buf) {
+            const bytes = new Uint8Array(buf);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        document.getElementById('btn').addEventListener('click', async () => {
+            const configText = document.getElementById('config').value.trim();
+            const pwd = document.getElementById('pwd').value;
+
+            if (!configText || !pwd) return alert("Please enter both config and password.");
+
+            try {
+                // Fix unquoted keys from Firebase JS object format
+                let fixedText = configText.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+                const jsonCheck = JSON.parse(fixedText); 
+                const configString = JSON.stringify(jsonCheck);
+
+                const key = await deriveKey(pwd);
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                
+                const enc = new TextEncoder();
+                const ciphertext = await crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    enc.encode(configString)
+                );
+
+                const ivB64 = bufferToBase64(iv);
+                const cipherB64 = bufferToBase64(ciphertext);
+
+                const fileContent = `// === ENCRYPTED CREDENTIALS ===\nexport const ENCRYPTED_CONFIG = "${cipherB64}";\nexport const ENCRYPTED_IV = "${ivB64}";\n`;
+
+                if (window.showSaveFilePicker) {
+                    try {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: 'config.js',
+                            types: [{
+                                description: 'JavaScript File',
+                                accept: { 'text/javascript': ['.js'] },
+                            }],
+                        });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(fileContent);
+                        await writable.close();
+                        alert("Successfully saved to config.js! You can close this page now.");
+                    } catch(err) {
+                        // User cancelled or unsupported
+                        document.getElementById('result').textContent = fileContent;
+                        document.getElementById('output').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('result').textContent = fileContent;
+                    document.getElementById('output').style.display = 'block';
+                }
+
+            } catch (e) {
+                alert("Error encrypting. Make sure your config is valid JSON! Error: " + e.message);
+            }
+        });
+    </script>
+</body>
+</html>
