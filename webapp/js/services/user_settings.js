@@ -21,6 +21,58 @@ export function applyUserSettings(settings) {
         localStorage.setItem('expman_hide_transfer', settings.hideTransfer ? 'true' : 'false');
         localChanged = true;
     }
+    if (settings.gdriveConnected !== undefined) {
+        const val = settings.gdriveConnected ? 'true' : 'false';
+        if (localStorage.getItem('expman_gdrive_connected') !== val) {
+            localStorage.setItem('expman_gdrive_connected', val);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveEmail !== undefined) {
+        const val = settings.gdriveEmail || '';
+        if (localStorage.getItem('expman_gdrive_email') !== val) {
+            localStorage.setItem('expman_gdrive_email', val);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveAutoBackup !== undefined) {
+        const val = settings.gdriveAutoBackup ? 'true' : 'false';
+        if (localStorage.getItem('expman_gdrive_auto_backup') !== val) {
+            localStorage.setItem('expman_gdrive_auto_backup', val);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveFrequency !== undefined) {
+        if (localStorage.getItem('expman_gdrive_frequency') !== settings.gdriveFrequency) {
+            localStorage.setItem('expman_gdrive_frequency', settings.gdriveFrequency);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveRetention !== undefined) {
+        if (localStorage.getItem('expman_gdrive_retention') !== settings.gdriveRetention) {
+            localStorage.setItem('expman_gdrive_retention', settings.gdriveRetention);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveLastBackup !== undefined) {
+        const val = settings.gdriveLastBackup.toString();
+        if (localStorage.getItem('expman_gdrive_last_backup') !== val) {
+            localStorage.setItem('expman_gdrive_last_backup', val);
+            localChanged = true;
+        }
+    }
+    if (settings.gdriveClientId !== undefined) {
+        const trimmed = settings.gdriveClientId ? settings.gdriveClientId.trim() : '';
+        const current = localStorage.getItem('expman_gdrive_custom_client_id') || '';
+        if (current !== trimmed) {
+            if (trimmed) {
+                localStorage.setItem('expman_gdrive_custom_client_id', trimmed);
+            } else {
+                localStorage.removeItem('expman_gdrive_custom_client_id');
+            }
+            localChanged = true;
+        }
+    }
     return localChanged;
 }
 

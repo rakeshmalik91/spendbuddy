@@ -137,7 +137,7 @@ export const initApp = async () => {
 
     
     // Dynamically import loadUserSettings to avoid circular dependency issues if any
-    const { loadUserSettings } = await import('../services/user_settings.js');
+    const { loadUserSettings, applyUserSettings } = await import('../services/user_settings.js');
     
     const [_, __, ___, ____, settings] = await Promise.all([
         loadAllCSVs(),
@@ -148,18 +148,7 @@ export const initApp = async () => {
     ]);
 
     if (settings) {
-        if (settings.hideIncome !== undefined) {
-            state.hideIncome = settings.hideIncome;
-            localStorage.setItem('expman_hide_income', settings.hideIncome ? 'true' : 'false');
-        }
-        if (settings.hideInvestment !== undefined) {
-            state.hideInvestment = settings.hideInvestment;
-            localStorage.setItem('expman_hide_investment', settings.hideInvestment ? 'true' : 'false');
-        }
-        if (settings.hideTransfer !== undefined) {
-            state.hideTransfer = settings.hideTransfer;
-            localStorage.setItem('expman_hide_transfer', settings.hideTransfer ? 'true' : 'false');
-        }
+        applyUserSettings(settings);
     }
     // (processScheduledTransactions removed from here, now safely executed after cloud sync)
     setupNavigation();
@@ -198,6 +187,11 @@ export const initApp = async () => {
 
     // Schedule a background refresh every 5 minutes
     startBackgroundRefresh();
+
+    // Check and trigger periodic Google Drive auto-backup if due
+    import('../services/google_drive.js').then(m => m.checkAndTriggerAutoBackup()).catch(e => {
+        console.warn('Google Drive auto-backup check failed on boot:', e);
+    });
 };
 
 function setupChartDefaults() {

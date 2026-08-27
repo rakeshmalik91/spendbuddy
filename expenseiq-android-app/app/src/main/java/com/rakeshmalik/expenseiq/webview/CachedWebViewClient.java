@@ -38,7 +38,7 @@ public class CachedWebViewClient extends WebViewClient {
             localHost = new URL(AppConfig.LOCAL_WEB_URL).getHost();
         } catch (Exception ignored) {}
 
-        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals(localHost) || host.equals("localhost") || host.equals("127.0.0.1") || host.startsWith("192.168.")) {
+        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals(localHost) || host.equals("localhost") || host.equals("127.0.0.1") || host.startsWith("192.168.") || host.contains("google.com") || host.contains("gstatic.com") || host.contains("googleapis.com")) {
             return false; // Let WebView load it
         }
 
@@ -72,6 +72,7 @@ public class CachedWebViewClient extends WebViewClient {
     private WebResourceResponse serveFromCache(String urlStr, String relativePath) {
         String path = (relativePath.isEmpty() || relativePath.equals("/")) ? "index.html" : relativePath;
         String cleanPath = path.split("\\?")[0];
+        boolean isMainHtml = cleanPath.equals("index.html") || cleanPath.isEmpty();
 
         // Include query params in cache filename to respect cache-busters
         String queryStr = "";
@@ -87,33 +88,11 @@ public class CachedWebViewClient extends WebViewClient {
             safeFileName = cleanPath.replace("/", "_") + queryStr;
         }
 
-        File file = new File(siteCache.getCacheDir(), safeFileName);
-
-        // If file is not in cache, download it
-        if (!file.exists() || !file.isFile()) {
-            Log.d(TAG, "Cache miss for: " + safeFileName);
-            byte[] bytes = siteCache.downloadAndCache(urlStr, safeFileName);
-            if (bytes != null) {
-                return createResponse(cleanPath, bytes);
-            }
-            return null;
+        byte[] bytes = siteCache.getOrFetch(urlStr, safeFileName, isMainHtml);
+        if (bytes != null) {
+            return createResponse(cleanPath, bytes);
         }
-
-        Log.d(TAG, "Cache hit for: " + safeFileName);
-        try {
-            return createResponse(cleanPath, readFile(file));
-        } catch (IOException e) {
-            Log.e(TAG, "Error reading cached file", e);
-            return null;
-        }
-    }
-
-    private byte[] readFile(File file) throws IOException {
-        byte[] bytes = new byte[(int) file.length()];
-        try (FileInputStream fis = new FileInputStream(file)) {
-            fis.read(bytes);
-        }
-        return bytes;
+        return null;
     }
 
     private WebResourceResponse createResponse(String path, byte[] bytes) {

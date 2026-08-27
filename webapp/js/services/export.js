@@ -10,69 +10,77 @@ import { getRequiredEmail } from "./auth.js";
 import { openModal } from "../ui/modal.js";
 
 /**
- * Exports all user data from Firebase Storage into a single ZIP file.
+ * Generates a ZIP blob containing all user data from Firebase Storage.
+ * @returns {Promise<{blob: Blob, base64: string, filename: string, fileCount: number}>}
  */
-export async function exportAllDataAsZip() {
+export async function generateBackupZip() {
     if (USE_LOCAL_DATA) {
-        toast('Export not available in local mode.', 'error');
-        return;
+        throw new Error('Export not available in local mode.');
     }
     
     if (typeof JSZip === 'undefined') {
-        toast('JSZip library not loaded.', 'error');
-        return;
+        throw new Error('JSZip library not loaded.');
     }
 
+    const zip = new JSZip();
+    const userEmail = getRequiredEmail();
+    const folderRef = ref(state.storage, userEmail + '/');
+    const result = await listAll(folderRef);
+
+    let fileCount = 0;
+
+    // Fetch and process all files concurrently
+    await Promise.all(result.items.map(async (itemRef) => {
+        try {
+            const url = await getDownloadURL(itemRef);
+            const res = await fetch(url);
+            if (!res.ok) return;
+
+            let content = await res.text();
+
+            // Decrypt if it's an encrypted CSV
+            if (content.startsWith('ENC:')) {
+                if (state.encryptionKey) {
+                    content = await decryptData(state.encryptionKey, content);
+                } else {
+                    throw new Error('Cannot decrypt ' + itemRef.name + '. Please unlock encryption first.');
+                }
+            }
+
+            zip.file(itemRef.name, content);
+            fileCount++;
+        } catch (err) {
+            console.warn(`Failed to process ${itemRef.name}`, err);
+        }
+    }));
+
+    if (fileCount === 0) {
+        throw new Error('No data found to export.');
+    }
+
+    const filename = `ExpenseIQ_Backup_${getLocalDateString(new Date()).replace(/-/g, '')}.zip`;
+    const blob = await zip.generateAsync({ type: "blob" });
+
+    return { blob, filename, fileCount };
+}
+
+/**
+ * Exports all user data from Firebase Storage into a single ZIP file.
+ */
+export async function exportAllDataAsZip() {
     try {
         showLoader('Preparing backup...');
-        const zip = new JSZip();
-        
-        const userEmail = getRequiredEmail();
-        const folderRef = ref(state.storage, userEmail + '/');
-        const result = await listAll(folderRef);
-
-        let fileCount = 0;
-        
-        for (const itemRef of result.items) {
-            try {
-                const url = await getDownloadURL(itemRef);
-                const res = await fetch(url);
-                if (!res.ok) continue;
-                
-                let content = await res.text();
-                
-                // Decrypt if it's an encrypted CSV
-                if (content.startsWith('ENC:')) {
-                    if (state.encryptionKey) {
-                        content = await decryptData(state.encryptionKey, content);
-                    } else {
-                        toast('Error: Cannot decrypt ' + itemRef.name + '. Please unlock encryption first.', 'error');
-                        hideLoader();
-                        return;
-                    }
-                }
-                
-                zip.file(itemRef.name, content);
-                fileCount++;
-            } catch (err) {
-                console.warn(`Failed to process ${itemRef.name}`, err);
-            }
-        }
-        
-        if (fileCount === 0) {
-            toast('No data found to export.', 'info');
-            hideLoader();
-            return;
-        }
-
-        const filename = `ExpenseIQ_Backup_${getLocalDateString(new Date()).replace(/-/g, '')}.zip`;
+        const { blob, filename } = await generateBackupZip();
 
         if (window.Android && window.Android.saveBackup) {
-            const base64 = await zip.generateAsync({type: "base64"});
-            window.Android.saveBackup(base64, filename);
-            toast('Backup downloaded successfully!');
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64data = reader.result ? reader.result.split(',')[1] : '';
+                window.Android.saveBackup(base64data, filename);
+                toast('Backup downloaded successfully!');
+            };
         } else {
-            const blob = await zip.generateAsync({type: "blob"});
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = filename;
@@ -84,11 +92,12 @@ export async function exportAllDataAsZip() {
         }
     } catch (error) {
         console.error('Export failed', error);
-        toast('Failed to export data.', 'error');
+        toast(error.message || 'Failed to export data.', 'error');
     } finally {
         hideLoader();
     }
 }
+
 
 /**
  * Restores all user data from a selected ZIP file.

@@ -5,11 +5,11 @@ import { toast, escHtml, stripEmojiPrefix, resetLocationPermissionDenied } from 
 import { saveMetadataCSV, bulkUpdateCSVs, saveLocationCSV } from "./form.js";
 import { populateFilterOptions } from "./filters.js";
 import { exportAllDataAsZip, restoreDataFromZip } from "../services/export.js";
+import { getGoogleDriveConnectionState, connectGoogleDrive, disconnectGoogleDrive, backupToGoogleDrive, getDriveApiEnableUrl, STORAGE_KEYS } from "../services/google_drive.js";
 import { state } from "../core/state.js";
 import { PROTECTED_CATEGORIES, PROTECTED_TXN_MODES } from "../../config.js";
 import { isGmailSupported, syncGmail, unlinkGmail, getLinkedGmail } from "../services/gmail.js";
-import { getUserEmail } from "../services/auth.js";
-import { updateUserSettings } from "../services/user_settings.js";
+import { updateUserSettings, loadUserSettings } from "../services/user_settings.js";
 
 /* ══════════════ SETTINGS — CATEGORY & TXN TYPE CRUD ══════════════ */
 
@@ -68,6 +68,123 @@ export function initSortable(tbodySelector, dragType) {
             onSettingsChanged();
         }
     });
+}
+
+export const updateEnableApiLink = () => {
+    const gdriveEnableApiLink = $('#gdrive-enable-api-link');
+    if (gdriveEnableApiLink) {
+        gdriveEnableApiLink.href = getDriveApiEnableUrl();
+    }
+};
+
+export function updateGoogleDriveUI() {
+    const driveState = getGoogleDriveConnectionState();
+    const statusLabel = $('#gdrive-status-label');
+    const statusEmail = $('#gdrive-status-email');
+    const btnConnect = $('#btn-gdrive-connect');
+    const btnDisconnect = $('#btn-gdrive-disconnect');
+    const settingsPanel = $('#gdrive-settings-panel');
+    const toggleAuto = $('#toggle-gdrive-auto');
+    const selectFreq = $('#select-gdrive-frequency');
+    const lastBackupText = $('#gdrive-last-backup-text');
+    const errorBanner = $('#gdrive-error-banner');
+
+    const btnBackupNow = $('#btn-gdrive-backup-now');
+    if (btnBackupNow) {
+        btnBackupNow.disabled = !driveState.isConnected;
+        if (!driveState.isConnected) {
+            btnBackupNow.title = 'Please connect Google Drive first';
+            btnBackupNow.style.opacity = '0.5';
+            btnBackupNow.style.cursor = 'not-allowed';
+        } else {
+            btnBackupNow.title = '';
+            btnBackupNow.style.opacity = '1';
+            btnBackupNow.style.cursor = 'pointer';
+        }
+    }
+
+    const freqRow = $('#gdrive-frequency-row');
+    const retentionRow = $('#gdrive-retention-row');
+
+    if (statusLabel) {
+        if (driveState.isConnected) {
+            statusLabel.textContent = 'Google Account Connected';
+            if (statusEmail) statusEmail.textContent = driveState.email || 'Connected';
+            if (btnConnect) btnConnect.style.display = 'none';
+            if (btnDisconnect) btnDisconnect.style.display = 'inline-block';
+            if (settingsPanel) settingsPanel.style.display = 'block';
+            if (toggleAuto) toggleAuto.checked = driveState.autoBackup;
+            const selectRetention = $('#select-gdrive-retention');
+            if (selectFreq) {
+                selectFreq.value = driveState.frequency;
+                selectFreq.disabled = !driveState.autoBackup;
+            }
+            if (selectRetention) {
+                selectRetention.value = driveState.retention || '90_days';
+                selectRetention.disabled = !driveState.autoBackup;
+            }
+            if (freqRow) {
+                if (driveState.autoBackup) {
+                    freqRow.style.opacity = '1';
+                    freqRow.style.pointerEvents = 'auto';
+                } else {
+                    freqRow.style.opacity = '0.45';
+                    freqRow.style.pointerEvents = 'none';
+                }
+            }
+            if (retentionRow) {
+                if (driveState.autoBackup) {
+                    retentionRow.style.opacity = '1';
+                    retentionRow.style.pointerEvents = 'auto';
+                } else {
+                    retentionRow.style.opacity = '0.45';
+                    retentionRow.style.pointerEvents = 'none';
+                }
+            }
+            if (lastBackupText) {
+                lastBackupText.textContent = driveState.lastBackup 
+                    ? `Last successful backup: ${driveState.lastBackup}` 
+                    : 'Last backup: Never';
+            }
+        } else {
+            statusLabel.textContent = 'Google Account';
+            if (statusEmail) statusEmail.textContent = 'Not connected';
+            if (btnConnect) btnConnect.style.display = 'inline-block';
+            if (btnDisconnect) btnDisconnect.style.display = 'none';
+            if (settingsPanel) settingsPanel.style.display = 'none';
+            if (lastBackupText) {
+                lastBackupText.textContent = 'Last backup: Never';
+            }
+        }
+    }
+
+    if (errorBanner) {
+        if (driveState.lastError) {
+            const timeStr = driveState.lastErrorTime 
+                ? ` (${new Date(driveState.lastErrorTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` 
+                : '';
+            errorBanner.innerHTML = `<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 8px 12px; color: var(--amount-negative); line-height: 1.4; text-align: left; font-size: 0.82rem;">
+                <span style="font-weight: 600;">⚠️ Last Backup Failed${timeStr}:</span><br>
+                <span>${escHtml(driveState.lastError)}</span>
+            </div>`;
+            errorBanner.style.display = 'block';
+        } else {
+            errorBanner.style.display = 'none';
+            errorBanner.innerHTML = '';
+        }
+    }
+
+    const inputClient = $('#input-gdrive-client-id');
+    if (inputClient && document.activeElement !== inputClient) {
+        inputClient.value = localStorage.getItem(STORAGE_KEYS.CUSTOM_CLIENT_ID) || '';
+    }
+
+    const gdriveOriginCode = $('#gdrive-current-origin');
+    if (gdriveOriginCode && typeof window !== 'undefined' && window.location && window.location.origin) {
+        gdriveOriginCode.textContent = window.location.origin;
+    }
+
+    updateEnableApiLink();
 }
 
 export function setupSettings() {
@@ -209,6 +326,144 @@ export function setupSettings() {
         });
     }
 
+    // Initialize custom Google Client ID input and current origin
+    const inputGdriveClientId = $('#input-gdrive-client-id');
+    const gdriveOriginCode = $('#gdrive-current-origin');
+    const btnSaveGdriveClientId = $('#btn-save-gdrive-client-id');
+
+    if (gdriveOriginCode && typeof window !== 'undefined' && window.location) {
+        gdriveOriginCode.textContent = window.location.origin;
+    }
+
+    if (inputGdriveClientId) {
+        inputGdriveClientId.value = localStorage.getItem(STORAGE_KEYS.CUSTOM_CLIENT_ID) || '';
+    }
+
+    updateGoogleDriveUI();
+
+    if (gdriveOriginCode && typeof window !== 'undefined' && window.location) {
+        gdriveOriginCode.textContent = window.location.origin;
+    }
+
+    if (inputGdriveClientId) {
+        inputGdriveClientId.value = localStorage.getItem(STORAGE_KEYS.CUSTOM_CLIENT_ID) || '';
+    }
+
+    updateEnableApiLink();
+
+    if (btnSaveGdriveClientId && inputGdriveClientId) {
+        btnSaveGdriveClientId.addEventListener('click', async () => {
+            const val = inputGdriveClientId.value.trim();
+            if (val) {
+                localStorage.setItem(STORAGE_KEYS.CUSTOM_CLIENT_ID, val);
+                try {
+                    await updateUserSettings({ gdriveClientId: val });
+                } catch (e) {
+                    console.warn('Failed to sync gdriveClientId to cloud', e);
+                }
+                toast('Google OAuth Client ID saved & synced!', 'success');
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.CUSTOM_CLIENT_ID);
+                try {
+                    await updateUserSettings({ gdriveClientId: '' });
+                } catch (e) {
+                    console.warn('Failed to sync gdriveClientId removal to cloud', e);
+                }
+                toast('Custom Client ID cleared.', 'info');
+            }
+            updateEnableApiLink();
+        });
+    }
+
+    updateGoogleDriveUI();
+
+    const btnGdriveConnect = $('#btn-gdrive-connect');
+    if (btnGdriveConnect) {
+        btnGdriveConnect.addEventListener('click', async () => {
+            try {
+                btnGdriveConnect.disabled = true;
+                btnGdriveConnect.textContent = 'Connecting...';
+                await connectGoogleDrive();
+                toast('Connected to Google Drive successfully!', 'success');
+                updateGoogleDriveUI();
+            } catch (err) {
+                console.error('Google Drive connection failed:', err);
+                toast(err.message || 'Failed to connect to Google Drive', 'error');
+            } finally {
+                btnGdriveConnect.disabled = false;
+                btnGdriveConnect.textContent = 'Connect';
+            }
+        });
+    }
+
+    const btnGdriveDisconnect = $('#btn-gdrive-disconnect');
+    if (btnGdriveDisconnect) {
+        btnGdriveDisconnect.addEventListener('click', async () => {
+            await disconnectGoogleDrive();
+            toast('Google Drive disconnected', 'info');
+            updateGoogleDriveUI();
+        });
+    }
+
+    const toggleGdriveAuto = $('#toggle-gdrive-auto');
+    if (toggleGdriveAuto) {
+        toggleGdriveAuto.addEventListener('change', async (e) => {
+            localStorage.setItem(STORAGE_KEYS.AUTO_BACKUP, e.target.checked ? 'true' : 'false');
+            try {
+                await updateUserSettings({ gdriveAutoBackup: e.target.checked });
+            } catch (err) {
+                console.warn('Failed to sync gdriveAutoBackup to cloud', err);
+            }
+            updateGoogleDriveUI();
+            toast(e.target.checked ? 'Auto-backup enabled on app launch' : 'Auto-backup disabled', 'info');
+        });
+    }
+
+    const selectGdriveFreq = $('#select-gdrive-frequency');
+    if (selectGdriveFreq) {
+        selectGdriveFreq.addEventListener('change', async (e) => {
+            localStorage.setItem(STORAGE_KEYS.FREQUENCY, e.target.value);
+            try {
+                await updateUserSettings({ gdriveFrequency: e.target.value });
+            } catch (err) {
+                console.warn('Failed to sync gdriveFrequency to cloud', err);
+            }
+            toast(`Backup frequency set to ${e.target.value}`, 'info');
+        });
+    }
+
+    const selectGdriveRetention = $('#select-gdrive-retention');
+    if (selectGdriveRetention) {
+        selectGdriveRetention.addEventListener('change', async (e) => {
+            localStorage.setItem(STORAGE_KEYS.RETENTION, e.target.value);
+            try {
+                await updateUserSettings({ gdriveRetention: e.target.value });
+            } catch (err) {
+                console.warn('Failed to sync gdriveRetention to cloud', err);
+            }
+            toast('Backup retention policy updated', 'info');
+        });
+    }
+
+    const btnGdriveBackupNow = $('#btn-gdrive-backup-now');
+    if (btnGdriveBackupNow) {
+        btnGdriveBackupNow.addEventListener('click', async () => {
+            btnGdriveBackupNow.disabled = true;
+            btnGdriveBackupNow.innerHTML = '<span>⏳</span> Backing up to Google Drive...';
+            try {
+                await backupToGoogleDrive(false);
+            } catch (err) {
+                console.error(err);
+                toast(err.message || 'Backup failed', 'error');
+            } finally {
+                btnGdriveBackupNow.disabled = false;
+                btnGdriveBackupNow.innerHTML = '<span>☁️</span> Backup Now to Google Drive';
+                updateGoogleDriveUI();
+            }
+        });
+    }
+
+
     const toggleHideIncome = $('#toggle-hide-income');
     if (toggleHideIncome) {
         toggleHideIncome.checked = state.hideIncome;
@@ -291,6 +546,7 @@ export function onSettingsChanged() {
 }
 
 export function renderSettings() {
+    updateGoogleDriveUI();
     // Categories table
     const catTbody = $('#category-tbody');
     catTbody.innerHTML = state.categories.map((cat, i) => {

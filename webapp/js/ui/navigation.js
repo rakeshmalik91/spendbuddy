@@ -146,10 +146,10 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName === 'dashboard') renderDashboard();
     if (viewName === 'charts') renderChartsPage();
     if (viewName === 'transactions') renderTransactions();
-    if (['settings', 'categories', 'txnmodes', 'locations'].includes(viewName)) {
+    if (['settings', 'categories', 'txnmodes', 'locations', 'backups'].includes(viewName)) {
         renderSettings();
         if (typeof window.syncCloudDataInBackground === 'function') {
-            if (viewName === 'settings' && previousViewId !== 'settings') {
+            if (['settings', 'backups'].includes(viewName) && previousViewId !== viewName) {
                 if (shouldSyncOnNav('user_settings.json')) {
                     window.syncCloudDataInBackground(['user_settings.json']);
                 }

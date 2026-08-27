@@ -79,3 +79,9 @@ export const SYSTEM_TXN_SOURCES = [TXN_SOURCE_SCHEDULE, TXN_SOURCE_QUICK_ADD];
 // Transaction source prefixes
 export const TXN_SOURCE_SMS_PREFIX = 'SMS:';
 export const TXN_SOURCE_EMAIL_PREFIX = 'Email:';
+
+// Google Drive Backup Configuration
+// Client ID for Google Identity Services (GIS). If not provided, user can configure their own or use default.
+export const GOOGLE_DRIVE_CLIENT_ID = '596670983606-f368a0b6043d3895236517.apps.googleusercontent.com';
+export const GOOGLE_DRIVE_BACKUP_FOLDER = 'ExpenseIQ Backups';
+

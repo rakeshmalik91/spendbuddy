@@ -983,6 +983,19 @@
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
 
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('backups')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">💾</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Backup & Restore</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Google Drive backups, ZIP export & restore</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+
                     <div class="card" id="sync-nav-card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                         onclick="window.switchView('syncing')">
@@ -1287,8 +1300,134 @@
                     </div>
 
                     <div class="card">
+                        <h2 class="chart-title"
+                            style="display: flex; align-items: center; gap: 8px; color: var(--amount-negative);">
+                            <span>⚠️</span> Danger Zone
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
+                            Permanently delete your account and all associated data. This action cannot be undone.
+                        </p>
+                        <button class="btn btn-danger" id="btn-delete-account"
+                            style="padding: 12px 24px; font-size: 1rem;">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── BACKUP & RESTORE VIEW ── -->
+            <section class="view" id="view-backups">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Backup & Restore</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card" id="card-google-drive-backup">
                         <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
-                            <span>💾</span> Data Backup
+                            <span>☁️</span> Google Drive Backup
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
+                            Automatically or manually backup your data to your personal Google Drive in an <strong>ExpenseIQ Backups</strong> folder.
+                        </p>
+
+                        <div style="margin-bottom: 16px;">
+                            <details style="font-size: 0.85rem; color: var(--text-dim); background: var(--bg-alt); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                                <summary style="cursor: pointer; font-weight: 500; color: var(--text-main);">⚙️ Google OAuth Client ID (Click to configure)</summary>
+                                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                                    <label style="font-size: 0.8rem; color: var(--text-muted);">Enter your OAuth 2.0 Web Client ID from Google Cloud Console:</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="input-gdrive-client-id" class="form-control" placeholder="123456789-xxxx.apps.googleusercontent.com" style="flex: 1; padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <button type="button" class="btn btn-secondary" id="btn-save-gdrive-client-id" style="padding: 6px 12px; font-size: 0.85rem;">Save</button>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin-top: 4px;">
+                                        <strong>Quick 2-Minute Setup:</strong><br>
+                                        1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #3b82f6; text-decoration: underline;">Google Cloud Console → Credentials</a>.<br>
+                                        2. Click <strong>Create Credentials → OAuth client ID</strong> (Type: <strong>Web application</strong>).<br>
+                                        3. Under <strong>Authorized JavaScript origins</strong>, add: <code id="gdrive-current-origin" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 2px 4px; border-radius: 4px;">https://expense-manager-iq.netlify.app</code><br>
+                                        4. Enable the <a id="gdrive-enable-api-link" href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">Google Drive API</a> for your project.<br>
+                                        5. Copy and paste the Client ID above.
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                        
+                        <div id="gdrive-status-container" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-alt); border-radius: 8px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-weight: 500; font-size: 0.95rem; color: var(--text-main);" id="gdrive-status-label">Google Account</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim);" id="gdrive-status-email">Not connected</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-secondary" id="btn-gdrive-connect" style="padding: 8px 16px; font-size: 0.9rem;">
+                                    Connect
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="btn-gdrive-disconnect" style="padding: 8px 16px; font-size: 0.9rem; display: none; color: var(--amount-negative);">
+                                    Disconnect
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <button type="button" class="btn btn-primary" id="btn-gdrive-backup-now" style="width: 100%; padding: 12px 20px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span>☁️</span> Backup Now to Google Drive
+                            </button>
+                            <div id="gdrive-error-banner" style="font-size: 0.85rem; margin-top: 8px; text-align: center; display: none;"></div>
+                            <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 6px; text-align: center;" id="gdrive-last-backup-text">
+                                Last backup: Never
+                            </div>
+                        </div>
+
+                        <details id="gdrive-settings-panel" style="display: none; font-size: 0.88rem; color: var(--text-dim); background: var(--bg-alt); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                            <summary style="cursor: pointer; font-weight: 500; color: var(--text-main);">⚙️ Auto-Backup & Retention Settings</summary>
+                            
+                            <div style="margin-top: 8px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle);">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Auto Backup on App Launch</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">Trigger backup when app opens if frequency period elapsed</div>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="toggle-gdrive-auto">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+
+                                <div id="gdrive-frequency-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle); transition: opacity 0.2s ease;">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Backup Frequency</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">How often automatic backup should occur</div>
+                                    </div>
+                                    <select id="select-gdrive-frequency" class="form-control" style="width: 140px; padding: 6px 12px; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+
+                                <div id="gdrive-retention-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle); transition: opacity 0.2s ease;">
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--text-main);">Auto-Delete Older Backups</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-dim);">Automatically clean up outdated backup files in Google Drive</div>
+                                    </div>
+                                    <select id="select-gdrive-retention" class="form-control" style="width: 160px; padding: 6px 12px; border-radius: 6px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color);">
+                                        <option value="keep_all">Keep All (No delete)</option>
+                                        <option value="7_days">Older than 7 days</option>
+                                        <option value="30_days">Older than 30 days</option>
+                                        <option value="60_days">Older than 60 days</option>
+                                        <option value="90_days">Older than 90 days</option>
+                                        <option value="180_days">Older than 6 months</option>
+                                        <option value="365_days">Older than 1 year</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>💾</span> Data Backup (ZIP)
                         </h2>
                         <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
                             Download all your expense data and settings as a ZIP archive. If cloud encryption is
@@ -1305,20 +1444,6 @@
                         <button class="btn btn-secondary" id="btn-restore-data"
                             style="padding: 12px 24px; font-size: 1rem;">
                             Restore Data (ZIP)
-                        </button>
-                    </div>
-
-                    <div class="card">
-                        <h2 class="chart-title"
-                            style="display: flex; align-items: center; gap: 8px; color: var(--amount-negative);">
-                            <span>⚠️</span> Danger Zone
-                        </h2>
-                        <p style="color: var(--text-dim); margin-bottom: 20px; line-height: 1.5;">
-                            Permanently delete your account and all associated data. This action cannot be undone.
-                        </p>
-                        <button class="btn btn-danger" id="btn-delete-account"
-                            style="padding: 12px 24px; font-size: 1rem;">
-                            Delete Account
                         </button>
                     </div>
                 </div>
@@ -1766,7 +1891,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=326"></script>
+    <script type="module" src="app.js?v=354"></script>
 </body>
 
 </html>

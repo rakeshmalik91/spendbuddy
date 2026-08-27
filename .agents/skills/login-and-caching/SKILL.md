@@ -5,7 +5,7 @@ description: Core documentation, architecture, and implementation details for th
 
 # Initial Login & Caching Architecture
 
-This document explains the initialization, authentication, and caching flow of the application. The architecture is designed for **zero-wait, instant startup** for returning users by aggressively trusting local caches and performing all network operations asynchronously in the background.
+This document explains the initialization, authentication, data caching, and Android WebView asset caching architecture of the application. The system is designed for **zero-wait, instant startup** for returning users by aggressively trusting local caches and performing all network operations asynchronously in the background.
 
 ```mermaid
 flowchart TD
@@ -30,21 +30,27 @@ flowchart TD
     AuthConfirm -- Session Expired --> Purge[Purge Cache & Show Login UI]
 ```
 
+---
+
 ## 1. App Boot & Optimistic Loading (`startAuthFlow`)
 
-When the application loads, `startAuthFlow()` in `webapp/js/core/init.js` is triggered.
+When the application loads, `startAuthFlow()` in [init.js](file:///d:/Projects/expense-manager/webapp/js/core/init.js) is triggered.
 - If `USE_LOCAL_DATA` is enabled in `webapp/config.js`, Firebase is skipped completely and the app boots directly.
 - Otherwise, it initializes Firebase Auth and Storage.
 - **Optimistic UI:** Before waiting for Firebase Auth to initialize (which requires a network round-trip), the app checks `localStorage` for the `expman_is_logged_in` flag. 
 - If `true`, it immediately hides the login screen and proceeds to the decryption flow, providing an instant visual transition.
 
+---
+
 ## 2. Decryption Flow
 
-The optimistic load instantly triggers `checkEncryptionAndUnlock()` from `encryption_manager.js`.
+The optimistic load instantly triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](file:///d:/Projects/expense-manager/webapp/js/services/encryption_manager.js).
 - It checks if a valid encryption key is already cached (e.g., in `sessionStorage` or securely in `localStorage`).
 - If a key exists, the app unlocks immediately. 
 - If not, the user is prompted to enter their encryption password (separate from their Firebase login password).
 - Upon successful unlock, the core `initApp()` routine is fired.
+
+---
 
 ## 3. Instant Local Cache Render (`initApp`)
 
@@ -52,6 +58,8 @@ The `initApp()` function is responsible for assembling the UI using cached data:
 - `loadAllCSVs()`, `loadMetadata()`, and `loadScheduledCSV()` are called. These functions query the local **IndexedDB** cache to fetch all financial records instantly.
 - The UI is rendered entirely using this offline local data.
 - `initSmsFromCache()` is called to instantly populate the Add Entry page and Dashboard with pending SMS/Email transactions from the local storage cache, prior to Android pushing new ones.
+
+---
 
 ## 4. Background Sync (`syncCloudDataInBackground`)
 
@@ -62,20 +70,65 @@ Once the UI is fully rendered and interactive, network requests begin strictly i
 - **Scheduler Execution:** During this sync, it also invokes `processScheduledTransactions()` to evaluate and auto-post any due recurring transactions before saving to the cloud.
 - `startBackgroundRefresh()` initializes a 5-minute polling interval to continually sync the local cache with the cloud while the app remains open.
 
+---
+
 ## 5. Manual Sync (Pull-to-Refresh)
 
-On mobile devices, users can manually trigger a cache invalidation check via a native-feeling "Pull-to-Refresh" gesture on the dashboard.
+On mobile devices, users can manually trigger a cache invalidation check via a native-feeling "Pull-to-Refresh" gesture on the dashboard:
 - This bypasses the 5-minute polling interval and immediately invokes `syncCloudDataInBackground()`.
 - The UI handles the touch gesture physics natively via `helpers.js` and provides visual feedback via a spinner that dynamically tracks the scroll gap.
 - Once the background sync completes (resolving new eTags/timestamps), the UI updates seamlessly.
 
-## 6. Late Auth Confirmation
+---
+
+## 6. Android WebView Web Asset Caching (`SiteCache.java` & `CachedWebViewClient.java`)
+
+To ensure zero latency and offline capability inside the Android APK while allowing web updates to deploy seamlessly without freezing stale assets:
+
+```mermaid
+flowchart TD
+    Req[WebView Requests URL] --> Intercept{Host == SITE_HOST?}
+    Intercept -- No --> Pass[Allow normal network load]
+    Intercept -- Yes --> CheckType{Is index.html?}
+    
+    CheckType -- Yes --> ETagCheck[Conditional GET with If-None-Match]
+    ETagCheck -- 304 Not Modified --> ServeHtmlCache[Serve cached index.html ~40ms]
+    ETagCheck -- 200 OK New Content --> DetectChange{index.html changed?}
+    DetectChange -- Yes --> Invalidate[Clear stale .js/.css from site_cache]
+    Invalidate --> SaveHtml[Save new index.html & ETag]
+    SaveHtml --> ServeHtmlNew[Serve new index.html]
+    ETagCheck -- Offline / Error --> ServeHtmlCache
+    
+    CheckType -- No (JS/CSS) --> CheckDisk{File exists in site_cache?}
+    CheckDisk -- Yes --> ServeDisk[Serve cached asset immediately]
+    CheckDisk -- No --> FetchDisk[Download, write to site_cache, and serve]
+```
+
+### 6.1 Key Asset Caching Principles:
+1. **Entry Point Revalidation (`index.html`)**:
+   - `index.html` is the root shell containing script tags like `<script type="module" src="app.js?v=XXX">`.
+   - On launch / refresh, [SiteCache.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java) sends a conditional `If-None-Match` request.
+   - If no update was deployed, the server responds with `304 Not Modified` in ~40ms, loading instantly from disk.
+   - If a new build was deployed (`200 OK`), `SiteCache` detects the content change and flushes stale `.js`/`.css` modules from `site_cache/`, ensuring the fresh build and sub-modules are loaded.
+2. **Offline Fallback**:
+   - If the device is offline, `SiteCache` catches network exceptions and immediately serves the cached `index.html` and assets from disk.
+3. **`WIPE_CACHE_ON_STARTUP` Flag**:
+   - Located in [AppConfig.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/AppConfig.java).
+   - **Must remain `false` in production**.
+   - It is strictly a developer troubleshooting tool to force a one-time wipe of `site_cache`, `sms_cache_json`, and `expman_sms_*` approval keys. Keeping it `true` permanently will cause approved/discarded transactions to reset on every launch.
+
+---
+
+## 7. Late Auth Confirmation
 
 Eventually, the Firebase `onAuthStateChanged` callback fires:
 - **Success:** If the optimistic load was correct (the user has a valid Firebase session), it simply updates the UI with the user's email (e.g., in the sidebar).
 - **Failure:** If the session is invalid or expired (meaning the `onAuthStateChanged` returns a `null` user), the app detects that the optimistic load was a false positive. It immediately purges all `expman_*` keys from `localStorage` and reloads the page to safely present the login screen.
 
+---
+
 ## Advantages of this Flow
 1. **Instant UX:** The user never stares at a loading spinner waiting for Firebase Auth or Cloud Storage on a cold start.
-2. **Offline-First:** The app functions perfectly offline based on the last known IndexedDB state.
-3. **Eventual Consistency:** Background sync ensures the data is eventually consistent across all devices without blocking the main thread.
+2. **Offline-First:** The app functions perfectly offline based on the last known IndexedDB and `site_cache` state.
+3. **Automated Web Deployment Delivery:** Web app updates are immediately and seamlessly picked up by Android clients without requiring manual cache wipes.
+4. **Eventual Consistency:** Background sync ensures the data is eventually consistent across all devices without blocking the main thread.

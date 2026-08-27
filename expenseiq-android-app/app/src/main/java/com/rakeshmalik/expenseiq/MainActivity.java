@@ -3,6 +3,7 @@ package com.rakeshmalik.expenseiq;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.InputType;
@@ -23,6 +25,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -197,6 +200,13 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setGeolocationEnabled(true);
+        webSettings.setSupportMultipleWindows(true);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+        // Sanitize User-Agent to allow Google Identity Services OAuth popup without disallowed_useragent error
+        String defaultUa = webSettings.getUserAgentString();
+        String customUa = defaultUa.replace("; wv", "").replaceAll("Version/\\d+\\.\\d+\\s*", "");
+        webSettings.setUserAgentString(customUa);
         
         webView.setWebViewClient(new CachedWebViewClient(siteCache));
         webView.addJavascriptInterface(new WebAppInterface(this, smsProcessor), "Android");
@@ -204,6 +214,49 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient() {
             private View customView = null;
             private CustomViewCallback customViewCallback = null;
+
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                WebView popupWebView = new WebView(MainActivity.this);
+                WebSettings popupSettings = popupWebView.getSettings();
+                popupSettings.setJavaScriptEnabled(true);
+                popupSettings.setDomStorageEnabled(true);
+                popupSettings.setSupportMultipleWindows(true);
+                popupSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+                popupSettings.setUserAgentString(webSettings.getUserAgentString());
+
+                Dialog popupDialog = new Dialog(MainActivity.this, android.R.style.Theme_DeviceDefault_NoActionBar_Fullscreen);
+                popupDialog.setContentView(popupWebView);
+
+                popupWebView.setWebChromeClient(new WebChromeClient() {
+                    @Override
+                    public void onCloseWindow(WebView window) {
+                        try {
+                            popupDialog.dismiss();
+                            window.destroy();
+                        } catch (Exception ignored) {}
+                    }
+                });
+
+                popupWebView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView v, android.webkit.WebResourceRequest request) {
+                        return false;
+                    }
+                });
+
+                popupDialog.setOnDismissListener(d -> {
+                    try {
+                        popupWebView.destroy();
+                    } catch (Exception ignored) {}
+                });
+                popupDialog.show();
+
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(popupWebView);
+                resultMsg.sendToTarget();
+                return true;
+            }
 
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
