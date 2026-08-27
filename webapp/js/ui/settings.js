@@ -357,7 +357,7 @@ export function setupSettings() {
             if (val) {
                 localStorage.setItem(STORAGE_KEYS.CUSTOM_CLIENT_ID, val);
                 try {
-                    await updateUserSettings({ gdriveClientId: val });
+                    await updateUserSettings({ googleDrive: { clientId: val } });
                 } catch (e) {
                     console.warn('Failed to sync gdriveClientId to cloud', e);
                 }
@@ -365,7 +365,7 @@ export function setupSettings() {
             } else {
                 localStorage.removeItem(STORAGE_KEYS.CUSTOM_CLIENT_ID);
                 try {
-                    await updateUserSettings({ gdriveClientId: '' });
+                    await updateUserSettings({ googleDrive: { clientId: '' } });
                 } catch (e) {
                     console.warn('Failed to sync gdriveClientId removal to cloud', e);
                 }
@@ -410,7 +410,7 @@ export function setupSettings() {
         toggleGdriveAuto.addEventListener('change', async (e) => {
             localStorage.setItem(STORAGE_KEYS.AUTO_BACKUP, e.target.checked ? 'true' : 'false');
             try {
-                await updateUserSettings({ gdriveAutoBackup: e.target.checked });
+                await updateUserSettings({ googleDrive: { autoBackup: e.target.checked } });
             } catch (err) {
                 console.warn('Failed to sync gdriveAutoBackup to cloud', err);
             }
@@ -424,7 +424,7 @@ export function setupSettings() {
         selectGdriveFreq.addEventListener('change', async (e) => {
             localStorage.setItem(STORAGE_KEYS.FREQUENCY, e.target.value);
             try {
-                await updateUserSettings({ gdriveFrequency: e.target.value });
+                await updateUserSettings({ googleDrive: { frequency: e.target.value } });
             } catch (err) {
                 console.warn('Failed to sync gdriveFrequency to cloud', err);
             }
@@ -437,7 +437,7 @@ export function setupSettings() {
         selectGdriveRetention.addEventListener('change', async (e) => {
             localStorage.setItem(STORAGE_KEYS.RETENTION, e.target.value);
             try {
-                await updateUserSettings({ gdriveRetention: e.target.value });
+                await updateUserSettings({ googleDrive: { retention: e.target.value } });
             } catch (err) {
                 console.warn('Failed to sync gdriveRetention to cloud', err);
             }
@@ -470,7 +470,7 @@ export function setupSettings() {
         toggleHideIncome.addEventListener('change', async (e) => {
             state.hideIncome = e.target.checked;
             localStorage.setItem('expman_hide_income', e.target.checked ? 'true' : 'false');
-            try { await updateUserSettings({ hideIncome: state.hideIncome }); } catch(err) { console.error('Failed to sync hideIncome to cloud', err); }
+            try { await updateUserSettings({ ui: { hideIncome: state.hideIncome } }); } catch(err) { console.error('Failed to sync hideIncome to cloud', err); }
             toast(e.target.checked ? 'Income data hidden' : 'Income data visible', 'info');
             onSettingsChanged();
             if (window.updateDashboardUI) window.updateDashboardUI(); // Force dashboard update if it exists
@@ -483,7 +483,7 @@ export function setupSettings() {
         toggleHideInvestment.addEventListener('change', async (e) => {
             state.hideInvestment = e.target.checked;
             localStorage.setItem('expman_hide_investment', e.target.checked ? 'true' : 'false');
-            try { await updateUserSettings({ hideInvestment: state.hideInvestment }); } catch(err) { console.error('Failed to sync hideInvestment to cloud', err); }
+            try { await updateUserSettings({ ui: { hideInvestment: state.hideInvestment } }); } catch(err) { console.error('Failed to sync hideInvestment to cloud', err); }
             toast(e.target.checked ? 'Investment data hidden' : 'Investment data visible', 'info');
             onSettingsChanged();
             if (window.updateDashboardUI) window.updateDashboardUI();
@@ -496,7 +496,7 @@ export function setupSettings() {
         toggleHideTransfer.addEventListener('change', async (e) => {
             state.hideTransfer = e.target.checked;
             localStorage.setItem('expman_hide_transfer', e.target.checked ? 'true' : 'false');
-            try { await updateUserSettings({ hideTransfer: state.hideTransfer }); } catch(err) { console.error('Failed to sync hideTransfer to cloud', err); }
+            try { await updateUserSettings({ ui: { hideTransfer: state.hideTransfer } }); } catch(err) { console.error('Failed to sync hideTransfer to cloud', err); }
             toast(e.target.checked ? 'Transfer data hidden' : 'Transfer data visible', 'info');
             onSettingsChanged();
             if (window.updateDashboardUI) window.updateDashboardUI();

@@ -104,17 +104,17 @@ Located in the **Settings** view under Data Backup:
 
 | Storage Key | Type | Description |
 | :--- | :--- | :--- |
-| `expman_gdrive_connected` | `boolean` | Connection flag synced across devices via `user_settings.json` |
+| `expman_gdrive_connected` | `boolean` | Connection flag synced across devices via `user_settings.json.googleDrive.connected` |
 | `expman_gdrive_token` | `string` | Short-lived OAuth access token (stored locally per device) |
 | `expman_gdrive_expires_at` | `number` | Timestamp ms when access token expires |
-| `expman_gdrive_email` | `string` | Connected Google account email |
-| `expman_gdrive_last_backup` | `number` | Timestamp ms of most recent successful backup |
+| `expman_gdrive_email` | `string` | Connected Google account email (synced to `user_settings.json.googleDrive.email`) |
+| `expman_gdrive_last_backup` | `number` | Timestamp ms of most recent successful backup (synced to `user_settings.json.googleDrive.lastBackup`) |
 | `expman_gdrive_last_error` | `string` | Error description of the latest failed backup attempt |
 | `expman_gdrive_last_error_time` | `number` | Timestamp ms of the latest failed backup attempt |
-| `expman_gdrive_auto_backup` | `boolean` | Auto-backup toggle preference |
-| `expman_gdrive_frequency` | `string` | `'daily'` \| `'weekly'` \| `'monthly'` |
-| `expman_gdrive_retention` | `string` | `'keep_all'` \| `'7_days'` \| `'30_days'` \| `'60_days'` \| `'90_days'` \| `'180_days'` \| `'365_days'` |
-| `expman_gdrive_custom_client_id` | `string` | Custom Google OAuth 2.0 Web Client ID (synced to `user_settings.json` under `gdriveClientId`) |
+| `expman_gdrive_auto_backup` | `boolean` | Auto-backup toggle preference (synced to `user_settings.json.googleDrive.autoBackup`) |
+| `expman_gdrive_frequency` | `string` | `'daily'` \| `'weekly'` \| `'monthly'` (synced to `user_settings.json.googleDrive.frequency`) |
+| `expman_gdrive_retention` | `string` | `'keep_all'` \| `'7_days'` \| `'30_days'` \| `'60_days'` \| `'90_days'` \| `'180_days'` \| `'365_days'` (synced to `user_settings.json.googleDrive.retention`) |
+| `expman_gdrive_custom_client_id` | `string` | Custom Google OAuth 2.0 Web Client ID (synced to `user_settings.json.googleDrive.clientId`) |
 
 ---
 

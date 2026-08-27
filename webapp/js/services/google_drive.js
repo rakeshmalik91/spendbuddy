@@ -190,11 +190,13 @@ export async function connectGoogleDrive() {
                     // Sync settings to cloud
                     try {
                         await updateUserSettings({
-                            gdriveConnected: true,
-                            gdriveEmail: userEmail,
-                            gdriveAutoBackup: localStorage.getItem(STORAGE_KEYS.AUTO_BACKUP) === 'true',
-                            gdriveFrequency: localStorage.getItem(STORAGE_KEYS.FREQUENCY),
-                            gdriveRetention: localStorage.getItem(STORAGE_KEYS.RETENTION)
+                            googleDrive: {
+                                connected: true,
+                                email: userEmail,
+                                autoBackup: localStorage.getItem(STORAGE_KEYS.AUTO_BACKUP) === 'true',
+                                frequency: localStorage.getItem(STORAGE_KEYS.FREQUENCY),
+                                retention: localStorage.getItem(STORAGE_KEYS.RETENTION)
+                            }
                         });
                     } catch (e) {
                         console.warn('Failed to sync GDrive settings to cloud', e);
@@ -239,9 +241,11 @@ export async function disconnectGoogleDrive() {
 
     try {
         await updateUserSettings({
-            gdriveConnected: false,
-            gdriveEmail: '',
-            gdriveAutoBackup: false
+            googleDrive: {
+                connected: false,
+                email: '',
+                autoBackup: false
+            }
         });
     } catch (e) {
         console.warn('Failed to sync disconnect state to cloud', e);
@@ -556,9 +560,11 @@ export async function backupToGoogleDrive(isAutomated = false) {
 
         try {
             await updateUserSettings({
-                gdriveLastBackup: now,
-                gdriveConnected: true,
-                gdriveEmail: email
+                googleDrive: {
+                    lastBackup: now,
+                    connected: true,
+                    email: email
+                }
             });
         } catch (e) {
             console.warn('Could not sync last backup timestamp to cloud', e);

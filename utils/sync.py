@@ -191,7 +191,14 @@ for email in EMAILS:
                             print(f"Synced (Encrypted format): {local_name}")
                     else:
                         print(f"Synced: {local_name}")
-                        
+
+                    if local_name.endswith('.json'):
+                        try:
+                            parsed_json = json.loads(content)
+                            content = json.dumps(parsed_json, indent=2) + "\n"
+                        except Exception:
+                            pass
+
                     with open(save_path, 'w', encoding='utf-8', newline='') as out_file:
                         out_file.write(content)
                 except Exception as e:

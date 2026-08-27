@@ -1,5 +1,4 @@
-import { ref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { state } from "../core/state.js";
+import { updateUserSettings, loadUserSettings } from "./user_settings.js";
 import { getUserEmail } from "./auth.js";
 
 /**
@@ -44,70 +43,65 @@ export function getLinkedGmail() {
 }
 
 /**
- * Saves Gmail/IMAP credentials to Firebase Storage as plain-text JSON.
+ * Saves Gmail/IMAP credentials to user_settings.json in Firebase Storage.
  */
 export async function saveGmailCredentialsToCloud(email, pass) {
     const userEmail = getUserEmail();
     if (!userEmail) return;
 
     try {
-        const fileRef = ref(state.storage, `${userEmail}/gmail_credentials.json`);
-        const content = JSON.stringify({ email, pass });
-        await uploadString(fileRef, content);
-        console.log("Gmail credentials saved to Firebase Storage (plain text)");
+        await updateUserSettings({
+            gmail: { email, pass }
+        });
+        console.log("Gmail credentials saved to user_settings.json");
     } catch (e) {
-        console.error("Failed to save Gmail credentials to Firebase Storage", e);
+        console.error("Failed to save Gmail credentials to user settings", e);
     }
 }
 
 /**
- * Loads Gmail/IMAP credentials from Firebase Storage and syncs them to the Android app.
+ * Loads Gmail/IMAP credentials from user_settings.json and syncs them to the Android app.
  */
 export async function loadGmailCredentialsFromCloud() {
     const userEmail = getUserEmail();
     if (!userEmail || !isGmailSupported()) return;
 
     try {
-        const fileRef = ref(state.storage, `${userEmail}/gmail_credentials.json`);
-        const url = await getDownloadURL(fileRef);
-        const res = await fetch(url);
-        if (res.ok) {
-            const content = await res.text();
-            const credentials = JSON.parse(content);
-            if (credentials && credentials.email && credentials.pass) {
-                const currentEmail = getLinkedGmail();
-                const currentPassword = window.Android.getSavedImapPassword ? window.Android.getSavedImapPassword() : "";
-                // Only update the Android app if credentials differ from what's already stored locally
-                if (currentEmail !== credentials.email || currentPassword !== credentials.pass) {
-                    window.Android.saveImapCredentials(credentials.email, credentials.pass);
-                    console.log("Restored Gmail credentials from Firebase Storage");
-                }
+        const settings = await loadUserSettings();
+        if (settings && settings.gmail && settings.gmail.email && settings.gmail.pass) {
+            const credentials = settings.gmail;
+            const currentEmail = getLinkedGmail();
+            const currentPassword = window.Android.getSavedImapPassword ? window.Android.getSavedImapPassword() : "";
+            // Only update the Android app if credentials differ from what's already stored locally
+            if (currentEmail !== credentials.email || currentPassword !== credentials.pass) {
+                window.Android.saveImapCredentials(credentials.email, credentials.pass);
+                console.log("Restored Gmail credentials from user settings");
+            }
+        } else {
+            // Automatically upload local credentials to Firebase Storage if they exist locally on the device
+            const localEmail = getLinkedGmail();
+            const localPassword = window.Android.getSavedImapPassword ? window.Android.getSavedImapPassword() : "";
+            if (localEmail && localPassword) {
+                console.log("Found local Gmail credentials on device. Syncing them to user settings...");
+                await saveGmailCredentialsToCloud(localEmail, localPassword);
             }
         }
     } catch (e) {
-        console.log("No Gmail credentials found in Firebase Storage, or access error:", e.message);
-        // Automatically upload local credentials to Firebase Storage if they exist locally on the device
-        const localEmail = getLinkedGmail();
-        const localPassword = window.Android.getSavedImapPassword ? window.Android.getSavedImapPassword() : "";
-        if (localEmail && localPassword) {
-            console.log("Found local Gmail credentials on device. Syncing them to Firebase Storage...");
-            await saveGmailCredentialsToCloud(localEmail, localPassword);
-        }
+        console.log("Error loading Gmail credentials from user settings:", e.message);
     }
 }
 
 /**
- * Deletes Gmail/IMAP credentials from Firebase Storage.
+ * Deletes Gmail/IMAP credentials from user_settings.json in Firebase Storage.
  */
 export async function deleteGmailCredentialsFromCloud() {
     const userEmail = getUserEmail();
     if (!userEmail) return;
 
     try {
-        const fileRef = ref(state.storage, `${userEmail}/gmail_credentials.json`);
-        await deleteObject(fileRef);
-        console.log("Gmail credentials deleted from Firebase Storage");
+        await updateUserSettings({ gmail: null });
+        console.log("Gmail credentials deleted from user settings");
     } catch (e) {
-        console.log("Failed to delete Gmail credentials from Firebase Storage or not found", e.message);
+        console.log("Failed to delete Gmail credentials from user settings", e.message);
     }
 }

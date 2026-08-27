@@ -30,12 +30,12 @@ This approach uses a background worker (`EmailProcessor.kt`) that connects direc
 ### 1. Authentication & Connection
 - Connects to `imap.gmail.com` using SSL over port 993.
 - Authentication is handled via a **Google App Password** securely stored in the Android Keystore/SharedPreferences. Generate one at: https://myaccount.google.com/apppasswords
-- **Credential Cloud Sync**: IMAP credentials (email + app password) are synced to Firebase Storage as plain-text JSON at `<userEmail>/gmail_credentials.json` for cross-device restoration.
-  - **Save**: When a user links a Gmail account via the Android app, `saveGmailCredentialsToCloud()` in `webapp/js/services/gmail.js` uploads the credentials.
-  - **Load**: On app launch, `loadGmailCredentialsFromCloud()` checks Firebase for stored credentials and restores them to the Android app via `WebAppInterface.saveImapCredentials()`.
-  - **Auto-upload**: If no cloud file exists but local credentials are found on the device, they are automatically uploaded to Firebase.
-  - **Delete**: When the user unlinks Gmail, `deleteGmailCredentialsFromCloud()` removes the file from Firebase.
-  - **Encryption**: Credentials are stored **unencrypted** and are **skipped** during the re-encryption flow on password change (`reEncryptAllCloudData` in `webapp/js/services/storage.js`).
+- **Credential Cloud Sync**: IMAP credentials (email + app password) are consolidated in `<userEmail>/user_settings.json` under the `"gmail"` namespace for cross-device restoration.
+  - **Save**: When a user links a Gmail account via the Android app, `saveGmailCredentialsToCloud()` in `webapp/js/services/gmail.js` updates `user_settings.json.gmail`.
+  - **Load**: On app launch, `loadGmailCredentialsFromCloud()` checks `user_settings.json` for stored credentials and restores them to the Android app via `WebAppInterface.saveImapCredentials()`.
+  - **Auto-upload**: If no credentials exist in `user_settings.json` but local credentials are found on the device, they are automatically saved to `user_settings.json`.
+  - **Delete**: When the user unlinks Gmail, `deleteGmailCredentialsFromCloud()` removes the `"gmail"` namespace from `user_settings.json`.
+  - **Encryption**: Stored unencrypted within `user_settings.json` (which is excluded from file-level encryption).
 - **Concurrent Scanning**: Connects and scans multiple folders (`"[Gmail]/All Mail"` and `"[Gmail]/Spam"`) entirely in parallel using Kotlin `async` coroutines to slash IMAP network time in half.
 - **Message Limiting**: To prevent infinite scrolling over massive inboxes, the engine bounds its search strictly to the last 100 recent messages per folder (or 7 days).
 - **First Scan Backfilling**: If the app detects no existing transaction cache (a "first scan"), it dynamically upgrades the search limits to an extensive 60 days and 500 messages (configurable) to heavily backfill the user's historical transactions, then drops down to the lighter limits for all future background syncs.

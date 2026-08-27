@@ -259,7 +259,7 @@ export async function reEncryptAllCloudData(enabling, newKey) {
 
     for (const itemRef of result.items) {
         // Skip files that are never encrypted
-        if (itemRef.name === 'user_settings.json' || itemRef.name === 'gmail_credentials.json') continue;
+        if (itemRef.name === 'user_settings.json') continue;
 
         try {
             // Download current content

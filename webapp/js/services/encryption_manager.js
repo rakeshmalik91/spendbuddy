@@ -180,7 +180,7 @@ export function setupEncryptionSettings() {
 
                         const newKey = await deriveKey(newPwd);
 
-                        // Re-upload/re-encrypt all encrypted files (including gmail_credentials.json) with new key
+                        // Re-upload/re-encrypt all encrypted files with new key
                         await reEncryptAllCloudData(state.encryptionEnabled, newKey);
 
                         state.encryptionKey = newKey; // Update to new key
