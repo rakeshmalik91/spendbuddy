@@ -6,6 +6,7 @@ import {
     uploadBackupToDrive,
     cleanupOldBackups,
     backupToGoogleDrive,
+    getValidAccessToken,
     STORAGE_KEYS,
     BACKUP_INTERVALS_MS,
     RETENTION_THRESHOLDS_MS
@@ -382,6 +383,46 @@ describe('Google Drive Backup Service', () => {
             expect(state.lastError).toBeNull();
             expect(state.lastErrorTime).toBeNull();
             expect(state.lastBackup).not.toBeNull();
+        });
+    });
+
+    describe('getValidAccessToken', () => {
+        it('returns cached token if still valid (> 2 minutes remaining)', async () => {
+            const future = Date.now() + 10 * 60 * 1000;
+            localStorage.setItem(STORAGE_KEYS.TOKEN, 'active_valid_token');
+            localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, future.toString());
+
+            const token = await getValidAccessToken(false);
+            expect(token).toBe('active_valid_token');
+        });
+
+        it('attempts silent token refresh when token is expired and user is connected', async () => {
+            const expired = Date.now() - 1000;
+            localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
+            localStorage.setItem(STORAGE_KEYS.TOKEN, 'expired_token');
+            localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, expired.toString());
+            localStorage.setItem(STORAGE_KEYS.EMAIL, 'user@gmail.com');
+            localStorage.setItem(STORAGE_KEYS.CUSTOM_CLIENT_ID, 'mock-client-id');
+
+            window.google = {
+                accounts: {
+                    oauth2: {
+                        initTokenClient: jest.fn(({ callback }) => ({
+                            requestAccessToken: jest.fn(() => {
+                                callback({
+                                    access_token: 'refreshed_silent_token',
+                                    expires_in: 3600
+                                });
+                            })
+                        }))
+                    }
+                }
+            };
+
+            const token = await getValidAccessToken(false);
+            expect(token).toBe('refreshed_silent_token');
+            expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBe('refreshed_silent_token');
+            expect(parseInt(localStorage.getItem(STORAGE_KEYS.EXPIRES_AT))).toBeGreaterThan(Date.now());
         });
     });
 });

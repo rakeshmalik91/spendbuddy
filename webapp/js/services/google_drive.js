@@ -112,15 +112,18 @@ export function getGoogleDriveConnectionState() {
 
 /**
  * Prompts the user to authorize Google Drive access via GIS OAuth popup.
+ * @param {boolean} forceConsent If true, forces the OAuth consent screen.
  * @returns {Promise<string>} Access token
  */
-export async function connectGoogleDrive() {
+export async function connectGoogleDrive(forceConsent = false) {
     await loadGisScript();
     const clientId = getGoogleClientId();
 
     if (!clientId) {
         throw new Error('Google Client ID is missing. Please configure your OAuth Client ID in Settings.');
     }
+
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.EMAIL) || getUserEmail() || '';
 
     return new Promise((resolve, reject) => {
         let isSettled = false;
@@ -140,6 +143,7 @@ export async function connectGoogleDrive() {
             tokenClient = window.google.accounts.oauth2.initTokenClient({
                 client_id: clientId,
                 scope: DRIVE_SCOPE,
+                hint: savedEmail || undefined,
                 callback: async (tokenResponse) => {
                     cleanup(timeoutId);
                     if (tokenResponse.error) {
@@ -172,7 +176,7 @@ export async function connectGoogleDrive() {
                     }
 
                     if (!userEmail) {
-                        userEmail = getUserEmail() || 'Connected Google Account';
+                        userEmail = savedEmail || getUserEmail() || 'Connected Google Account';
                     }
                     localStorage.setItem(STORAGE_KEYS.EMAIL, userEmail);
 
@@ -210,7 +214,11 @@ export async function connectGoogleDrive() {
                 }
             });
 
-            tokenClient.requestAccessToken({ prompt: 'consent' });
+            const promptOption = forceConsent ? 'consent' : '';
+            tokenClient.requestAccessToken({
+                prompt: promptOption,
+                hint: savedEmail || undefined
+            });
         } catch (err) {
             cleanup(timeoutId);
             reject(err);
@@ -258,26 +266,24 @@ export async function disconnectGoogleDrive() {
 export async function getValidAccessToken(interactive = false) {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     const expiresAt = parseInt(localStorage.getItem(STORAGE_KEYS.EXPIRES_AT) || '0', 10);
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.EMAIL) || getUserEmail() || '';
 
-    // If valid token exists and has > 2 minutes remaining
+    // 1. If valid token exists and has > 2 minutes remaining
     if (token && Date.now() < expiresAt - (2 * 60 * 1000)) {
         return token;
     }
 
-    if (interactive) {
-        return await connectGoogleDrive();
-    }
-
-    // Attempt silent token refresh if user is already connected
+    // 2. Attempt silent token refresh first if user was previously connected
     if (localStorage.getItem(STORAGE_KEYS.CONNECTED) === 'true') {
         try {
             await loadGisScript();
             const clientId = getGoogleClientId();
             if (clientId && window.google && window.google.accounts && window.google.accounts.oauth2) {
-                return new Promise((resolve) => {
+                const refreshedToken = await new Promise((resolve) => {
                     const silentClient = window.google.accounts.oauth2.initTokenClient({
                         client_id: clientId,
                         scope: DRIVE_SCOPE,
+                        hint: savedEmail || undefined,
                         callback: (tokenResponse) => {
                             if (tokenResponse.access_token) {
                                 const accessToken = tokenResponse.access_token;
@@ -292,12 +298,21 @@ export async function getValidAccessToken(interactive = false) {
                         },
                         error_callback: () => resolve(null)
                     });
-                    silentClient.requestAccessToken({ prompt: '' });
+                    silentClient.requestAccessToken({ prompt: '', hint: savedEmail || undefined });
                 });
+
+                if (refreshedToken) {
+                    return refreshedToken;
+                }
             }
         } catch (e) {
             console.warn('Silent token refresh failed:', e);
         }
+    }
+
+    // 3. If silent refresh failed and interactive is true, prompt user with account hint
+    if (interactive) {
+        return await connectGoogleDrive(false);
     }
 
     // Return null if expired and cannot refresh silently

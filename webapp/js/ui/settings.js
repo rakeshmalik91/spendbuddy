@@ -383,7 +383,7 @@ export function setupSettings() {
             try {
                 btnGdriveConnect.disabled = true;
                 btnGdriveConnect.textContent = 'Connecting...';
-                await connectGoogleDrive();
+                await connectGoogleDrive(true);
                 toast('Connected to Google Drive successfully!', 'success');
                 updateGoogleDriveUI();
             } catch (err) {
