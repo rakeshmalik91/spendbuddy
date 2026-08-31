@@ -93,6 +93,8 @@ describe('Add Page Form UI', () => {
         
         state.expenses = [];
         state.cloudSyncInProgress = false;
+        const { setFormSubmittingState } = require('../js/ui/form.js');
+        setFormSubmittingState(false);
         jest.clearAllMocks();
         
         initFormDummy();
@@ -204,6 +206,53 @@ describe('Add Page Form UI', () => {
 
             // Expect form note to retain the new suggestion value because reset was skipped
             expect(document.getElementById('input-note').value).toBe('New Suggestion Filled');
+        });
+
+        it('should clear form inputs and reset edit state when resetForm(true) is called even during submission', () => {
+            const { resetForm, setFormSubmittingState } = require('../js/ui/form.js');
+            document.body.innerHTML = `
+                <form id="expense-form">
+                    <input type="hidden" id="edit-index" value="5">
+                    <input type="hidden" id="edit-scheduled-index" value="2">
+                    <input type="hidden" id="input-date" value="2026-07-19">
+                    <input type="text" id="input-amount" value="500">
+                    <input type="text" id="input-note" value="Dinner with friends">
+                    <input type="text" id="input-tag" value="Dining">
+                    <input type="hidden" id="input-category" value="Shopping">
+                    <input type="hidden" id="input-transaction-type" value="Income">
+                    <input type="hidden" id="input-txn-type" value="Card">
+                    <div id="category-chips"></div>
+                    <div id="txntype-chips"></div>
+                    <div id="txnmode-chips"></div>
+                    <span id="form-title">Edit Transaction</span>
+                    <button type="submit" id="btn-submit">Update Entry</button>
+                    <button type="button" id="btn-cancel" style="display:inline-flex;">Cancel</button>
+                </form>
+            `;
+            state.categories = ['Food', 'Shopping'];
+            state.txnModes = ['UPI', 'Card'];
+            state.txnTypes = ['Expense', 'Income'];
+            state.calViewDate = new Date('2026-07-19');
+
+            setFormSubmittingState(true);
+
+            // Force reset as called at end of submit handler
+            resetForm(true);
+
+            expect(document.getElementById('input-amount').value).toBe('');
+            expect(document.getElementById('input-note').value).toBe('');
+            expect(document.getElementById('input-tag').value).toBe('');
+            expect(document.getElementById('edit-index').value).toBe('-1');
+            expect(document.getElementById('edit-scheduled-index').value).toBe('-1');
+            expect(document.getElementById('form-title').textContent).toBe('Add New Entry');
+            expect(document.getElementById('btn-submit').textContent).toBe('Add Entry');
+            expect(document.getElementById('btn-cancel').style.display).toBe('none');
+            expect(document.getElementById('input-date').value).toBe('2026-07-19');
+            expect(document.getElementById('input-category').value).toBe('Food');
+            expect(document.getElementById('input-transaction-type').value).toBe('Expense');
+            expect(document.getElementById('input-txn-type').value).toBe('UPI');
+
+            setFormSubmittingState(false);
         });
     });
 

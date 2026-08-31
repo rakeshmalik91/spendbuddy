@@ -681,7 +681,7 @@ export function setupForm() {
                         await processScheduledTransactions();
                         toast('Scheduled transaction updated!', 'success');
                         const targetView = state.editOriginView || 'scheduled';
-                        resetForm();
+                        resetForm(true);
                         state.editOriginView = null;
                         renderAll();
                         switchView(targetView);
@@ -702,7 +702,7 @@ export function setupForm() {
                         await saveScheduledCSV();
                         await processScheduledTransactions();
                         toast('Scheduled transaction added!', 'success');
-                        resetForm();
+                        resetForm(true);
                         renderAll();
                         switchView('scheduled');
                     } catch (error) {
@@ -758,7 +758,7 @@ export function setupForm() {
                         }
                         toast('Transaction updated!', 'success');
                         const targetView = state.editOriginView || state.previousView || 'dashboard';
-                        resetForm();
+                        resetForm(true);
                         state.editOriginView = null;
                         renderAll();
 
@@ -804,7 +804,11 @@ export function setupForm() {
                             toast('Conflict! Data modified on another device. Please refresh.', 'error');
                             return;
                         } else {
+                            const addedIdx = state.expenses.indexOf(entry);
+                            if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
+                            renderAll();
                             toast('Error saving to cloud', 'error');
+                            return;
                         }
                     }
                 }
@@ -819,7 +823,7 @@ export function setupForm() {
                 if (entry.location) {
                     localStorage.setItem('expman_last_location', entry.location);
                 }
-                resetForm();
+                resetForm(true);
                 renderAll();
                 renderSmsSuggestions();
             }
@@ -908,6 +912,8 @@ export function resetForm(force = false) {
         console.warn('[Form] Skipping resetForm to prevent overwriting new user input from race condition.');
         return;
     }
+    lastSubmitStartTime = 0;
+    lastFormFillTime = 0;
     const form = $('#expense-form');
     if (!form) return;
     const inputDateEl = $('#input-date');
@@ -915,8 +921,11 @@ export function resetForm(force = false) {
     const prevCalViewDate = new Date(state.calViewDate.getTime());
 
     form.reset();
+    if ($('#input-amount')) $('#input-amount').value = '';
+    if ($('#input-note')) $('#input-note').value = '';
     if ($('#input-end-date')) $('#input-end-date').type = 'text';
     if ($('#input-tag')) $('#input-tag').value = '';
+    if ($('#amount-error')) $('#amount-error').style.display = 'none';
     currentSuggestionSource = '';
     currentSuggestionTxnId = '';
     currentSelectedSuggestionTxn = null;
