@@ -96,7 +96,9 @@ describe('User Settings Service', () => {
 
     describe('updateUserSettings', () => {
         it('deep merges grouped objects cleanly', async () => {
-            const { uploadString } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+            const fbStorage = require('./__mocks__/firebase-mock.js');
+            const mockUpload = jest.fn().mockResolvedValue(true);
+            fbStorage.uploadString = mockUpload;
             
             // Existing grouped JSON in cloud
             mockCsvContent = JSON.stringify({
@@ -126,8 +128,8 @@ describe('User Settings Service', () => {
             expect(result.googleDrive.clientId).toBe('new-client-id');
             expect(result.googleDrive.autoBackup).toBe(true);
 
-            expect(uploadString).toHaveBeenCalled();
-            const savedJson = JSON.parse(uploadString.mock.calls[0][1]);
+            expect(mockUpload).toHaveBeenCalled();
+            const savedJson = JSON.parse(mockUpload.mock.calls[0][1]);
             expect(savedJson.googleDrive.clientId).toBe('new-client-id');
             expect(savedJson.googleDrive.connected).toBe(true);
         });

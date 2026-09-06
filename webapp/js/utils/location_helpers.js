@@ -48,9 +48,17 @@ export function resetLocationPermissionDenied() {
 
 /**
  * Gets the current location tag via geolocation, falling back to getLastLocation() if unavailable or no match found.
+ * Stores matched location to localStorage ('expman_last_location') so startup and future calls retain it.
+ * Does not prompt for permission unless options.explicit === true or permission is already granted.
+ * @param {Object} [options]
+ * @param {boolean} [options.explicit=false] - If true, allows prompting for permission (user clicked GPS/Detect).
+ * @param {boolean} [options.silent=false] - If true, ensures zero popups even on browsers without Permissions API.
  * @returns {Promise<string>} The best location tag.
  */
-export async function getCurrentLocationTag() {
+export async function getCurrentLocationTag(options = {}) {
+    if (typeof options === 'boolean') {
+        options = { explicit: options };
+    }
     const fallback = getLastLocation();
 
     const hasAndroidLocation = typeof window !== 'undefined' && window.Android && typeof window.Android.requestLocation === 'function';
@@ -67,17 +75,21 @@ export async function getCurrentLocationTag() {
         return fallback;
     }
 
-    // Android permission sync: if Android runtime permission is granted, reset any stale permission denial
+    // Android permission check:
+    // If Android runtime permission is granted, reset any stale permission denial flag.
+    // If NOT granted and not an explicit user request, avoid calling requestLocation() to prevent runtime dialog spam.
     if (hasAndroidLocation && typeof window.Android.isLocationPermissionGranted === 'function') {
         try {
             if (window.Android.isLocationPermissionGranted()) {
                 resetLocationPermissionDenied();
+            } else if (!options.explicit) {
+                return fallback;
             }
         } catch (e) { }
     }
 
     // Check permissions API if supported by the browser to avoid unexpected prompt popups when denied
-    // or to re-enable geolocation if previously allowed by user in browser settings
+    // or when in 'prompt' state during silent/background execution
     if (typeof navigator !== 'undefined' && navigator.permissions && navigator.permissions.query) {
         try {
             const permStatus = await navigator.permissions.query({ name: 'geolocation' });
@@ -90,14 +102,20 @@ export async function getCurrentLocationTag() {
                     return fallback;
                 } else if (permStatus.state === 'granted') {
                     resetLocationPermissionDenied();
+                } else if (permStatus.state === 'prompt' && !options.explicit) {
+                    // In 'prompt' state, do not trigger native prompt on automatic background checks
+                    return fallback;
                 }
             }
         } catch (e) {
             // Ignore query errors on browsers with limited Permissions API implementation
         }
+    } else if (options.silent && typeof localStorage !== 'undefined' && localStorage.getItem('expman_location_permission_granted') !== 'true') {
+        // In browsers without Permissions API, do not trigger popup on silent startup unless previously granted
+        return fallback;
     }
 
-    if (locationPermissionDenied) {
+    if (locationPermissionDenied && !options.explicit) {
         return fallback;
     }
 
@@ -168,6 +186,9 @@ export async function getCurrentLocationTag() {
 
     try {
         const position = await getDeviceLocation();
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('expman_location_permission_granted', 'true');
+        }
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
         let bestLoc = null;
@@ -180,6 +201,9 @@ export async function getCurrentLocationTag() {
             }
         }
         if (bestLoc) {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('expman_last_location', bestLoc.tag);
+            }
             return bestLoc.tag;
         }
         return fallback;
@@ -189,6 +213,7 @@ export async function getCurrentLocationTag() {
             locationPermissionDenied = true;
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('expman_location_permission_denied', 'true');
+                localStorage.removeItem('expman_location_permission_granted');
             }
         }
         return fallback;

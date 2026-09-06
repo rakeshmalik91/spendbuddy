@@ -6,7 +6,7 @@ import { renderScheduledTransactions } from "./chart_builders.js";
 import { renderTransactions } from "./transactions.js";
 import { state } from "../core/state.js";
 import { updateTimeFilterUI } from "./time_filter.js";
-import { resetForm } from "./form.js";
+import { resetForm, prefillLocation } from "./form.js";
 import { registerSwitchView } from "../utils/swipe_navigation.js";
 
 const lastNavSync = {};
@@ -112,6 +112,14 @@ export function switchView(viewName, pushStateToHistory = true) {
     $$(`.nav-btn[data-view="${viewName}"]`).forEach(b => b.classList.add('active'));
     $$('.view').forEach(v => v.classList.remove('active'));
     $(`#view-${viewName}`).classList.add('active');
+
+    if (viewName === 'add') {
+        const editIdx = document.getElementById('edit-index') ? parseInt(document.getElementById('edit-index').value) : -1;
+        const editSchedIdx = document.getElementById('edit-scheduled-index') ? parseInt(document.getElementById('edit-scheduled-index').value) : -1;
+        if (editIdx < 0 && editSchedIdx < 0 && typeof prefillLocation === 'function') {
+            prefillLocation({ explicit: true });
+        }
+    }
 
 
 

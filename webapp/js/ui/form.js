@@ -2,7 +2,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -216,6 +216,31 @@ export function setupForm() {
     $('#input-amount')?.addEventListener('input', function(e) {
         this.value = this.value.replace(/[^0-9.+\-]/g, '');
     });
+
+    // Auto-detect location button in form
+    const btnDetectLoc = $('#btn-detect-location');
+    if (btnDetectLoc) {
+        btnDetectLoc.addEventListener('click', async () => {
+            resetLocationPermissionDenied();
+            btnDetectLoc.disabled = true;
+            btnDetectLoc.innerHTML = '<span>⏳ Locating...</span>';
+            try {
+                const tag = await getCurrentLocationTag({ explicit: true });
+                if (tag) {
+                    const locInput = $('#input-location');
+                    if (locInput) locInput.value = tag;
+                    toast(`📍 Location detected: ${tag}`, 'success');
+                } else {
+                    toast('No matching location configured', 'info');
+                }
+            } catch (err) {
+                toast('Failed to detect location', 'error');
+            } finally {
+                btnDetectLoc.disabled = false;
+                btnDetectLoc.innerHTML = '<span>📍 Detect</span>';
+            }
+        });
+    }
 
     // Populate select options for days
     let daysHtml = '';
@@ -897,16 +922,34 @@ export function updateFormActionButtons() {
     }
 }
 
-export function prefillLocation() {
+export function prefillLocation(options = {}) {
     const locInput = $('#input-location');
     if (!locInput) return Promise.resolve();
     
+    const prevDefault = typeof getLastLocation === 'function' ? getLastLocation() : '';
     // Check if user is typing manually; don't override if they are
-    if (locInput.value && locInput.value !== getLastLocation()) return Promise.resolve();
+    if (locInput.value && locInput.value !== prevDefault) return Promise.resolve();
 
-    return getCurrentLocationTag().then(tag => {
-        if (!locInput.value || locInput.value === getLastLocation()) {
-            locInput.value = tag;
+    // Immediately pre-populate with last known location if input is empty
+    if (!locInput.value && prevDefault) {
+        locInput.value = prevDefault;
+    }
+
+    const isAddView = typeof document !== 'undefined' && 
+        (document.querySelector('.view.active')?.id === 'view-add' || 
+         document.getElementById('view-add')?.classList.contains('active'));
+
+    const effectiveOptions = {
+        ...options,
+        explicit: options.explicit || isAddView
+    };
+
+    if (typeof getCurrentLocationTag !== 'function') return Promise.resolve();
+    return getCurrentLocationTag(effectiveOptions).then(tag => {
+        if (!locInput.value || locInput.value === prevDefault || locInput.value === tag) {
+            if (tag) {
+                locInput.value = tag;
+            }
         }
     });
 }
@@ -935,7 +978,8 @@ export function resetForm(force = false) {
 
     if ($('#input-amount')) $('#input-amount').value = '';
     if ($('#input-note')) $('#input-note').value = '';
-    if ($('#input-location')) $('#input-location').value = '';
+    const prevDefaultLoc = typeof getLastLocation === 'function' ? getLastLocation() : '';
+    if ($('#input-location')) $('#input-location').value = prevDefaultLoc || '';
     if ($('#input-tag')) $('#input-tag').value = '';
     if ($('#input-end-date')) {
         $('#input-end-date').type = 'text';

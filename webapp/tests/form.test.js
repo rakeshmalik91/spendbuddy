@@ -24,7 +24,10 @@ jest.mock('../js/utils/helpers.js', () => ({
     txnTypeBadgeHTML: () => '',
     formatDate: (d) => d || '',
     renderAmountHTML: (e) => e ? String(e.amount) : '',
-    isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0)
+    isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),
+    getLastLocation: jest.fn(() => ''),
+    getCurrentLocationTag: jest.fn().mockResolvedValue(''),
+    resetLocationPermissionDenied: jest.fn()
 }));
 
 // Provide a minimalistic mock for the form initialization

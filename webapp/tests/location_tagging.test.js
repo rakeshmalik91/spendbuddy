@@ -1,4 +1,4 @@
-import { getDistance, resetLocationPermissionDenied } from '../js/utils/helpers.js';
+import { getDistance, resetLocationPermissionDenied, getCurrentLocationTag } from '../js/utils/helpers.js';
 import { prefillLocation } from '../js/ui/form.js';
 import { state } from '../js/core/state.js';
 import { getLastLocation } from '../js/utils/helpers.js';
@@ -216,5 +216,69 @@ describe('Location Auto-tagging', () => {
         expect(mockLocInput.value).toBe('Home');
         expect(localStorage.getItem('expman_location_permission_denied')).toBeNull();
     });
+
+    it('persists matched location to localStorage expman_last_location', async () => {
+        state.locationsConfig = [{ tag: 'Office', lat: 28.5355, lon: 77.3910, radius: 2000 }];
+        global.navigator.geolocation = {
+            getCurrentPosition: jest.fn((success) => {
+                success({ coords: { latitude: 28.5355, longitude: 77.3910 } });
+            })
+        };
+
+        const tag = await getCurrentLocationTag();
+        expect(tag).toBe('Office');
+        expect(localStorage.getItem('expman_last_location')).toBe('Office');
+        expect(localStorage.getItem('expman_location_permission_granted')).toBe('true');
+    });
+
+    it('does not trigger geolocation popup on browser when permissions.query returns prompt unless explicit', async () => {
+        state.expenses = [{ location: 'FallbackCity' }];
+        state.locationsConfig = [{ tag: 'Home', lat: 28.0, lon: 77.0, radius: 1000 }];
+
+        global.navigator.permissions = {
+            query: jest.fn().mockResolvedValue({ state: 'prompt' })
+        };
+        const getPosMock = jest.fn();
+        global.navigator.geolocation = { getCurrentPosition: getPosMock };
+
+        // Silent / default call: should return fallback without triggering getCurrentPosition
+        const tag = await getCurrentLocationTag();
+        expect(tag).toBe('FallbackCity');
+        expect(getPosMock).not.toHaveBeenCalled();
+
+        // Explicit call (e.g. user clicked Detect button): should proceed to getCurrentPosition
+        getPosMock.mockImplementation((success) => {
+            success({ coords: { latitude: 28.0, longitude: 77.0 } });
+        });
+        const explicitTag = await getCurrentLocationTag({ explicit: true });
+        expect(getPosMock).toHaveBeenCalled();
+        expect(explicitTag).toBe('Home');
+    });
+
+    it('does not call window.Android.requestLocation if Android permission is not granted unless explicit', async () => {
+        state.expenses = [{ location: 'FallbackCity' }];
+        state.locationsConfig = [{ tag: 'Home', lat: 28.0, lon: 77.0, radius: 1000 }];
+
+        const reqMock = jest.fn();
+        window.Android = {
+            requestLocation: reqMock,
+            isLocationPermissionGranted: jest.fn(() => false)
+        };
+
+        // Automated call: should not spam permission dialog
+        const tag = await getCurrentLocationTag();
+        expect(tag).toBe('FallbackCity');
+        expect(reqMock).not.toHaveBeenCalled();
+
+        // Explicit call: should trigger requestLocation
+        reqMock.mockImplementation(() => {
+            window.onAndroidLocationReceived(28.0, 77.0);
+        });
+        const explicitTag = await getCurrentLocationTag({ explicit: true });
+        expect(reqMock).toHaveBeenCalled();
+        expect(explicitTag).toBe('Home');
+        delete window.Android;
+    });
 });
+
 
