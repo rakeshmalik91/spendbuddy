@@ -47,9 +47,32 @@ The Transaction Table UI renders all transaction lists (Recent Transactions on D
 ## 2. Mobile Layout Specifications (`<= 860px`)
 
 ### 2.1 CSS Grid Card Template
-In `@media (max-width: 860px)`, table rows (`tr:not(.month-header):not(.day-separator)`) transform into CSS Grid cards:
+In `@media (max-width: 860px)`, table rows (`tr:not(.month-header):not(.day-separator)`) transform into compact 2-row CSS Grid cards (the transaction date is elevated into the day separator row `tr.day-separator`):
 
-- **Tables with Actions (`#all-table`, `#selected-day-tbody`, `#scheduled-table`)**:
+- **Tables with Actions (`#all-table`, `#selected-day-tbody`)**:
+```css
+display: grid;
+grid-template-areas:
+    "category amount actions"
+    "note note actions";
+grid-template-columns: 1fr auto 28px;
+gap: 3px 10px;
+```
+
+- **Dashboard Recent Transactions (`#recent-table`)**:
+Since action buttons are hidden on mobile on the dashboard, `#recent-table` eliminates the 28px action column and right-side gap:
+```css
+display: grid;
+grid-template-areas:
+    "category amount"
+    "note note";
+grid-template-columns: 1fr auto;
+gap: 3px 10px;
+```
+Month headers and day separators on `#recent-table` similarly use `grid-template-columns: 1fr auto !important;` with their dummy trailing empty cells hidden (`display: none !important;`). The day separator displays `📅 [Date]` on the left and the day total on the right, styled with `margin-top: 14px` and `padding: 10px 4px 6px 4px` to provide clean visual breathing room above each day grouping.
+
+- **Scheduled Transactions Table (`#scheduled-table`)**:
+Retains metadata row for Next Run and Frequency:
 ```css
 display: grid;
 grid-template-areas:
@@ -60,32 +83,19 @@ grid-template-columns: 1fr auto 28px;
 gap: 2px 10px;
 ```
 
-- **Dashboard Recent Transactions (`#recent-table`)**:
-Since action buttons are hidden on mobile on the dashboard, `#recent-table` eliminates the 28px action column and right-side gap:
-```css
-display: grid;
-grid-template-areas:
-    "category amount"
-    "meta-left meta-right"
-    "note note";
-grid-template-columns: 1fr auto;
-gap: 2px 10px;
-```
-Month headers and day separators on `#recent-table` similarly use `grid-template-columns: 1fr auto !important;` with their dummy trailing empty cells hidden (`display: none !important;`).
-
-### 2.2 Grid Area Assignment
+### 2.2 Grid Area Assignment & 2-Row Card Structure
 - **Line 1 (`category amount [actions]`)**:
   - `Category`: `grid-area: category`, `font-weight: 600`, `ellipsis`.
   - `Amount`: `grid-area: amount`, `font-size: 1.05rem`, `font-weight: 700`, `justify-end`.
   - `Actions`: `grid-area: actions`, `align-self: start`, `justify-end` (hidden on `#recent-table`).
-- **Line 2 (`meta-left meta-right [actions]`)**:
-  - `Date` / `Next Run` (Left): `grid-area: meta-left`, `justify-self: start`, `font-size: 0.8rem`, `color: var(--text-muted)` (consistent date placement across all transaction tables).
-  - `Mode` / `Freq` (Right): `grid-area: meta-right`, `justify-self: end`, `text-align: right` (`color: var(--accent)` for Freq).
-  - **Mode Truncation Reset**: On mobile cards, `.mode-cell` overrides desktop trimming with `max-width: none !important; overflow: visible !important; margin-left: auto !important;` to display full mode names.
-- **Line 3 (`note note [actions]`)**:
+- **Line 2 (`note note [actions]`)**:
   - `Note`: `grid-area: note`, `align-self: start`.
-  - **Mobile Badge Alignment**: On mobile (`< 768px`), `.note-content` uses `justify-content: space-between;` and `.badges-wrapper` uses `margin-left: auto; justify-content: flex-end;` to align badges to the right edge of the card.
-  - **Empty Note Hiding**: If both note text and badges are absent, `td.empty-note` has `display: none !important;` so Line 3 collapses cleanly.
+  - **Structure**: Renders the note text directly followed by all badges:
+    `[Note Text] [📍 Location Badge] [Txn Mode Badge] [Tag Badge] [Source Badge] [Txn ID Badge] [Type Badge] [Refund Badge]`
+  - **Mobile Badge Alignment**: `.note-content` and `.badges-wrapper` use `justify-content: flex-start; margin-left: 0; display: inline-flex; gap: 4px; align-items: center;` so all badges follow immediately after the note text without being pushed to the far right.
+  - **Location as Badge**: When present, location is rendered as `.badge-location` (`📍 LocationName`) in `.badges-wrapper`.
+  - **Mode as Badge**: `.badge-mode` is styled as a rounded pill badge displayed directly in `.badges-wrapper`.
+  - **Empty Note Hiding**: If both note text and badges are absent, `td.empty-note` has `display: none !important;` so Line 2 collapses cleanly.
 
 ---
 

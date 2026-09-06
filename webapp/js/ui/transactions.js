@@ -101,12 +101,13 @@ export function renderTransactions() {
             const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
             sourceBadge = fullBadges + shortBadges;
         }
+        let locationBadge = e.location ? `<span class="badge-location hide-on-desktop" title="${escHtml(e.location)}">📍 ${escHtml(e.location)}</span>` : '';
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
         let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
-        let badges = typeBadge + modeBadge + tagBadge + sourceBadge + txnBadge;
+        let badges = locationBadge + modeBadge + tagBadge + sourceBadge + txnBadge + typeBadge;
 
         const refunds = g.refunds || (g.merged ? [g.merged] : []);
         const linkedExpenses = g.linkedExpenses || [];
@@ -188,7 +189,7 @@ export function renderTransactions() {
             </td>
             <td data-label="Date">
                 <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; width: 100%;">
-                    <div style="flex-shrink: 0;">📅 ${formatDate(e.date)}</div>
+                    <div class="txn-date-text hide-on-mobile" style="flex-shrink: 0;">📅 ${formatDate(e.date)}</div>
                     ${e.location ? `<div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 2px; overflow: hidden; min-width: 0;" title="${escHtml(e.location)}"><span>📍</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escHtml(e.location)}</span></div>` : ''}
                 </div>
             </td>

@@ -393,10 +393,34 @@
     letter-spacing: 0.02em;
 }
 
+.badge-location {
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
 .badge-tag {
     background: rgba(99, 138, 255, 0.1);
     border: 1px solid rgba(99, 138, 255, 0.25);
     color: var(--accent);
+}
+
+#recent-table .badge-location,
+#recent-table .badge-tag,
+#selected-day-tbody .badge-location,
+#selected-day-tbody .badge-tag {
+    display: none !important;
 }
 
 .badge-source {
@@ -461,11 +485,7 @@
     }
 }
 
-@media (max-width: 860px) {
-    .badge-mode {
-        display: none !important;
-    }
-}
+
 
 .account-name-span {
     overflow: hidden;
@@ -928,6 +948,10 @@ td.day-separator-empty {
     padding: 0 !important;
     height: auto !important;
     background: transparent !important;
+}
+
+.day-date-label {
+    display: none;
 }
 
 td.day-separator-total {

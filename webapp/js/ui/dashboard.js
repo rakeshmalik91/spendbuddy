@@ -307,7 +307,7 @@ function renderRecentTransactions() {
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
-        let badges = typeBadge + modeBadge + sourceBadge + txnBadge;
+        let badges = modeBadge + sourceBadge + txnBadge + typeBadge;
 
         const refunds = g.refunds || (g.merged ? [g.merged] : []);
         const linkedExpenses = g.linkedExpenses || [];
@@ -379,7 +379,7 @@ function renderRecentTransactions() {
         const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const mainRowHtml = `
         <tr id="dash-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx}" data-merged="${g.merged ? 'true' : 'false'}" data-row-prefix="dash-row">
-            <td data-label="Date">📅 ${formatDate(e.date)}</td>
+            <td data-label="Date"><span class="txn-date-text hide-on-mobile">📅 ${formatDate(e.date)}</span></td>
             <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
             <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
                 <div class="note-content">
@@ -493,7 +493,7 @@ export function renderSelectedDayTransactions() {
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
-        let badges = typeBadge + modeBadge + sourceBadge + txnBadge;
+        let badges = modeBadge + sourceBadge + txnBadge + typeBadge;
 
         let actionHTML = '';
         if (e.isScheduledPreview) {

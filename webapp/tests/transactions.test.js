@@ -1,6 +1,7 @@
 import { state } from '../js/core/state.js';
 import * as filters from '../js/ui/filters.js';
 import * as timeFilter from '../js/ui/time_filter.js';
+import { getDaySeparatorHTML } from '../js/ui/settings.js';
 
 // Mock dependencies
 jest.mock('../js/ui/time_filter.js', () => ({
@@ -171,3 +172,40 @@ describe('Transactions Filtering Logic', () => {
         expect(tagOptions).toEqual(['', 'RecentTrip', 'MidTrip', 'OldTrip']);
     });
 });
+
+describe('getDaySeparatorHTML', () => {
+    const dataset = [
+        { date: '2026-09-06', amount: 850, txnType: 'Expense', category: 'Home' },
+        { date: '2026-09-06', amount: 654, txnType: 'Expense', category: 'Transport' },
+        { date: '2026-09-05', amount: 464, txnType: 'Expense', category: 'Transport' },
+        { date: '2026-09-05', amount: -200, txnType: 'Income', category: 'Salary' } // excluded from day total
+    ];
+
+    it('should return empty separator row when dateStr or dataset is missing', () => {
+        expect(getDaySeparatorHTML(null, dataset, 7)).toBe('<tr class="day-separator"><td colspan="7"></td></tr>');
+        expect(getDaySeparatorHTML('2026-09-06', null, 7)).toBe('<tr class="day-separator"><td colspan="7"></td></tr>');
+    });
+
+    it('should render day-date-label with formatted date and hide-on-desktop class for 7-column table', () => {
+        const html = getDaySeparatorHTML('2026-09-06', dataset, 7);
+        expect(html).toContain('class="day-separator"');
+        expect(html).toContain('<span class="day-date-label hide-on-desktop">📅');
+        expect(html).toContain('06 Sep'); // 06 Sept 2026 or 06 Sep 2026 depending on locale
+        expect(html).toContain('class="day-separator-total"');
+        expect(html).toContain('1,504.00'); // 850 + 654
+        expect(html).toContain('colspan="3"');
+        expect(html).toContain('batch-select-day');
+    });
+
+    it('should render day-date-label with formatted date for 6-column table (Dashboard)', () => {
+        const html = getDaySeparatorHTML('2026-09-06', dataset, 6);
+        expect(html).toContain('class="day-separator"');
+        expect(html).toContain('<span class="day-date-label hide-on-desktop">📅');
+        expect(html).toContain('06 Sep');
+        expect(html).toContain('class="day-separator-total"');
+        expect(html).toContain('1,504.00');
+        expect(html).toContain('colspan="3"');
+        expect(html).toContain('colspan="2"'); // colsAfter = 6 - 4 = 2
+    });
+});
+
