@@ -257,6 +257,27 @@ describe('Add Page Form UI', () => {
 
             setFormSubmittingState(false);
         });
+
+        it('should preserve selected date when resetting the form', () => {
+            const { resetForm } = require('../js/ui/form.js');
+            document.body.innerHTML = `
+                <form id="expense-form">
+                    <input type="text" id="input-date" value="2026-05-10">
+                    <input type="text" id="input-amount" value="500">
+                    <input type="text" id="input-note" value="Dinner">
+                    <span id="form-title">Add New Entry</span>
+                    <button type="submit" id="btn-submit">Add Entry</button>
+                    <button type="button" id="btn-cancel" style="display:none;">Cancel</button>
+                </form>
+            `;
+            state.calViewDate = new Date('2026-05-10');
+
+            resetForm(true);
+
+            expect(document.getElementById('input-date').value).toBe('2026-05-10');
+            expect(document.getElementById('input-amount').value).toBe('');
+            expect(document.getElementById('input-note').value).toBe('');
+        });
     });
 
     describe('Hide Transfer Filter on Add Page Selected Day Transactions', () => {

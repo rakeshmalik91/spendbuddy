@@ -965,15 +965,18 @@ export function resetForm(force = false) {
     const form = $('#expense-form');
     if (!form) return;
 
+    // Preserve existing date if set, otherwise default to today
+    const existingDate = $('#input-date') ? $('#input-date').value : '';
+    const dateToKeep = existingDate || getLocalDateString();
+
     form.reset();
     
-    // Explicitly reset all inputs
-    const today = getLocalDateString();
+    // Explicitly restore preserved date (do not reset date)
     if ($('#input-date')) {
-        $('#input-date').value = today;
+        $('#input-date').value = dateToKeep;
         $('#input-date').dispatchEvent(new Event('change'));
     }
-    state.calViewDate = new Date();
+    state.calViewDate = (existingDate && typeof parseLocalDate === 'function' ? parseLocalDate(existingDate) : null) || new Date();
     if ($('#cal-days-container')) renderCalendar();
 
     if ($('#input-amount')) $('#input-amount').value = '';
@@ -1000,12 +1003,14 @@ export function resetForm(force = false) {
 
     prefillLocation();
     
-    $('#edit-index').value = -1;
+    if ($('#edit-index')) $('#edit-index').value = -1;
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = -1;
-    $('#form-title').textContent = 'Add New Entry';
-    $('#btn-submit').textContent = 'Add Entry';
-    $('#btn-submit').style.display = 'inline-block';
-    $('#btn-cancel').style.display = 'none';
+    if ($('#form-title')) $('#form-title').textContent = 'Add New Entry';
+    if ($('#btn-submit')) {
+        $('#btn-submit').textContent = 'Add Entry';
+        $('#btn-submit').style.display = 'inline-block';
+    }
+    if ($('#btn-cancel')) $('#btn-cancel').style.display = 'none';
 
     if ($('#input-frequency')) {
         // Triggers updateFormActionButtons via change event
@@ -1014,15 +1019,15 @@ export function resetForm(force = false) {
     }
 
     // Set default category and transaction type
-    if (state.categories.length > 0) {
+    if (state.categories.length > 0 && $('#input-category')) {
         $('#input-category').value = state.categories[0];
         syncChips('#category-chips', state.categories[0]);
     }
-    if (state.txnModes.length > 0) {
+    if (state.txnModes.length > 0 && $('#input-txn-type')) {
         $('#input-txn-type').value = state.txnModes[0];
         syncChips('#txnmode-chips', state.txnModes[0]);
     }
-    if (state.txnTypes && state.txnTypes.length > 0) {
+    if (state.txnTypes && state.txnTypes.length > 0 && $('#input-transaction-type')) {
         $('#input-transaction-type').value = state.txnTypes[0];
         syncChips('#txntype-chips', state.txnTypes[0]);
     }
