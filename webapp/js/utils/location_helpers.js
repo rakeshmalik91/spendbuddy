@@ -21,14 +21,17 @@ export function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 export function getLastLocation() {
-    let lastLoc = 'Gurugram';
+    if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem('expman_last_location');
+        if (saved && saved.trim() !== '') return saved.trim();
+    }
     if (state.expenses && state.expenses.length > 0) {
         const latestWithLoc = state.expenses.find(e => e.location && e.location.trim() !== '');
         if (latestWithLoc) {
-            lastLoc = latestWithLoc.location;
+            return latestWithLoc.location.trim();
         }
     }
-    return lastLoc;
+    return '';
 }
 
 let locationPermissionDenied = typeof localStorage !== 'undefined' && localStorage.getItem('expman_location_permission_denied') === 'true';
@@ -50,52 +53,114 @@ export function resetLocationPermissionDenied() {
 export async function getCurrentLocationTag() {
     const fallback = getLastLocation();
 
-    // Check if permission previously denied or geolocation API not supported in browser
-    if (locationPermissionDenied || (typeof navigator !== 'undefined' && !navigator.geolocation)) {
+    const hasAndroidLocation = typeof window !== 'undefined' && window.Android && typeof window.Android.requestLocation === 'function';
+    const hasBrowserGeo = typeof navigator !== 'undefined' && !!navigator.geolocation;
+
+    if (!hasAndroidLocation && !hasBrowserGeo) {
         return fallback;
     }
 
     // CRITICAL FIX FOR IPAD / CHROME: If no geofenced locations are configured in settings,
-    // DO NOT call navigator.geolocation.getCurrentPosition() because it can never match any location tag
+    // DO NOT call geolocation APIs because it can never match any location tag
     // and will unnecessarily prompt the user for location permission every time!
     if (!state.locationsConfig || state.locationsConfig.length === 0) {
         return fallback;
     }
 
+    // Android permission sync: if Android runtime permission is granted, reset any stale permission denial
+    if (hasAndroidLocation && typeof window.Android.isLocationPermissionGranted === 'function') {
+        try {
+            if (window.Android.isLocationPermissionGranted()) {
+                resetLocationPermissionDenied();
+            }
+        } catch (e) { }
+    }
+
     // Check permissions API if supported by the browser to avoid unexpected prompt popups when denied
+    // or to re-enable geolocation if previously allowed by user in browser settings
     if (typeof navigator !== 'undefined' && navigator.permissions && navigator.permissions.query) {
         try {
             const permStatus = await navigator.permissions.query({ name: 'geolocation' });
-            if (permStatus && permStatus.state === 'denied') {
-                locationPermissionDenied = true;
-                if (typeof localStorage !== 'undefined') {
-                    localStorage.setItem('expman_location_permission_denied', 'true');
+            if (permStatus) {
+                if (permStatus.state === 'denied') {
+                    locationPermissionDenied = true;
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.setItem('expman_location_permission_denied', 'true');
+                    }
+                    return fallback;
+                } else if (permStatus.state === 'granted') {
+                    resetLocationPermissionDenied();
                 }
-                return fallback;
             }
         } catch (e) {
             // Ignore query errors on browsers with limited Permissions API implementation
         }
     }
 
-    // Helper to request device location robustly
+    if (locationPermissionDenied) {
+        return fallback;
+    }
+
+    // Helper to request device location robustly with a timeout safety
     const getDeviceLocation = () => {
         return new Promise((res, rej) => {
-            if (typeof window !== 'undefined' && window.Android && window.Android.requestLocation) {
+            let settled = false;
+            const timeoutId = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    if (typeof window !== 'undefined') {
+                        delete window.onAndroidLocationReceived;
+                        delete window.onAndroidLocationError;
+                    }
+                    rej({ code: 3, message: 'Location request timed out' });
+                }
+            }, 10000);
+
+            if (hasAndroidLocation) {
                 window.onAndroidLocationReceived = (lat, lon) => {
-                    res({ coords: { latitude: lat, longitude: lon } });
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    res({ coords: { latitude: Number(lat), longitude: Number(lon) } });
                     delete window.onAndroidLocationReceived;
                     delete window.onAndroidLocationError;
                 };
                 window.onAndroidLocationError = (msg) => {
-                    rej({ code: 1, message: msg });
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    const isDenied = typeof msg === 'string' && msg.toLowerCase().includes('denied');
+                    rej({ code: isDenied ? 1 : 2, message: msg || 'Android location error' });
                     delete window.onAndroidLocationReceived;
                     delete window.onAndroidLocationError;
                 };
-                window.Android.requestLocation();
-            } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000, maximumAge: 60000 });
+                try {
+                    window.Android.requestLocation();
+                } catch (e) {
+                    if (!settled) {
+                        settled = true;
+                        clearTimeout(timeoutId);
+                        rej({ code: 2, message: e.message });
+                    }
+                }
+            } else if (hasBrowserGeo) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timeoutId);
+                        res(pos);
+                    },
+                    (err) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timeoutId);
+                        rej(err);
+                    },
+                    { timeout: 10000, maximumAge: 60000 }
+                );
             } else {
+                clearTimeout(timeoutId);
                 rej({ code: 2, message: 'Not supported' });
             }
         });
@@ -105,10 +170,17 @@ export async function getCurrentLocationTag() {
         const position = await getDeviceLocation();
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
+        let bestLoc = null;
+        let minDistance = Infinity;
         for (const loc of state.locationsConfig) {
-            if (getDistance(lat, lon, loc.lat, loc.lon) <= loc.radius) {
-                return loc.tag;
+            const dist = getDistance(lat, lon, loc.lat, loc.lon);
+            if (dist <= loc.radius && dist < minDistance) {
+                minDistance = dist;
+                bestLoc = loc;
             }
+        }
+        if (bestLoc) {
+            return bestLoc.tag;
         }
         return fallback;
     } catch (error) {

@@ -66,6 +66,8 @@ import java.util.Objects;
 import java.util.Set;
 import android.location.Location;
 import android.location.LocationManager;
+import android.location.LocationListener;
+import android.os.Looper;
 import android.annotation.SuppressLint;
 
 public class MainActivity extends AppCompatActivity {
@@ -129,8 +131,13 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+    public boolean isLocationPermissionGranted() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
     public void requestNativeLocation() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (!isLocationPermissionGranted()) {
             isNativeLocationRequest = true;
             locationPermissionLauncher.launch(new String[]{
                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -145,17 +152,63 @@ public class MainActivity extends AppCompatActivity {
     public void fetchLocation() {
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (locationManager != null) {
-            Location loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            if (loc == null) {
-                loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            }
+            Location loc = null;
+            try {
+                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                }
+            } catch (Exception ignored) {}
+            try {
+                if (loc == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                    loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                }
+            } catch (Exception ignored) {}
+
             if (loc != null) {
                 double lat = loc.getLatitude();
                 double lon = loc.getLongitude();
                 webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + lat + ", " + lon + ");", null);
-            } else {
-                webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
+                return;
             }
+
+            try {
+                String provider = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                        ? LocationManager.NETWORK_PROVIDER
+                        : (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? LocationManager.GPS_PROVIDER : null);
+                if (provider != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        locationManager.getCurrentLocation(provider, null, getMainExecutor(), location -> {
+                            if (location != null) {
+                                webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + location.getLatitude() + ", " + location.getLongitude() + ");", null);
+                            } else {
+                                webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
+                            }
+                        });
+                        return;
+                    } else {
+                        LocationListener listener = new LocationListener() {
+                            @Override
+                            public void onLocationChanged(Location location) {
+                                try { locationManager.removeUpdates(this); } catch (Exception ignored) {}
+                                if (location != null) {
+                                    webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + location.getLatitude() + ", " + location.getLongitude() + ");", null);
+                                } else {
+                                    webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
+                                }
+                            }
+                            @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+                            @Override public void onProviderEnabled(String provider) {}
+                            @Override public void onProviderDisabled(String provider) {}
+                        };
+                        locationManager.requestSingleUpdate(provider, listener, Looper.getMainLooper());
+                        return;
+                    }
+                }
+            } catch (Exception e) {
+                Log.w("MainActivity", "Failed to request fresh location update", e);
+            }
+
+            webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
         } else {
             webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('LocationManager null');", null);
         }

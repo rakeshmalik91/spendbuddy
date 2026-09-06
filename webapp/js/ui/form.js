@@ -487,6 +487,7 @@ export function setupForm() {
     const today = getLocalDateString();
     $('#input-date').value = today;
     $('#input-date').dispatchEvent(new Event('change'));
+    prefillLocation();
 
     $('#input-amount')?.addEventListener('input', (e) => {
         const val = e.target.value;
@@ -587,7 +588,7 @@ export function setupForm() {
                     txnType: $('#input-transaction-type').value,
                     txnMode: $('#input-txn-type').value,
                     note: $('#input-note').value.trim(),
-                    location: $('#input-location').value.trim(),
+                    location: $('#input-location').value.trim() || await getCurrentLocationTag(),
                     tag: $('#input-tag')?.value.trim() || '',
                     frequency: frequency,
                     end_condition: $('#input-end-enable') && $('#input-end-enable').checked ? 'enabled' : 'never',
@@ -734,11 +735,15 @@ export function setupForm() {
                     txnType: $('#input-transaction-type').value,
                     txnMode: $('#input-txn-type').value,
                     note: $('#input-note').value.trim(),
-                    location: $('#input-location').value.trim(),
+                    location: $('#input-location').value.trim() || await getCurrentLocationTag(),
                     tag: $('#input-tag')?.value.trim() || '',
                     source: idx >= 0 ? state.expenses[idx].source : currentSuggestionSource,
                     txnId: idx >= 0 ? state.expenses[idx].txnId : currentSuggestionTxnId
                 };
+
+                if (entry.location) {
+                    localStorage.setItem('expman_last_location', entry.location);
+                }
 
                 if (idx >= 0) {
                     const oldEntry = { ...state.expenses[idx] };
@@ -1057,9 +1062,13 @@ export async function generateRefund(idx) {
         note: noteText,
         source: 'Refund Action',
         txnId: e.txnId.trim(),
-        location: e.location || '',
+        location: e.location || await getCurrentLocationTag(),
         tag: e.tag || ''
     };
+
+    if (refundTxn.location) {
+        localStorage.setItem('expman_last_location', refundTxn.location);
+    }
 
     state.expenses.push(refundTxn);
 
@@ -1164,6 +1173,10 @@ export function renderSmsSuggestions() {
             currentSuggestionSource = txn.source;
             currentSuggestionTxnId = txn.transactionId || '';
             currentSelectedSuggestionTxn = txn;
+
+            if (!$('#input-location').value) {
+                prefillLocation();
+            }
 
             // Highlight form
             const formCard = document.querySelector('.form-card');

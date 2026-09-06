@@ -65,4 +65,29 @@ describe('Location Tag Integration', () => {
         expect(state.expenses.length).toBe(1);
         expect(state.expenses[0].location).toBe('IntegrationTestTag');
     });
+
+    it('assigns location from getCurrentLocationTag during generateRefund when original has no location', async () => {
+        const formModule = require('../js/ui/form.js');
+        state.expenses = [{
+            date: '2026-07-19',
+            amount: 500,
+            category: 'Shopping',
+            txnType: 'Expense',
+            txnMode: 'UPI',
+            note: 'Shirt',
+            txnId: 'TXN123',
+            location: ''
+        }];
+        const origSave = formModule.saveYearCSV;
+        formModule.saveYearCSV = jest.fn().mockResolvedValue();
+
+        try {
+            await formModule.generateRefund(0);
+            expect(state.expenses.length).toBe(2);
+            expect(state.expenses[1].location).toBe('IntegrationTestTag');
+            expect(state.expenses[1].txnType).toBe('Refund');
+        } finally {
+            formModule.saveYearCSV = origSave;
+        }
+    });
 });

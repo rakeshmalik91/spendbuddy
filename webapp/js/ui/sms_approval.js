@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList } from "../utils/helpers.js";
+import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
 import { amountToStr } from "../services/storage.js";
 import { renderAll } from "./render_all.js";
@@ -511,6 +511,10 @@ export function setupSmsApproval() {
             // Removed state.rawSmsTransactions.filter mutation so it stays in cache
 
             showLoader('Saving approved SMS transactions...');
+            const detectedLocation = await getCurrentLocationTag();
+            if (detectedLocation) {
+                localStorage.setItem('expman_last_location', detectedLocation);
+            }
             let modifiedYears = new Set();
             checkboxes.forEach(cb => {
                 const idx = cb.dataset.index;
@@ -530,7 +534,8 @@ export function setupSmsApproval() {
                     txnMode: mapTxnMode(txn.transactionMode, state.txnModes),
                     note: txn.merchant || '',
                     source: txn.source,
-                    txnId: txn.transactionId || ''
+                    txnId: txn.transactionId || '',
+                    location: detectedLocation
                 });
                 modifiedYears.add(txn.date.slice(0, 4));
             });

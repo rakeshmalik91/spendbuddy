@@ -153,4 +153,68 @@ describe('Location Auto-tagging', () => {
         
         expect(mockLocInput.value).toBe('Already Filled');
     });
+
+    it('getLastLocation prioritizes expman_last_location from localStorage', () => {
+        state.expenses = [{ location: 'ExpenseLoc' }];
+        localStorage.setItem('expman_last_location', 'SavedInStorage');
+
+        expect(getLastLocation()).toBe('SavedInStorage');
+    });
+
+    it('resets permission denial if Android reports permission is granted', async () => {
+        state.locationsConfig = [{ tag: 'Home', lat: 28.4595, lon: 77.0266, radius: 1000 }];
+        localStorage.setItem('expman_location_permission_denied', 'true');
+
+        window.Android = {
+            requestLocation: jest.fn(() => {
+                window.onAndroidLocationReceived(28.4595, 77.0266);
+            }),
+            isLocationPermissionGranted: jest.fn(() => true)
+        };
+
+        await prefillLocation();
+
+        expect(mockLocInput.value).toBe('Home');
+        expect(localStorage.getItem('expman_location_permission_denied')).toBeNull();
+        delete window.Android;
+    });
+
+    it('does not treat Android "Location unavailable" as a permanent permission denial', async () => {
+        state.expenses = [{ location: 'FallbackCity' }];
+        state.locationsConfig = [{ tag: 'Home', lat: 28.4595, lon: 77.0266, radius: 1000 }];
+
+        window.Android = {
+            requestLocation: jest.fn(() => {
+                window.onAndroidLocationError('Location unavailable');
+            }),
+            isLocationPermissionGranted: jest.fn(() => false)
+        };
+
+        await prefillLocation();
+
+        expect(mockLocInput.value).toBe('FallbackCity');
+        // Because it was unavailable (not denied), it must NOT set expman_location_permission_denied
+        expect(localStorage.getItem('expman_location_permission_denied')).toBeNull();
+        delete window.Android;
+    });
+
+    it('recovers from permission denial when navigator.permissions.query reports granted', async () => {
+        state.locationsConfig = [{ tag: 'Home', lat: 28.4595, lon: 77.0266, radius: 1000 }];
+        localStorage.setItem('expman_location_permission_denied', 'true');
+
+        global.navigator.permissions = {
+            query: jest.fn().mockResolvedValue({ state: 'granted' })
+        };
+        global.navigator.geolocation = {
+            getCurrentPosition: jest.fn((success) => {
+                success({ coords: { latitude: 28.4595, longitude: 77.0266 } });
+            })
+        };
+
+        await prefillLocation();
+
+        expect(mockLocInput.value).toBe('Home');
+        expect(localStorage.getItem('expman_location_permission_denied')).toBeNull();
+    });
 });
+

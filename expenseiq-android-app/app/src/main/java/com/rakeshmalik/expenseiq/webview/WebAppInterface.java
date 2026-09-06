@@ -38,6 +38,11 @@ public class WebAppInterface {
     }
 
     @JavascriptInterface
+    public boolean isLocationPermissionGranted() {
+        return mainActivity.isLocationPermissionGranted();
+    }
+
+    @JavascriptInterface
     public long getLastSmsDate() {
         SharedPreferences prefs = mainActivity.getSharedPreferences("ExpenseIQPrefs", Context.MODE_PRIVATE);
         return prefs.getLong("last_sms_date", 0L);
