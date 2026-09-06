@@ -229,26 +229,56 @@ export async function saveBalanceCSV() {
     await uploadFile(fileRef, csvContent);
 }
 
+// Queue uploads per file path to prevent concurrent write collisions and ETag race conditions
+const fileUploadQueues = new Map();
+
 export async function uploadFile(fileRef, content) {
     const filePath = fileRef.fullPath;
     const filename = fileRef.name;
-    await verifyFileHashBeforeUpload(fileRef);
 
-    // Update local cache synchronously so that if the user refreshes before the background 
-    // cloud sync completes, the JS-side deduplicator sees the newly added transactions immediately.
-    saveToLocalCache(filename, content);
+    // Chain this upload behind any in-flight upload for the same file path
+    const prevUpload = fileUploadQueues.get(filePath) || Promise.resolve();
 
-    if (state.encryptionEnabled && state.encryptionKey) {
-        content = await encryptData(state.encryptionKey, content);
+    let resolveCurrent;
+    const currentUpload = new Promise((resolve) => { resolveCurrent = resolve; });
+    const chainedPromise = prevUpload.then(() => currentUpload, () => currentUpload);
+    fileUploadQueues.set(filePath, chainedPromise);
+
+    try {
+        await prevUpload;
+    } catch (e) {
+        // Ignore errors from previous uploads in queue so subsequent uploads can proceed
     }
-    await uploadString(fileRef, content);
 
-    await storeFileHash(fileRef);
+    try {
+        await verifyFileHashBeforeUpload(fileRef);
 
-    // Also save hash to localStorage so background sync can skip downloading it again
-    const newHash = state.fileHashes[filePath];
-    if (newHash) {
-        saveToLocalCache(filename, null, newHash);
+        // Update local cache synchronously so that if the user refreshes before the background 
+        // cloud sync completes, the JS-side deduplicator sees the newly added transactions immediately.
+        saveToLocalCache(filename, content);
+
+        if (state.encryptionEnabled && state.encryptionKey) {
+            content = await encryptData(state.encryptionKey, content);
+        }
+        const uploadResult = await uploadString(fileRef, content);
+
+        // Update hash immediately from uploadResult if returned, otherwise fetch via storeFileHash
+        if (uploadResult && uploadResult.metadata && uploadResult.metadata.md5Hash) {
+            state.fileHashes[filePath] = uploadResult.metadata.md5Hash;
+        } else {
+            await storeFileHash(fileRef);
+        }
+
+        // Also save hash to localStorage so background sync can skip downloading it again
+        const newHash = state.fileHashes[filePath];
+        if (newHash) {
+            saveToLocalCache(filename, null, newHash);
+        }
+    } finally {
+        resolveCurrent();
+        if (fileUploadQueues.get(filePath) === chainedPromise) {
+            fileUploadQueues.delete(filePath);
+        }
     }
 }
 
@@ -836,7 +866,7 @@ export async function syncCloudDataInBackground(specificFiles = null) {
 
         // Check and process scheduled transactions against the latest cloud data
         const processedSchedules = await processScheduledTransactions();
-        if (processedSchedules && !hasChanges) {
+        if (processedSchedules) {
             renderAll();
         }
     } catch (e) {

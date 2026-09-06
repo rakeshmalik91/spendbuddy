@@ -185,6 +185,11 @@ body.modal-open .main-content {
     flex-wrap: wrap;
     align-items: center;
 }
+.mobile-txn-details .badge-source {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 100%;
+}
 
 /* ══════════════ BATCH UPDATE MODAL ══════════════ */
 #modal-batch-update {

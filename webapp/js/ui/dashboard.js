@@ -271,6 +271,7 @@ function renderRecentTransactions() {
     const itemsToRender = grouped.slice(0, state.limitDashboard);
 
     const tbody = $('#recent-tbody');
+    if (!tbody) return;
     let lastDateRecent = null;
     let htmlContent = itemsToRender.map(g => {
         const e = g.main;
@@ -694,7 +695,15 @@ export function renderQuickAdd() {
 
                 toast(`${displaySource}: ₹${Math.abs(entry.amount)} logged!`, 'success');
             } catch (err) {
-                toast('Error saving to cloud', 'error');
+                const addedIdx = state.expenses.indexOf(entry);
+                if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                if (err.message === "CONFLICT_DETECTED") {
+                    toast('Conflict! Data modified on another device. Please refresh.', 'error');
+                } else {
+                    toast('Error saving to cloud', 'error');
+                }
             }
             renderAll();
         });

@@ -298,11 +298,12 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
             
             let typeBadge = txnTypeBadgeHTML(txn.txnType) || '';
             let modeBadge = txn.txnMode ? `<span class="badge-mode" title="${escHtml(txn.txnMode)}">${escHtml(txn.txnMode)}</span>` : '';
-            let displaySources = getDisplaySourceList(txn.source);
-            let sourceBadge = displaySources.map(s => `<span class="badge-source" title="${escHtml(txn.source)}">${escHtml(s)}</span>`).join('');
+            let tagBadge = txn.tag ? `<span class="badge-tag" title="${escHtml(txn.tag)}">🏷️ ${escHtml(txn.tag)}</span>` : '';
+            let rawSources = getRawSourceList(txn.source);
+            let sourceBadge = rawSources.map(s => `<span class="badge-source" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
             const displayTxnIds = getDisplayTxnIdList(txn);
             let txnBadge = displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('');
-            let badgesHtml = (typeBadge || modeBadge || sourceBadge || txnBadge) ? `<div class="badges-wrapper" style="justify-content: flex-start; margin: 0; padding-top: 4px;">${typeBadge}${modeBadge}${sourceBadge}${txnBadge}</div>` : '';
+            let badgesHtml = (typeBadge || modeBadge || tagBadge || sourceBadge || txnBadge) ? `<div class="badges-wrapper" style="justify-content: flex-start; margin: 0; padding-top: 4px;">${typeBadge}${modeBadge}${tagBadge}${sourceBadge}${txnBadge}</div>` : '';
 
             let metaHtml = `<div class="mobile-txn-details-meta">
                 <span>📅 ${formatDate(txn.date)}</span>

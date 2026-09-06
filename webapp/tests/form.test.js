@@ -247,7 +247,7 @@ describe('Add Page Form UI', () => {
             expect(document.getElementById('form-title').textContent).toBe('Add New Entry');
             expect(document.getElementById('btn-submit').textContent).toBe('Add Entry');
             expect(document.getElementById('btn-cancel').style.display).toBe('none');
-            expect(document.getElementById('input-date').value).toBe('2026-07-19');
+            expect(document.getElementById('input-date').value).toBe(helpers.getLocalDateString());
             expect(document.getElementById('input-category').value).toBe('Food');
             expect(document.getElementById('input-transaction-type').value).toBe('Expense');
             expect(document.getElementById('input-txn-type').value).toBe('UPI');

@@ -38,7 +38,8 @@ export function getUserEmail() {
  * configured default if auth hasn't resolved yet (e.g. during optimistic boot).
  */
 export function getRequiredEmail() {
-    return getUserEmail() || FALLBACK_EMAIL;
+    const cachedEmail = typeof localStorage !== 'undefined' ? localStorage.getItem('expman_user_email') : null;
+    return getUserEmail() || cachedEmail || FALLBACK_EMAIL;
 }
 
 /**

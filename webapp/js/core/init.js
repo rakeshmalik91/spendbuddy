@@ -150,7 +150,9 @@ export const initApp = async () => {
     if (settings) {
         applyUserSettings(settings);
     }
-    // (processScheduledTransactions removed from here, now safely executed after cloud sync)
+    
+    // Process scheduled transactions due today or earlier immediately on boot
+    await processScheduledTransactions();
     setupNavigation();
     setupForm();
     setupFilters();
@@ -363,6 +365,10 @@ function startAuthFlow() {
                     })();
                 } else {
                     updateUserIdDisplay(user.email);
+                    // Sync cloud data now that user credentials and token are authenticated
+                    if (!USE_LOCAL_DATA) {
+                        syncCloudDataInBackground();
+                    }
                 }
             } else {
                 if (optimisticLoadTriggered) {

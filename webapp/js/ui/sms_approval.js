@@ -357,7 +357,10 @@ export function recomputePendingSmsTransactions() {
         // preventing eTag validation conflicts while cloud data is actively downloading.
         if (!state.cloudSyncInProgress) {
             for (const yr of state.pendingEnrichedYears) {
-                saveYearCSV(yr);
+                const savePromise = saveYearCSV(yr);
+                if (savePromise && typeof savePromise.catch === 'function') {
+                    savePromise.catch(e => console.warn('Background saveYearCSV failed for year', yr, e));
+                }
             }
             state.pendingEnrichedYears.clear();
         }

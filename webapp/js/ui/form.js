@@ -916,16 +916,33 @@ export function resetForm(force = false) {
     lastFormFillTime = 0;
     const form = $('#expense-form');
     if (!form) return;
-    const inputDateEl = $('#input-date');
-    const prevDate = inputDateEl ? inputDateEl.value : '';
-    const prevCalViewDate = new Date(state.calViewDate.getTime());
 
     form.reset();
+    
+    // Explicitly reset all inputs
+    const today = getLocalDateString();
+    if ($('#input-date')) {
+        $('#input-date').value = today;
+        $('#input-date').dispatchEvent(new Event('change'));
+    }
+    state.calViewDate = new Date();
+    if ($('#cal-days-container')) renderCalendar();
+
     if ($('#input-amount')) $('#input-amount').value = '';
     if ($('#input-note')) $('#input-note').value = '';
-    if ($('#input-end-date')) $('#input-end-date').type = 'text';
+    if ($('#input-location')) $('#input-location').value = '';
     if ($('#input-tag')) $('#input-tag').value = '';
+    if ($('#input-end-date')) {
+        $('#input-end-date').type = 'text';
+        $('#input-end-date').value = '';
+    }
+    if ($('#input-max-occurrences')) $('#input-max-occurrences').value = '';
+    if ($('#input-end-enable')) $('#input-end-enable').checked = false;
     if ($('#amount-error')) $('#amount-error').style.display = 'none';
+
+    // Clear weekday buttons selection
+    document.querySelectorAll('.weekday-btn.selected').forEach(b => b.classList.remove('selected'));
+
     currentSuggestionSource = '';
     currentSuggestionTxnId = '';
     currentSelectedSuggestionTxn = null;
@@ -934,11 +951,6 @@ export function resetForm(force = false) {
 
     prefillLocation();
     
-    // Restore the date selection instead of resetting to today
-    if (prevDate) $('#input-date').value = prevDate;
-    $('#input-date').dispatchEvent(new Event('change'));
-    state.calViewDate = prevCalViewDate;
-    if ($('#cal-days-container')) renderCalendar();
     $('#edit-index').value = -1;
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = -1;
     $('#form-title').textContent = 'Add New Entry';
@@ -965,9 +977,16 @@ export function resetForm(force = false) {
         $('#input-transaction-type').value = state.txnTypes[0];
         syncChips('#txntype-chips', state.txnTypes[0]);
     }
+    if (state.currency && $('#input-currency')) {
+        $('#input-currency').value = state.currency;
+    }
 
     // Clear note suggestion chip active states
     $$('#note-suggestions .chip').forEach(c => c.classList.remove('active'));
+
+    if (typeof renderSelectedDayTransactions === 'function') {
+        renderSelectedDayTransactions();
+    }
 }
 
 export async function editEntry(idx) {

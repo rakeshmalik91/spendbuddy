@@ -84,11 +84,18 @@ export function switchView(viewName, pushStateToHistory = true) {
     }
 
     const leavingAdd = previousViewId === 'add' && viewName !== 'add';
+    const enteringAdd = viewName === 'add' && previousViewId !== 'add';
 
     if (leavingAdd) {
         const editIdx = document.getElementById('edit-index') ? parseInt(document.getElementById('edit-index').value) : -1;
         const editSchedIdx = document.getElementById('edit-scheduled-index') ? parseInt(document.getElementById('edit-scheduled-index').value) : -1;
         if (editIdx >= 0 || editSchedIdx >= 0) {
+            if (typeof resetForm === 'function') resetForm(true);
+        }
+    } else if (enteringAdd) {
+        const editIdx = document.getElementById('edit-index') ? parseInt(document.getElementById('edit-index').value) : -1;
+        const editSchedIdx = document.getElementById('edit-scheduled-index') ? parseInt(document.getElementById('edit-scheduled-index').value) : -1;
+        if (editIdx < 0 && editSchedIdx < 0) {
             if (typeof resetForm === 'function') resetForm();
         }
     }
