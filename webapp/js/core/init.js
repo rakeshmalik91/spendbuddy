@@ -295,6 +295,8 @@ function createUnlockHandler(email) {
     };
 }
 
+let isSigningUp = false;
+
 function startAuthFlow() {
     const overlay = document.getElementById('password-overlay');
     const errorMsg = document.getElementById('password-error');
@@ -328,6 +330,10 @@ function startAuthFlow() {
                 localStorage.setItem('expman_user_email', user.email);
 
                 if (!user.emailVerified) {
+                    if (isSigningUp) {
+                        // Allow the signup handler to finish initializing cloud settings before logging out
+                        return;
+                    }
                     logoutUser();
                     if (!errorMsg.textContent.includes("Account created") && !errorMsg.textContent.includes("verification email sent")) {
                         overlay.style.display = 'flex';
@@ -384,9 +390,17 @@ function startAuthFlow() {
     }
 }
 
-function setupAuthListeners() {
+export function setupAuthListeners() {
     const form = document.getElementById('password-form');
     const errorMsg = document.getElementById('password-error');
+
+    const encToggle = document.getElementById('signup-toggle-encryption');
+    const encWarning = document.getElementById('signup-encryption-warning');
+    if (encToggle && encWarning) {
+        encToggle.addEventListener('change', () => {
+            encWarning.style.display = encToggle.checked ? 'block' : 'none';
+        });
+    }
 
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -400,6 +414,20 @@ function setupAuthListeners() {
 
                 const { deriveKey } = await import('../utils/crypto.js');
                 state.encryptionKey = await deriveKey(pwd);
+
+                // If user had a pending encryption setting from signup that couldn't be written earlier
+                const pendingEnc = localStorage.getItem(`expman_encryption_pending_${email}`);
+                if (pendingEnc === 'true') {
+                    state.encryptionEnabled = true;
+                    localStorage.setItem('expman_encryption_enabled', 'true');
+                    localStorage.removeItem(`expman_encryption_pending_${email}`);
+                    try {
+                        const { updateUserSettings } = await import('../services/user_settings.js');
+                        await updateUserSettings({ encryptionEnabled: true });
+                    } catch (e) {
+                        console.warn("Failed to sync pending encryption setting:", e);
+                    }
+                }
 
                 if (!user.emailVerified) {
                     await sendUserEmailVerification(user);
@@ -423,10 +451,14 @@ function setupAuthListeners() {
     const signupBtn = document.getElementById('btn-signup');
     if (signupBtn) {
         signupBtn.addEventListener('click', async () => {
-            const email = document.getElementById('app-email').value;
-            const pwd = document.getElementById('app-password').value;
+            const emailInput = document.getElementById('app-email');
+            const pwdInput = document.getElementById('app-password');
+            const email = emailInput ? emailInput.value.trim() : '';
+            const pwd = pwdInput ? pwdInput.value : '';
+            const enableEncryption = document.getElementById('signup-toggle-encryption')?.checked === true;
 
             if (!email || !pwd) {
+                errorMsg.style.color = 'var(--amount-negative)';
                 errorMsg.textContent = "Please enter email and password.";
                 errorMsg.style.display = 'block';
                 return;
@@ -434,6 +466,7 @@ function setupAuthListeners() {
 
             const pwdError = validatePasswordStrength(pwd);
             if (pwdError) {
+                errorMsg.style.color = 'var(--amount-negative)';
                 errorMsg.textContent = pwdError;
                 errorMsg.style.display = 'block';
                 return;
@@ -441,10 +474,44 @@ function setupAuthListeners() {
 
             try {
                 errorMsg.style.display = 'none';
+                signupBtn.disabled = true;
+                signupBtn.textContent = 'Signing up...';
+                isSigningUp = true;
+
                 const user = await signupUser(email, pwd);
 
+                // Initialize encryption settings while authenticated
+                if (enableEncryption) {
+                    try {
+                        const { deriveKey } = await import('../utils/crypto.js');
+                        state.encryptionKey = await deriveKey(pwd);
+                        state.encryptionEnabled = true;
+
+                        const { updateUserSettings } = await import('../services/user_settings.js');
+                        await updateUserSettings({ encryptionEnabled: true });
+                        localStorage.setItem('expman_encryption_enabled', 'true');
+                    } catch (secErr) {
+                        console.warn("Failed to initialize cloud encryption setting during signup:", secErr);
+                        localStorage.setItem(`expman_encryption_pending_${email}`, 'true');
+                    }
+                } else {
+                    try {
+                        state.encryptionEnabled = false;
+                        const { updateUserSettings } = await import('../services/user_settings.js');
+                        await updateUserSettings({ encryptionEnabled: false });
+                        localStorage.setItem('expman_encryption_enabled', 'false');
+                    } catch (secErr) {
+                        console.warn("Failed to initialize cloud settings during signup:", secErr);
+                    }
+                }
+
+                // Safely log out unverified user until email verification is completed
+                await logoutUser();
+
                 errorMsg.style.color = 'var(--green)';
-                errorMsg.textContent = "Account created! Please check your email to verify before logging in.";
+                errorMsg.textContent = enableEncryption
+                    ? "Account created with End-to-End Encryption enabled! Please check your email to verify before logging in."
+                    : "Account created! Please check your email to verify before logging in.";
                 errorMsg.style.display = 'block';
 
                 localStorage.setItem('expman_last_activity', Date.now().toString());
@@ -453,6 +520,10 @@ function setupAuthListeners() {
                 errorMsg.style.color = 'var(--amount-negative)';
                 errorMsg.textContent = error.message || "Failed to create account.";
                 errorMsg.style.display = 'block';
+            } finally {
+                isSigningUp = false;
+                signupBtn.disabled = false;
+                signupBtn.textContent = 'Sign Up';
             }
         });
     }

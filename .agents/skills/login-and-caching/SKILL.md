@@ -42,12 +42,22 @@ When the application loads, `startAuthFlow()` in [init.js](file:///d:/Projects/e
 
 ---
 
-## 2. Decryption Flow
+## 2. Signup & End-to-End Encryption Setup
 
-The optimistic load instantly triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](file:///d:/Projects/expense-manager/webapp/js/services/encryption_manager.js).
-- It checks if a valid encryption key is already cached (e.g., in `sessionStorage` or securely in `localStorage`).
-- If a key exists, the app unlocks immediately. 
-- If not, the user is prompted to enter their encryption password (separate from their Firebase login password).
+New users can opt into **End-to-End (E2E) Encryption** directly on the signup screen via the `#signup-toggle-encryption` option:
+- **Zero-Knowledge Key Derivation**: When checked, `deriveKey(pwd)` in [crypto.js](file:///d:/Projects/expense-manager/webapp/js/utils/crypto.js) derives an AES-GCM 256-bit encryption key from the user's password using PBKDF2 (SHA-256, 100,000 iterations).
+- **Cloud Settings Initialization**: `updateUserSettings({ encryptionEnabled: true })` in [user_settings.js](file:///d:/Projects/expense-manager/webapp/js/services/user_settings.js) writes `{ encryptionEnabled: true }` to `{email}/user_settings.json` in Firebase Storage while the new user is authenticated.
+- **Race-Condition Protection (`isSigningUp`)**: A module flag `isSigningUp` in [init.js](file:///d:/Projects/expense-manager/webapp/js/core/init.js) prevents `onAuthStateChanged` from prematurely calling `logoutUser()` on the unverified user before `user_settings.json` is committed to cloud storage.
+- **Local Resilience & Pending Sync**: `expman_encryption_enabled` is set in `localStorage`. If cloud write is interrupted, `expman_encryption_pending_${email}` acts as a fallback that automatically syncs on the user's first post-verification login.
+- **Opt-out Default**: If unchecked, `{ encryptionEnabled: false }` is persisted, and the user can optionally toggle encryption later in Account Settings.
+
+---
+
+## 3. Decryption Flow
+
+The optimistic load or login flow triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](file:///d:/Projects/expense-manager/webapp/js/services/encryption_manager.js):
+- **Immediate Login**: When logging in with email and password, the login handler derives `state.encryptionKey = await deriveKey(pwd)` immediately. Thus, when `checkEncryptionAndUnlock()` checks `!state.encryptionKey`, it passes without prompting and unlocks instantly.
+- **Cached / Optimistic Boot**: If returning via cached session without typing password, it checks if a valid encryption key is present. If not, the user is prompted with `#unlock-overlay` to enter their password to derive the key.
 - Upon successful unlock, the core `initApp()` routine is fired.
 
 ---
