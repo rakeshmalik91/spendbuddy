@@ -27,6 +27,7 @@ describe('User Settings Service', () => {
         state.hideIncome = false;
         state.hideInvestment = false;
         state.hideTransfer = false;
+        state.mergeRefunds = true;
         jest.clearAllMocks();
     });
 
@@ -36,7 +37,8 @@ describe('User Settings Service', () => {
                 ui: {
                     hideIncome: true,
                     hideInvestment: true,
-                    hideTransfer: true
+                    hideTransfer: true,
+                    mergeRefunds: false
                 }
             };
 
@@ -45,9 +47,11 @@ describe('User Settings Service', () => {
             expect(state.hideIncome).toBe(true);
             expect(state.hideInvestment).toBe(true);
             expect(state.hideTransfer).toBe(true);
+            expect(state.mergeRefunds).toBe(false);
             expect(localStorage.getItem('expman_hide_income')).toBe('true');
             expect(localStorage.getItem('expman_hide_investment')).toBe('true');
             expect(localStorage.getItem('expman_hide_transfer')).toBe('true');
+            expect(localStorage.getItem('expman_merge_refunds')).toBe('false');
         });
 
         it('applies grouped googleDrive settings to localStorage', () => {

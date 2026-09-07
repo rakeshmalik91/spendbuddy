@@ -499,7 +499,20 @@ export function setupSettings() {
             try { await updateUserSettings({ ui: { hideTransfer: state.hideTransfer } }); } catch(err) { console.error('Failed to sync hideTransfer to cloud', err); }
             toast(e.target.checked ? 'Transfer data hidden' : 'Transfer data visible', 'info');
             onSettingsChanged();
-            if (window.updateDashboardUI) window.updateDashboardUI();
+            if (typeof window.renderAll === 'function') window.renderAll();
+        });
+    }
+
+    const toggleMergeRefunds = $('#toggle-merge-refunds');
+    if (toggleMergeRefunds) {
+        toggleMergeRefunds.checked = state.mergeRefunds;
+        toggleMergeRefunds.addEventListener('change', async (e) => {
+            state.mergeRefunds = e.target.checked;
+            localStorage.setItem('expman_merge_refunds', e.target.checked ? 'true' : 'false');
+            try { await updateUserSettings({ ui: { mergeRefunds: state.mergeRefunds } }); } catch(err) { console.error('Failed to sync mergeRefunds to cloud', err); }
+            toast(e.target.checked ? 'Refund merging enabled' : 'Refund merging disabled', 'info');
+            onSettingsChanged();
+            if (typeof window.renderAll === 'function') window.renderAll();
         });
     }
 
@@ -645,6 +658,16 @@ export function renderSettings() {
 
     initSortable('#category-tbody', 'category');
     initSortable('#txnmode-tbody', 'txnmode');
+
+    // Update visibility and display preferences toggles
+    const toggleIncome = $('#toggle-hide-income');
+    if (toggleIncome) toggleIncome.checked = state.hideIncome;
+    const toggleInv = $('#toggle-hide-investment');
+    if (toggleInv) toggleInv.checked = state.hideInvestment;
+    const toggleTr = $('#toggle-hide-transfer');
+    if (toggleTr) toggleTr.checked = state.hideTransfer;
+    const toggleMr = $('#toggle-merge-refunds');
+    if (toggleMr) toggleMr.checked = state.mergeRefunds;
 }
 
 // ── Category CRUD ──

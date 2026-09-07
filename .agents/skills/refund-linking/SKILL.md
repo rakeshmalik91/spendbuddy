@@ -49,6 +49,13 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
    $$\text{netAmount} = \max(0, \text{originalAmount} - \text{totalRefunded})$$
 3. **Step 3 (Heuristic Fallback)**: Unlinked refunds are auto-matched to expenses with exact opposite amounts ($|\text{expense}| = |\text{refund}|$) within a 7-day window ($0 \le \text{diffDays} \le 7$).
 
+### 2.1 Settings Flag: `mergeRefunds` (`#toggle-merge-refunds`)
+- **Settings Toggle**: Controlled via `Settings -> Visibility Preferences -> Refund Merging -> Merge Refunds with Expenses` (`#toggle-merge-refunds`).
+- **State & Storage**: Backed by `state.mergeRefunds`, `localStorage.getItem('expman_merge_refunds') !== 'false'` (defaults to `true`), and synced with cloud `user_settings.json` under `ui.mergeRefunds`.
+- **Behavior when Disabled (`state.mergeRefunds === false`)**:
+  - `mergeRefundTransactions` returns each transaction as an independent standalone entry without grouping (`refunds: []`, `netAmount = |amount|`).
+  - All refunds appear on their own original transaction dates as standalone rows/cards (with `+₹` green formatting) across the Dashboard and Transactions views.
+
 ---
 
 ## 3. Collapsible Sub-Row UI (`refund_helpers.js` & `tables.css`)

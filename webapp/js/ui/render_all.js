@@ -27,4 +27,6 @@ export function renderAll() {
     if (typeof renderSettings === 'function') renderSettings();
     if (typeof renderBalanceTracker === 'function') renderBalanceTracker();
 }
+window.renderAll = renderAll;
+
 

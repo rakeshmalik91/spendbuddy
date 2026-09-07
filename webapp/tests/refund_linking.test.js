@@ -232,4 +232,22 @@ describe('openRefundLinkingModal UI behavior', () => {
         expect(state.expenses[1].txnId).toBe(state.expenses[0].txnId);
         expect(state.expenses[1].note).toBe('Refund: Dinner');
     });
+
+    test('mergeRefundTransactions treats refunds as independent standalone entries when state.mergeRefunds is false', () => {
+        state.mergeRefunds = false;
+        try {
+            const mainExpense = { date: '2026-09-01', amount: 15000, category: 'Home', txnType: 'Expense', txnMode: 'UPI', note: 'Home Loan', txnId: 'EXP_1' };
+            const refund = { date: '2026-09-07', amount: -15000, category: 'Home', txnType: 'Refund', txnMode: 'UPI', note: 'Refund', txnId: 'REF_1' };
+
+            const grouped = mergeRefundTransactions([mainExpense, refund]);
+            expect(grouped.length).toBe(2);
+            expect(grouped[0].main).toBe(mainExpense);
+            expect(grouped[0].refunds.length).toBe(0);
+            expect(grouped[1].main).toBe(refund);
+            expect(grouped[1].refunds.length).toBe(0);
+            expect(grouped[1].netAmount).toBe(15000);
+        } finally {
+            state.mergeRefunds = true;
+        }
+    });
 });

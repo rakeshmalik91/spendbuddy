@@ -12,6 +12,18 @@ import { getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySourc
 export function mergeRefundTransactions(transactions, allTransactions = null) {
     if (!Array.isArray(transactions)) return [];
     
+    // If refund merging is disabled in settings, treat every transaction as an independent standalone entry
+    if (state.mergeRefunds === false) {
+        return transactions.filter(Boolean).map(t => ({
+            main: t,
+            refunds: [],
+            linkedExpenses: [],
+            totalRefunded: 0,
+            netAmount: Math.abs(t.amount),
+            merged: null
+        }));
+    }
+    
     const pool = Array.isArray(allTransactions) ? allTransactions : transactions;
     const grouped = [];
     const usedFilteredIndices = new Set();

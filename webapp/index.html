@@ -1109,10 +1109,9 @@
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">👁️</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Visibility
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Visibility Preferences
                                 </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide or show
-                                    specific data</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide data, refund merging</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
@@ -1162,6 +1161,29 @@
                             <div style="font-weight: 500; color: var(--text-main);">Hide Transfer</div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-transfer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>↩️</span> Refund Merging
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
+                            Control how refund transactions are displayed across your dashboard and transaction tables.
+                        </p>
+
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Merge Refunds with Expenses</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">
+                                    Auto-group matching refunds into collapsible expense rows to show net amounts. When disabled, refunds appear as independent standalone entries.
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-merge-refunds">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -1908,7 +1930,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=373"></script>
+    <script type="module" src="app.js?v=374"></script>
 </body>
 
 </html>

@@ -24,6 +24,11 @@ export function applyUserSettings(settings) {
         localStorage.setItem('expman_hide_transfer', ui.hideTransfer ? 'true' : 'false');
         localChanged = true;
     }
+    if (ui.mergeRefunds !== undefined && ui.mergeRefunds !== state.mergeRefunds) {
+        state.mergeRefunds = ui.mergeRefunds;
+        localStorage.setItem('expman_merge_refunds', ui.mergeRefunds ? 'true' : 'false');
+        localChanged = true;
+    }
 
     // Google Drive Group
     const gdrive = settings.googleDrive || {};
