@@ -56,6 +56,8 @@ describe('Transaction Mode & Type Mapping', () => {
 
     describe('updateTxnTypeAuto', () => {
         beforeEach(() => {
+            const { setTxnTypeManuallyChanged } = require('../js/ui/form.js');
+            setTxnTypeManuallyChanged(false);
             document.body.innerHTML = `
                 <input id="input-category" value="" />
                 <input id="input-amount" value="500" />
@@ -85,6 +87,15 @@ describe('Transaction Mode & Type Mapping', () => {
             document.getElementById('input-amount').value = '-150';
             updateTxnTypeAuto();
             expect(document.getElementById('input-transaction-type').value).toBe('Refund');
+        });
+
+        it('should NOT overwrite transaction type if it was manually changed', () => {
+            const { setTxnTypeManuallyChanged } = require('../js/ui/form.js');
+            document.getElementById('input-category').value = 'Monthly Salary';
+            document.getElementById('input-transaction-type').value = 'Expense';
+            setTxnTypeManuallyChanged(true);
+            updateTxnTypeAuto();
+            expect(document.getElementById('input-transaction-type').value).toBe('Expense');
         });
     });
 });

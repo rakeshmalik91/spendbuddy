@@ -21,6 +21,30 @@ let isFormSubmitting = false;
 let lastSubmitStartTime = 0;
 let lastFormFillTime = 0;
 
+// Track manual user modifications in Add form to prevent inference from overwriting them
+let isCategoryManuallyChanged = false;
+let isTxnModeManuallyChanged = false;
+let isTxnTypeManuallyChanged = false;
+
+export function setCategoryManuallyChanged(val = true) {
+    isCategoryManuallyChanged = !!val;
+}
+export function setTxnModeManuallyChanged(val = true) {
+    isTxnModeManuallyChanged = !!val;
+}
+export function setTxnTypeManuallyChanged(val = true) {
+    isTxnTypeManuallyChanged = !!val;
+}
+export function getCategoryManuallyChanged() {
+    return isCategoryManuallyChanged;
+}
+export function getTxnModeManuallyChanged() {
+    return isTxnModeManuallyChanged;
+}
+export function getTxnTypeManuallyChanged() {
+    return isTxnTypeManuallyChanged;
+}
+
 /**
  * Returns whether form is currently submitting (saving to cloud)
  */
@@ -482,7 +506,7 @@ export function setupForm() {
 
     // Old Calendar navigation removed
 
-    $('#btn-date-yesterday').addEventListener('click', () => {
+    $('#btn-date-yesterday')?.addEventListener('click', () => {
         let d = new Date();
         d.setDate(d.getDate() - 1);
         $('#input-date').value = getLocalDateString(d);
@@ -491,7 +515,7 @@ export function setupForm() {
         renderCalendar();
         fetchYearCSVIfNeeded(d.getFullYear());
     });
-    $('#btn-date-today').addEventListener('click', () => {
+    $('#btn-date-today')?.addEventListener('click', () => {
         let d = new Date();
         $('#input-date').value = getLocalDateString(d);
         $('#input-date').dispatchEvent(new Event('change'));
@@ -499,7 +523,7 @@ export function setupForm() {
         renderCalendar();
         fetchYearCSVIfNeeded(d.getFullYear());
     });
-    $('#btn-date-tomorrow').addEventListener('click', () => {
+    $('#btn-date-tomorrow')?.addEventListener('click', () => {
         let d = new Date();
         d.setDate(d.getDate() + 1);
         $('#input-date').value = getLocalDateString(d);
@@ -528,24 +552,39 @@ export function setupForm() {
     $('#input-note')?.addEventListener('input', (e) => {
         const val = e.target.value.trim();
         if (val) {
-            let fallbackCategory = state.categories.find(c => c.toLowerCase().includes('other')) || 'Others';
-            let bestMatch = getCategoryForMerchant(val);
-            if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
-            
-            if (bestMatch !== fallbackCategory) {
-                $('#input-category').value = bestMatch;
-                syncChips('#category-chips', bestMatch);
+            // Only infer category if left untouched by user
+            if (!isCategoryManuallyChanged && !currentSelectedSuggestionTxn) {
+                let fallbackCategory = state.categories.find(c => c.toLowerCase().includes('other')) || 'Others';
+                let bestMatch = getCategoryForMerchant(val);
+                if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
+                
+                if (bestMatch !== fallbackCategory) {
+                    $('#input-category').value = bestMatch;
+                    syncChips('#category-chips', bestMatch);
+                }
             }
 
-            const currentTxnType = $('#input-transaction-type').value;
-            let bestTxnType = getTxnTypeForMerchant(val, currentTxnType);
-            if (bestTxnType && bestTxnType !== currentTxnType) {
-                $('#input-transaction-type').value = bestTxnType;
-                syncChips('#txntype-chips', bestTxnType);
+            // Only infer transaction type if left untouched by user
+            if (!isTxnTypeManuallyChanged && !currentSelectedSuggestionTxn) {
+                const currentTxnType = $('#input-transaction-type').value;
+                let bestTxnType = getTxnTypeForMerchant(val, currentTxnType);
+                if (bestTxnType && bestTxnType !== currentTxnType) {
+                    $('#input-transaction-type').value = bestTxnType;
+                    syncChips('#txntype-chips', bestTxnType);
+                }
             }
         }
     });
 
+    $('#input-category')?.addEventListener('change', () => {
+        isCategoryManuallyChanged = true;
+    });
+    $('#input-txn-type')?.addEventListener('change', () => {
+        isTxnModeManuallyChanged = true;
+    });
+    $('#input-transaction-type')?.addEventListener('change', () => {
+        isTxnTypeManuallyChanged = true;
+    });
 
     // We can expose updateTxnTypeAuto globally for category changes
     window.updateTxnTypeAuto = updateTxnTypeAuto;
@@ -870,6 +909,7 @@ export function setupForm() {
 }
 
 export function updateTxnTypeAuto() {
+    if (isTxnTypeManuallyChanged) return;
     const typeInput = $('#input-transaction-type');
     if (!typeInput) return;
     const amtStr = $('#input-amount')?.value;
@@ -1038,6 +1078,11 @@ export function resetForm(force = false) {
     // Clear note suggestion chip active states
     $$('#note-suggestions .chip').forEach(c => c.classList.remove('active'));
 
+    // Reset manual change flags so new entry starts with untouched fields
+    isCategoryManuallyChanged = false;
+    isTxnModeManuallyChanged = false;
+    isTxnTypeManuallyChanged = false;
+
     if (typeof renderSelectedDayTransactions === 'function') {
         renderSelectedDayTransactions();
     }
@@ -1047,6 +1092,11 @@ export async function editEntry(idx) {
     state.editOriginView = window.location.hash.replace('#', '') || 'dashboard';
     const e = state.expenses[idx];
     if (!e) return;
+
+    // Preserve existing entry's category, mode, and type from note inference
+    isCategoryManuallyChanged = true;
+    isTxnModeManuallyChanged = true;
+    isTxnTypeManuallyChanged = true;
 
     // Lazy-load state.categories & txn types if not yet loaded
     if (!state.masterDataLoaded) {
@@ -1066,7 +1116,7 @@ export async function editEntry(idx) {
     // Show expression if it exists, otherwise show the calculated amount
     const displayAmount = (e.txnType === 'Refund' || e.txnType === 'Income' || e.amount < 0) ? -Math.abs(e.amount) : Math.abs(e.amount);
     $('#input-amount').value = e.amountExpression || amountToStr(displayAmount);
-    $('#input-currency').value = e.currency;
+    if ($('#input-currency')) $('#input-currency').value = e.currency || 'INR';
     $('#input-category').value = e.category;
     syncChips('#category-chips', e.category);
     const initialTxnType = e.txnType || (e.amount < 0 ? 'Refund' : 'Expense');
@@ -1197,25 +1247,30 @@ export function renderSmsSuggestions() {
             if (isFormSubmitting) return;
             recordFormFillTime();
 
-            let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
-            if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
+            if (!isCategoryManuallyChanged) {
+                let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
+                if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
 
-            $('#input-category').value = bestMatch;
-            syncChips('#category-chips', bestMatch);
+                $('#input-category').value = bestMatch;
+                syncChips('#category-chips', bestMatch);
+            }
 
             const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
-            if (mappedMode && state.txnModes.includes(mappedMode)) {
+            if (!isTxnModeManuallyChanged && mappedMode && state.txnModes.includes(mappedMode)) {
                 $('#input-txn-type').value = mappedMode;
                 syncChips('#txnmode-chips', mappedMode);
             }
 
-            const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-            const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
-            
-            $('#input-transaction-type').value = bestTxnType;
-            syncChips('#txntype-chips', bestTxnType);
+            if (!isTxnTypeManuallyChanged) {
+                const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
+                const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
+                
+                $('#input-transaction-type').value = bestTxnType;
+                syncChips('#txntype-chips', bestTxnType);
+            }
 
-            const fillAmount = (bestTxnType === 'Income' || bestTxnType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
+            const effectiveType = $('#input-transaction-type')?.value || (txn.amount < 0 ? 'Refund' : 'Expense');
+            const fillAmount = (effectiveType === 'Income' || effectiveType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             $('#input-amount').value = fillAmount;
 
             $('#input-note').value = txn.merchant || '';

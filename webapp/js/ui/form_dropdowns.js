@@ -4,7 +4,7 @@ import { $$, $ } from "../core/init.js";
 import { escHtml, isRefundTxn } from "../utils/helpers.js";
 import { state } from "../core/state.js";
 import { updateTimeFilterUI } from "./time_filter.js";
-import { evaluateExpression, getIsFormSubmitting, recordFormFillTime } from "./form.js";
+import { evaluateExpression, getIsFormSubmitting, recordFormFillTime, setCategoryManuallyChanged, setTxnModeManuallyChanged, setTxnTypeManuallyChanged } from "./form.js";
 
 export function invertExpression(expr) {
     if (!expr) return expr;
@@ -72,6 +72,7 @@ export function populateFormDropdowns() {
 
         $$('#category-chips .chip').forEach(chip => {
             chip.addEventListener('click', () => {
+                setCategoryManuallyChanged(true);
                 $$('#category-chips .chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 catInput.value = chip.dataset.value;
@@ -87,6 +88,7 @@ export function populateFormDropdowns() {
 
         $$('#txnmode-chips .chip').forEach(chip => {
             chip.addEventListener('click', () => {
+                setTxnModeManuallyChanged(true);
                 $$('#txnmode-chips .chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 txnInput.value = chip.dataset.value;
@@ -117,6 +119,7 @@ export function populateFormDropdowns() {
 
         $$('#txntype-chips .chip').forEach(chip => {
             chip.addEventListener('click', () => {
+                setTxnTypeManuallyChanged(true);
                 $$('#txntype-chips .chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 typeInput.value = chip.dataset.value;
@@ -156,6 +159,11 @@ export function populateFormDropdowns() {
         typeInput.value = visibleTxnTypes[0];
         syncChips('#txntype-chips', visibleTxnTypes[0]);
     }
+
+    // Default dropdown state is untouched until user interacts
+    setCategoryManuallyChanged(false);
+    setTxnModeManuallyChanged(false);
+    setTxnTypeManuallyChanged(false);
 
     // Populate trend filters in Charts View
 
@@ -313,6 +321,7 @@ export function populateNoteSuggestions() {
                 chip.classList.add('active');
                 noteInput.value = val;
             }
+            noteInput.dispatchEvent(new Event('input'));
             noteInput.focus();
         });
     });

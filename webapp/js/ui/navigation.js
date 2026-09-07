@@ -111,7 +111,7 @@ export function switchView(viewName, pushStateToHistory = true) {
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$(`.nav-btn[data-view="${viewName}"]`).forEach(b => b.classList.add('active'));
     $$('.view').forEach(v => v.classList.remove('active'));
-    $(`#view-${viewName}`).classList.add('active');
+    $(`#view-${viewName}`)?.classList.add('active');
 
     if (viewName === 'add') {
         const editIdx = document.getElementById('edit-index') ? parseInt(document.getElementById('edit-index').value) : -1;
@@ -155,7 +155,7 @@ export function switchView(viewName, pushStateToHistory = true) {
         }
     }
     // Close mobile sidebar
-    $('#sidebar').classList.remove('open');
+    $('#sidebar')?.classList.remove('open');
 
     // Rebuild charts / tables when entering views
     if (viewName === 'dashboard') renderDashboard();

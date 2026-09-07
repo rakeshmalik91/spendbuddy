@@ -154,7 +154,7 @@ export function setupInfiniteScroll(sentinelId, viewName, renderFn) {
  */
 export async function editScheduledTransaction(idx) {
     const { amountToStr } = await import("../services/storage.js");
-    const { updateFormActionButtons } = await import("../ui/form.js");
+    const { updateFormActionButtons, setCategoryManuallyChanged, setTxnModeManuallyChanged, setTxnTypeManuallyChanged } = await import("../ui/form.js");
     const { syncChips, renderCalendar } = await import("../ui/form_dropdowns.js");
     const { switchView } = await import("../ui/navigation.js");
 
@@ -163,6 +163,10 @@ export async function editScheduledTransaction(idx) {
     state.editOriginView = window.location.hash.replace('#', '') || 'dashboard';
     const st = state.scheduledTransactions[idx];
     if (!st) return;
+
+    setCategoryManuallyChanged(true);
+    setTxnModeManuallyChanged(true);
+    setTxnTypeManuallyChanged(true);
 
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = idx;
     $('#edit-index').value = -1;

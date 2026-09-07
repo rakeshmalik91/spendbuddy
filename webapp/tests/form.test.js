@@ -280,6 +280,163 @@ describe('Add Page Form UI', () => {
         });
     });
 
+    describe('Category and Txn Mode/Type Manual Change vs Inference', () => {
+        let setupForm, setCategoryManuallyChanged, setTxnModeManuallyChanged, setTxnTypeManuallyChanged, resetForm;
+
+        beforeEach(() => {
+            const formModule = require('../js/ui/form.js');
+            setupForm = formModule.setupForm;
+            setCategoryManuallyChanged = formModule.setCategoryManuallyChanged;
+            setTxnModeManuallyChanged = formModule.setTxnModeManuallyChanged;
+            setTxnTypeManuallyChanged = formModule.setTxnTypeManuallyChanged;
+            resetForm = formModule.resetForm;
+
+            state.categories = ['Food', 'Shopping', 'Salary', 'Others'];
+            state.txnModes = ['UPI', 'Cash', 'Credit Card'];
+            state.txnTypes = ['Expense', 'Income', 'Refund', 'Investment', 'Transfer'];
+
+            document.body.innerHTML = `
+                <form id="expense-form">
+                    <input type="text" id="input-date" value="2026-07-19">
+                    <input type="text" id="input-amount" value="500">
+                    <input type="text" id="input-note" value="">
+                    <input type="hidden" id="input-category" value="Food">
+                    <div id="category-chips">
+                        <div class="chip" data-value="Food">Food</div>
+                        <div class="chip" data-value="Shopping">Shopping</div>
+                        <div class="chip" data-value="Others">Others</div>
+                    </div>
+                    <input type="hidden" id="input-transaction-type" value="Expense">
+                    <div id="txntype-chips">
+                        <div class="chip" data-value="Expense">Expense</div>
+                        <div class="chip" data-value="Income">Income</div>
+                    </div>
+                    <input type="hidden" id="input-txn-type" value="UPI">
+                    <div id="txnmode-chips">
+                        <div class="chip" data-value="UPI">UPI</div>
+                        <div class="chip" data-value="Cash">Cash</div>
+                    </div>
+                    <input type="hidden" id="edit-index" value="-1">
+                    <input type="hidden" id="edit-scheduled-index" value="-1">
+                    <input type="hidden" id="input-currency" value="INR">
+                    <span id="form-title">Add New Entry</span>
+                    <button type="submit" id="btn-submit">Add Entry</button>
+                    <button type="button" id="btn-cancel" style="display:none;">Cancel</button>
+                </form>
+            `;
+            resetForm(true);
+            setupForm();
+        });
+
+        it('should infer category from note if category was left untouched', () => {
+            const noteInput = document.getElementById('input-note');
+            helpers.getCategoryForMerchant.mockReturnValue('Shopping');
+
+            noteInput.value = 'Amazon';
+            noteInput.dispatchEvent(new Event('input'));
+
+            expect(document.getElementById('input-category').value).toBe('Shopping');
+        });
+
+        it('should NOT infer category from note if category was manually changed', () => {
+            const noteInput = document.getElementById('input-note');
+            helpers.getCategoryForMerchant.mockReturnValue('Shopping');
+
+            document.getElementById('input-category').value = 'Others';
+            setCategoryManuallyChanged(true);
+
+            noteInput.value = 'Amazon';
+            noteInput.dispatchEvent(new Event('input'));
+
+            expect(document.getElementById('input-category').value).toBe('Others');
+        });
+
+        it('should infer txnType from note if txnType was left untouched', () => {
+            const noteInput = document.getElementById('input-note');
+            helpers.getTxnTypeForMerchant.mockReturnValue('Income');
+
+            noteInput.value = 'Employer Payroll';
+            noteInput.dispatchEvent(new Event('input'));
+
+            expect(document.getElementById('input-transaction-type').value).toBe('Income');
+        });
+
+        it('should NOT infer txnType from note if txnType was manually changed', () => {
+            const noteInput = document.getElementById('input-note');
+            helpers.getTxnTypeForMerchant.mockReturnValue('Income');
+
+            document.getElementById('input-transaction-type').value = 'Expense';
+            setTxnTypeManuallyChanged(true);
+
+            noteInput.value = 'Employer Payroll';
+            noteInput.dispatchEvent(new Event('input'));
+
+            expect(document.getElementById('input-transaction-type').value).toBe('Expense');
+        });
+
+        it('should reset manual change flags when resetForm() is called', () => {
+            const { getCategoryManuallyChanged, getTxnModeManuallyChanged, getTxnTypeManuallyChanged } = require('../js/ui/form.js');
+            setCategoryManuallyChanged(true);
+            setTxnModeManuallyChanged(true);
+            setTxnTypeManuallyChanged(true);
+
+            resetForm(true);
+
+            expect(getCategoryManuallyChanged()).toBe(false);
+            expect(getTxnModeManuallyChanged()).toBe(false);
+            expect(getTxnTypeManuallyChanged()).toBe(false);
+        });
+
+        it('should mark manual change flags as true when editEntry() is called', async () => {
+            const { editEntry, getCategoryManuallyChanged, getTxnModeManuallyChanged, getTxnTypeManuallyChanged } = require('../js/ui/form.js');
+            document.body.insertAdjacentHTML('beforeend', '<div id="view-add" class="view"></div>');
+            state.expenses = [
+                { id: 1, date: '2026-07-19', amount: 500, category: 'Food', txnType: 'Expense', txnMode: 'Cash', note: 'Dinner' }
+            ];
+            state.masterDataLoaded = true;
+
+            await editEntry(0);
+
+            expect(getCategoryManuallyChanged()).toBe(true);
+            expect(getTxnModeManuallyChanged()).toBe(true);
+            expect(getTxnTypeManuallyChanged()).toBe(true);
+        });
+
+        it('should preserve manually changed category and txn mode when SMS suggestion is clicked', () => {
+            const { renderSmsSuggestions } = require('../js/ui/form.js');
+            const smsApproval = require('../js/ui/sms_approval.js');
+            helpers.getCategoryForMerchant.mockReturnValue('Shopping');
+
+            document.body.insertAdjacentHTML('beforeend', '<div id="sms-suggestions-banner"></div>');
+            document.getElementById('input-category').value = 'Others';
+            document.getElementById('input-txn-type').value = 'Cash';
+            setCategoryManuallyChanged(true);
+            setTxnModeManuallyChanged(true);
+
+            // Mock an SMS suggestion for the date
+            const mockTxn = {
+                merchant: 'Flipkart',
+                transactionMode: 'UPI',
+                amount: 1000,
+                txnType: 'Expense',
+                date: '2026-07-19',
+                source: 'SMS'
+            };
+            smsApproval.getRawSmsSuggestionsForDate = jest.fn(() => [mockTxn]);
+
+            renderSmsSuggestions();
+
+            const suggestionEl = document.querySelector('#sms-suggestions-banner .sms-suggestion-item');
+            if (suggestionEl) {
+                suggestionEl.click();
+                // Category was manually set to Others -> should NOT be overwritten to Shopping
+                expect(document.getElementById('input-category').value).toBe('Others');
+                // Txn Mode was manually set to Cash -> should NOT be overwritten to UPI
+                expect(document.getElementById('input-txn-type').value).toBe('Cash');
+            }
+        });
+    });
+
     describe('Hide Transfer Filter on Add Page Selected Day Transactions', () => {
         it('should exclude Transfer transactions when state.hideTransfer is true', () => {
             const { renderSelectedDayTransactions } = require('../js/ui/dashboard.js');
