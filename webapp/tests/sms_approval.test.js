@@ -578,5 +578,33 @@ describe('SMS Approval Logic', () => {
             expect(state.pendingSmsTransactions.length).toBe(1);
             expect(state.pendingSmsTransactions[0].transactionId).toBe('HDFC_102');
         });
+
+        it('should normalize Apay Wallet and Amazon Pay Balance transactions to Wallet transaction mode', () => {
+            state.txnModes = ['📱 UPI', '💳 Card', '👛 Wallet'];
+            const rawTransactions = [
+                {
+                    date: '2026-08-08',
+                    amount: 341.00,
+                    merchant: 'Apay Wallet',
+                    body: 'Your Apay Wallet balance is debited for INR 341.00.',
+                    transactionMode: 'UPI',
+                    transactionId: '652832815062'
+                },
+                {
+                    date: '2026-08-08',
+                    amount: 696.00,
+                    merchant: 'Domino\'s',
+                    body: 'Payment Mode: Amazon Pay Balance',
+                    transactionMode: 'UPI',
+                    transactionId: 'DOMINOS_123'
+                }
+            ];
+
+            receiveSmsTransactions(rawTransactions);
+
+            expect(state.rawSmsTransactions.length).toBe(2);
+            expect(state.rawSmsTransactions[0].transactionMode).toBe('Wallet');
+            expect(state.rawSmsTransactions[1].transactionMode).toBe('Wallet');
+        });
     });
 });

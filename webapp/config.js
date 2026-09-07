@@ -47,7 +47,7 @@ export const DEFAULT_CATEGORIES = [
 ];
 
 export const DEFAULT_TXN_MODES = [
-    '📱 UPI', '🏦 Bank Transfer', '💳 Card', '💵 Cash'
+    '📱 UPI', '🏦 Bank Transfer', '💳 Card', '💵 Cash', '👛 Wallet'
 ];
 
 export const DEFAULT_TXN_TYPES = [
@@ -57,7 +57,7 @@ export const DEFAULT_TXN_TYPES = [
 // Items that cannot be renamed or deleted by the user.
 // Category matching strips leading emoji+space (e.g. "🍜 Food" → "Food") before comparison.
 export const PROTECTED_CATEGORIES = ['Food', 'Groceries', 'Shopping', 'Rent', 'Travel', 'Others'];
-export const PROTECTED_TXN_MODES = ['UPI', 'Bank Transfer', 'Card', 'Cash'];
+export const PROTECTED_TXN_MODES = ['UPI', 'Bank Transfer', 'Card', 'Cash', 'Wallet'];
 export const PROTECTED_TXN_TYPES = ['Expense', 'Refund', 'Income', 'Investment', 'Transfer'];
 
 // System-generated transaction ID prefixes

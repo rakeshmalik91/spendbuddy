@@ -25,6 +25,16 @@ public class TransactionModeMapper {
         "pluxee", "meal wallet", "sodexo"
     );
 
+    private static final List<String> WALLET_KEYWORDS = Arrays.asList(
+        "apay wallet", "amazon pay wallet", "amazon pay balance", "apay balance",
+        "paytm wallet", "phonepe wallet", "mobikwik", "wallet balance",
+        "paid from wallet", "paid via wallet", "debited from wallet",
+        "debited from your wallet", "credited to wallet", "credited to your wallet",
+        "money added to wallet", "added to wallet", "from your wallet",
+        "using wallet", "via wallet", "payment mode: wallet", "payment mode : wallet",
+        "payment method: wallet", "payment method : wallet", ">wallet<", "> wallet <"
+    );
+
     private static final List<String> CARD_KEYWORDS = Arrays.asList(
         "credit card", "debit card", "card payment",
         "paid via credit", "paid via debit", "paid via card",
@@ -55,6 +65,20 @@ public class TransactionModeMapper {
             ).replaceAll("")
         ).replaceAll("");
 
+        // Check for Meal Card keywords first (e.g. "meal wallet" should be Meal Card, not Wallet)
+        for (String keyword : MEAL_CARD_KEYWORDS) {
+            if (cleanText.contains(keyword)) {
+                return "Meal Card";
+            }
+        }
+
+        // Check for Wallet keywords
+        for (String keyword : WALLET_KEYWORDS) {
+            if (cleanText.contains(keyword)) {
+                return "Wallet";
+            }
+        }
+
         // Check for UPI payment apps & keywords
         for (String app : UPI_APP_KEYWORDS) {
             if (cleanText.contains(app)) {
@@ -63,13 +87,6 @@ public class TransactionModeMapper {
         }
         if (UPI_WORD_PATTERN.matcher(cleanText).find()) {
             return "UPI";
-        }
-
-        // Check for Meal Card keywords
-        for (String keyword : MEAL_CARD_KEYWORDS) {
-            if (cleanText.contains(keyword)) {
-                return "Meal Card";
-            }
         }
 
         // Check for Card keywords

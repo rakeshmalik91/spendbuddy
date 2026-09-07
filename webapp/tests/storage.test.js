@@ -1,4 +1,5 @@
 import * as storage from '../js/services/storage.js';
+import { state } from '../js/core/state.js';
 
 describe('Storage Helpers', () => {
 
@@ -120,6 +121,23 @@ describe('Storage Helpers', () => {
             expect(lines[2]).toContain('2026-07-25');
             expect(lines[3]).toContain('2026-07-20');
             expect(lines[3]).toContain('Dinner');
+        });
+    });
+
+    describe('applyMetadataFromParsed', () => {
+        it('should populate state and ensure default protected modes like Wallet are added if missing', () => {
+            const rows = [
+                { Type: 'Category', Value: 'Food' },
+                { Type: 'Transaction Mode', Value: '📱 UPI' },
+                { Type: 'Transaction Mode', Value: '💳 Card' },
+                { Type: 'Transaction Type', Value: 'Expense' }
+            ];
+            storage.applyMetadataFromParsed(rows);
+            expect(state.categories).toContain('Food');
+            expect(state.txnModes).toContain('📱 UPI');
+            expect(state.txnModes).toContain('💳 Card');
+            // Wallet was missing from rows, but protected default '👛 Wallet' must be added
+            expect(state.txnModes).toContain('👛 Wallet');
         });
     });
 });

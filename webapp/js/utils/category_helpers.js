@@ -147,6 +147,13 @@ export function mapTxnMode(rawMode, txnModes) {
     for (const tm of txnModes) {
         if (stripEmojiPrefix(tm).toLowerCase() === cleanMode) return tm;
     }
+
+    // Apay Wallet / Wallet aliases
+    if ((cleanMode.includes('wallet') && !cleanMode.includes('meal')) || cleanMode.includes('apay') || cleanMode.includes('amazon pay balance')) {
+        const walletMode = txnModes.find(tm => stripEmojiPrefix(tm).toLowerCase() === 'wallet');
+        if (walletMode) return walletMode;
+    }
+
     for (const tm of txnModes) {
         if (stripEmojiPrefix(tm).toLowerCase().includes(cleanMode)) return tm;
     }

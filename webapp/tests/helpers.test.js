@@ -60,6 +60,14 @@ describe('Helpers', () => {
             expect(helpers.mapTxnMode('debit card', state.txnModes)).toBe('Debit Card');
         });
 
+        it('should map Wallet, Apay Wallet, and Amazon Pay Balance to Wallet mode', () => {
+            state.txnModes = ['📱 UPI', '💳 Credit Card', '👛 Wallet'];
+            expect(helpers.mapTxnMode('Wallet', state.txnModes)).toBe('👛 Wallet');
+            expect(helpers.mapTxnMode('Apay Wallet', state.txnModes)).toBe('👛 Wallet');
+            expect(helpers.mapTxnMode('Amazon Pay Balance', state.txnModes)).toBe('👛 Wallet');
+            expect(helpers.mapTxnMode('apay balance', state.txnModes)).toBe('👛 Wallet');
+        });
+
         it('should ignore emojis during matching', () => {
             expect(helpers.mapTxnMode('💳 Credit Card', state.txnModes)).toBe('Credit Card');
             expect(helpers.mapTxnMode('📱 UPI', state.txnModes)).toBe('UPI');

@@ -65,6 +65,14 @@ function sanitizeTxnAmount(txn) {
             }
         }
     }
+
+    // Normalize Apay Wallet / Amazon Pay Balance / Wallet transactions to 'Wallet' mode
+    const lowerMerch = (txn.merchant || '').toLowerCase();
+    const lowerBody = (txn.body || '').toLowerCase();
+    const lowerMode = (txn.transactionMode || '').toLowerCase();
+    if (lowerMerch.includes('apay wallet') || lowerBody.includes('apay wallet') || lowerBody.includes('amazon pay balance') || lowerBody.includes('apay balance') || (lowerMode.includes('wallet') && !lowerMode.includes('meal'))) {
+        txn.transactionMode = 'Wallet';
+    }
 }
 
 /**
@@ -568,7 +576,7 @@ export function receiveSmsTransactions(jsonString) {
     }
     console.log("Received SMS transactions from Android", jsonString);
     try {
-        const incoming = JSON.parse(jsonString);
+        const incoming = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
 
         // Merge incoming with whatever we already have (from cache or a prior call).
         // This prevents email batches streaming in one-by-one from re-triggering a full reset.

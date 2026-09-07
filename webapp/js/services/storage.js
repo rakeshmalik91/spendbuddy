@@ -1,5 +1,5 @@
 import { ref, getDownloadURL, uploadString, listAll, getMetadata, getBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { calculateNextRunDate, getLocalDateString, toast, getLastLocation, getCurrentLocationTag, isMobileView } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, toast, getLastLocation, getCurrentLocationTag, isMobileView, stripEmojiPrefix } from "../utils/helpers.js";
 import { showLoader, hideLoader, $$, $ } from "../core/init.js";
 import { populateNoteSuggestions, populateLocationSuggestions, populateTagSuggestions } from "../ui/form_dropdowns.js";
 import { getUserEmail, getRequiredEmail } from "./auth.js";
@@ -677,6 +677,16 @@ export function applyMetadataFromParsed(rows) {
     state.txnModes = rows.filter(r => r.Type === 'Transaction Mode').map(r => r.Value).filter(Boolean);
     state.txnTypes = rows.filter(r => r.Type === 'Transaction Type').map(r => r.Value).filter(Boolean);
     if (!state.txnTypes || state.txnTypes.length === 0) state.txnTypes = ['Expense', 'Refund', 'Income', 'Investment', 'Transfer'];
+
+    // Ensure protected default modes (e.g. '👛 Wallet') are present if missing from metadata
+    if (state.txnModes && state.txnModes.length > 0) {
+        for (const defMode of DEFAULT_TXN_MODES) {
+            const cleanDef = stripEmojiPrefix(defMode).toLowerCase();
+            if (!state.txnModes.some(tm => stripEmojiPrefix(tm).toLowerCase() === cleanDef)) {
+                state.txnModes.push(defMode);
+            }
+        }
+    }
 }
 
 export function parseLocationRows(rows) {
