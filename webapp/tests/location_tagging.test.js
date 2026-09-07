@@ -1,4 +1,4 @@
-import { getDistance, resetLocationPermissionDenied, getCurrentLocationTag } from '../js/utils/helpers.js';
+import { getDistance, resetLocationPermissionDenied, getCurrentLocationTag, getCountryFromCoords, getFallbackCountry } from '../js/utils/helpers.js';
 import { prefillLocation } from '../js/ui/form.js';
 import { state } from '../js/core/state.js';
 import { getLastLocation } from '../js/utils/helpers.js';
@@ -128,13 +128,13 @@ describe('Location Auto-tagging', () => {
         expect(mockLocInput.value).toBe('Home');
     });
 
-    it('falls back to getLastLocation if GPS does not match any location within radius', async () => {
+    it('falls back to current country if GPS does not match any location within radius', async () => {
         state.expenses = [{ location: 'Random Place' }];
         state.locationsConfig = [
             { tag: 'Home', lat: 28.4595, lon: 77.0266, radius: 100 } // 100m radius
         ];
 
-        // Point is 1km away, outside 100m radius
+        // Point is 1km away, outside 100m radius (lat: 28.4685, lon: 77.0266 is in India)
         global.navigator.geolocation = {
             getCurrentPosition: jest.fn((success) => {
                 success({ coords: { latitude: 28.4685, longitude: 77.0266 } });
@@ -143,7 +143,40 @@ describe('Location Auto-tagging', () => {
 
         await prefillLocation();
         
+        expect(mockLocInput.value).toBe('India');
+    });
+
+    it('falls back to getLastLocation if GPS fails or cannot detect location', async () => {
+        state.expenses = [{ location: 'Random Place' }];
+        state.locationsConfig = [
+            { tag: 'Home', lat: 28.4595, lon: 77.0266, radius: 100 }
+        ];
+
+        global.navigator.geolocation = {
+            getCurrentPosition: jest.fn((_, error) => {
+                error({ code: 2, message: 'Position unavailable' });
+            })
+        };
+
+        await prefillLocation();
+
         expect(mockLocInput.value).toBe('Random Place');
+    });
+
+    it('sets current country if location is detected and no preset locations are configured', async () => {
+        state.locationsConfig = [];
+        localStorage.setItem('expman_location_permission_granted', 'true');
+
+        // Location in New York, USA
+        global.navigator.geolocation = {
+            getCurrentPosition: jest.fn((success) => {
+                success({ coords: { latitude: 40.7128, longitude: -74.0060 } });
+            })
+        };
+
+        const tag = await getCurrentLocationTag();
+        expect(tag).toBe('United States');
+        expect(localStorage.getItem('expman_last_location')).toBe('United States');
     });
 
     it('does not override existing input value', async () => {
@@ -278,6 +311,53 @@ describe('Location Auto-tagging', () => {
         expect(reqMock).toHaveBeenCalled();
         expect(explicitTag).toBe('Home');
         delete window.Android;
+    });
+
+    describe('getCountryFromCoords & Country Resolution', () => {
+        const originalFetch = global.fetch;
+        afterEach(() => {
+            global.fetch = originalFetch;
+        });
+
+        it('resolves country name from API response when available', async () => {
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ countryName: 'Germany' })
+            });
+
+            const country = await getCountryFromCoords(52.5200, 13.4050);
+            expect(country).toBe('Germany');
+            expect(localStorage.getItem('expman_last_country')).toBe('Germany');
+        });
+
+        it('resolves country name using countryCode when countryName is missing', async () => {
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ countryCode: 'FR' })
+            });
+
+            const country = await getCountryFromCoords(48.8566, 2.3522);
+            expect(country).toBe('France');
+        });
+
+        it('falls back to offline bounding box if fetch throws', async () => {
+            global.fetch = jest.fn().mockRejectedValue(new Error('Network offline'));
+
+            // Tokyo, Japan: lat 35.6762, lon 139.6503
+            const country = await getCountryFromCoords(35.6762, 139.6503);
+            expect(country).toBe('Japan');
+        });
+
+        it('falls back to getFallbackCountry when coordinates are invalid', async () => {
+            localStorage.setItem('expman_last_country', 'United Kingdom');
+            const country = await getCountryFromCoords(NaN, NaN);
+            expect(country).toBe('United Kingdom');
+        });
+
+        it('getFallbackCountry uses localStorage if available', () => {
+            localStorage.setItem('expman_last_country', 'Canada');
+            expect(getFallbackCountry()).toBe('Canada');
+        });
     });
 });
 

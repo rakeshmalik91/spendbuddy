@@ -6,7 +6,7 @@ import { state } from "../core/state.js";
  * ════════════════════════════════════════════════════════════ */
 export { parseLocalDate, getLocalDateString, formatMonth, formatDate, escHtml } from "./date_helpers.js";
 export { getTxnIdList, SYSTEM_TXN_ID_PREFIXES, SYSTEM_TXN_SOURCES, TXN_SOURCE_SCHEDULE, TXN_SOURCE_QUICK_ADD, TXN_SOURCE_SMS_PREFIX, TXN_SOURCE_EMAIL_PREFIX, isSystemTxnId, getRealTxnIdList, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, hasMatchingTxnId, isRefundTxn, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, txnTypeBadgeHTML } from "./txn_id_helpers.js";
-export { getDistance, getLastLocation, getCurrentLocationTag, resetLocationPermissionDenied } from "./location_helpers.js";
+export { getDistance, getLastLocation, getCurrentLocationTag, resetLocationPermissionDenied, getCountryFromCoords, getFallbackCountry } from "./location_helpers.js";
 export { getCategoryForMerchant, getTxnTypeForMerchant, stripEmojiPrefix, mapTxnMode } from "./category_helpers.js";
 export { calculateNextRunDate, buildFrequencyString } from "./scheduling_helpers.js";
 export { mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "./refund_helpers.js";
