@@ -1252,21 +1252,32 @@ export function getDaySeparatorHTML(dateStr, dataset, totalCols = 7, selectedInd
             <td class="col-batch-select hide-on-mobile" style="text-align: center;">
                 <input type="checkbox" class="batch-select-checkbox batch-select-day" data-date="${dateStr}" ${isChecked ? 'checked' : ''} ${isIndet ? 'data-indeterminate="true"' : ''} onclick="event.stopPropagation(); window.toggleDaySelection('${dateStr}', this.checked);">
             </td>
-            <td class="day-separator-empty" colspan="3"><span class="day-date-label hide-on-desktop">📅 ${formatDate(dateStr)}</span></td>
+            <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">📅 ${formatDate(dateStr)}</span></td>
             <td class="day-separator-total">
                 <span class="${colorClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(dayAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
             </td>
-            <td class="day-separator-empty" colspan="2"></td>
+            <td class="day-separator-empty"></td>
         </tr>`;
     }
 
-    const colsAfter = totalCols - 4; // 3 columns before Amount, 1 for Amount, remaining after
     return `<tr class="day-separator">
-        <td class="day-separator-empty" colspan="3"><span class="day-date-label hide-on-desktop">📅 ${formatDate(dateStr)}</span></td>
+        <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">📅 ${formatDate(dateStr)}</span></td>
         <td class="day-separator-total">
             <span class="${colorClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(dayAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
         </td>
-        <td class="day-separator-empty" colspan="${colsAfter}"></td>
+        <td class="day-separator-empty"></td>
     </tr>`;
+}
+
+if (typeof window !== 'undefined') {
+    window.toggleDateSort = function() {
+        if (state.sortCol === 'date') {
+            state.sortAsc = !state.sortAsc;
+        } else {
+            state.sortCol = 'date';
+            state.sortAsc = false;
+        }
+        import('./transactions.js').then(m => m.renderTransactions());
+    };
 }
 

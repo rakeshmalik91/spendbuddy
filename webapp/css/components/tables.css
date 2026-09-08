@@ -477,6 +477,10 @@
 }
 
 @media (min-width: 861px) {
+    .data-table:not(#keyword-mapping-table) th.col-date,
+    .data-table:not(#keyword-mapping-table) th[data-col="date"],
+    .data-table:not(#keyword-mapping-table) td[data-label="Date"],
+    .data-table:not(#keyword-mapping-table) td[data-label="Date & Location"],
     .data-table:not(#keyword-mapping-table) th.col-mode,
     .data-table:not(#keyword-mapping-table) th[data-col="mode"],
     .data-table:not(#keyword-mapping-table) td[data-label="Mode"],
@@ -963,7 +967,21 @@ td.day-separator-empty {
 }
 
 .day-date-label {
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    padding: 10px 10px 4px 14px;
+    user-select: none;
+    cursor: pointer;
+    transition: color var(--transition);
+}
+
+.day-date-label:hover {
+    color: var(--text-primary);
 }
 
 td.day-separator-total {

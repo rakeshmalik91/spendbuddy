@@ -29,6 +29,9 @@ export function clearAllFilters() {
     const searchEl = $('#filter-search');
     if (searchEl) searchEl.value = '';
 
+    state.sortCol = 'date';
+    state.sortAsc = false;
+
     updateClearFiltersBtnState();
     renderTransactions();
 }
@@ -98,8 +101,21 @@ export function setupSort() {
     $$('.sortable').forEach(th => {
         th.addEventListener('click', () => {
             const col = th.dataset.col;
-            if (state.sortCol === col) state.sortAsc = !state.sortAsc;
-            else { state.sortCol = col; state.sortAsc = true; }
+            if (state.sortCol === col) {
+                if (col === 'amount') {
+                    if (state.sortAsc) {
+                        state.sortCol = 'date';
+                        state.sortAsc = false;
+                    } else {
+                        state.sortAsc = true;
+                    }
+                } else {
+                    state.sortAsc = !state.sortAsc;
+                }
+            } else {
+                state.sortCol = col;
+                state.sortAsc = false;
+            }
             renderTransactions();
         });
     });

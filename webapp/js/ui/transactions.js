@@ -81,14 +81,14 @@ export function renderTransactions() {
                 const mIndet = mSelCount > 0 && mSelCount < monthIndices.length;
 
                 if (lastDateAll) {
-                    sepHTML += `<tr class="month-separator"><td colspan="7"></td></tr>`;
+                    sepHTML += `<tr class="month-separator"><td colspan="5"></td></tr>`;
                 }
-                const mColsAfter = 2;
+                const mColsAfter = 1;
                 sepHTML += `<tr class="month-header">
                     <td class="col-batch-select hide-on-mobile" style="text-align: center;">
                         <input type="checkbox" class="batch-select-checkbox batch-select-month" data-month="${currentMonthStr}" ${mChecked ? 'checked' : ''} ${mIndet ? 'data-indeterminate="true"' : ''} onclick="event.stopPropagation(); window.toggleMonthSelection('${currentMonthStr}', this.checked);">
                     </td>
-                    <td colspan="3">${mName}</td>
+                    <td colspan="2">${mName}</td>
                     <td class="month-header-total">${mNetText}</td>
                     <td class="month-header-empty" colspan="${mColsAfter}"></td>
                 </tr>`;
@@ -106,13 +106,14 @@ export function renderTransactions() {
             const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
             sourceBadge = fullBadges + shortBadges;
         }
-        let locationBadge = e.location ? `<span class="badge-location hide-on-desktop" title="${escHtml(e.location)}">📍 ${escHtml(e.location)}</span>` : '';
+        let locationBadge = e.location ? `<span class="badge-location" title="${escHtml(e.location)}">📍 ${escHtml(e.location)}</span>` : '';
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
         let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
-        let badges = locationBadge + modeBadge + tagBadge + sourceBadge + txnBadge + typeBadge;
+        let dateBadge = state.sortCol !== 'date' ? `<span class="badge-txn" title="Date: ${formatDate(e.date)}">📅 ${formatDate(e.date)}</span>` : '';
+        let badges = dateBadge + locationBadge + modeBadge + tagBadge + typeBadge + sourceBadge + txnBadge;
 
         const refunds = g.refunds || (g.merged ? [g.merged] : []);
         const linkedExpenses = g.linkedExpenses || [];
@@ -210,13 +211,13 @@ export function renderTransactions() {
             ${actionsHtml}
         </tr>`;
 
-        const subrowHtml = renderRefundCollapsibleSubrow('txn-row', realIdx, refunds, totalRefunded, netAmt, 7, linkedExpenses);
+        const subrowHtml = renderRefundCollapsibleSubrow('txn-row', realIdx, refunds, totalRefunded, netAmt, 5, linkedExpenses);
 
         return sepHTML + mainRowHtml + subrowHtml;
     }).join('');
     
     if (isTruncated) {
-        htmlContent += `<tr id="infinite-scroll-txns"><td colspan="7" style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem;">Loading more...</td></tr>`;
+        htmlContent += `<tr id="infinite-scroll-txns"><td colspan="5" style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem;">Loading more...</td></tr>`;
     }
     
     tbody.innerHTML = htmlContent;

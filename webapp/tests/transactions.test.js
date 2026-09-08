@@ -186,26 +186,27 @@ describe('getDaySeparatorHTML', () => {
         expect(getDaySeparatorHTML('2026-09-06', null, 7)).toBe('<tr class="day-separator"><td colspan="7"></td></tr>');
     });
 
-    it('should render day-date-label with formatted date and hide-on-desktop class for 7-column table', () => {
+    it('should render day-date-label with formatted date and clickable toggle for 7-column table', () => {
         const html = getDaySeparatorHTML('2026-09-06', dataset, 7);
         expect(html).toContain('class="day-separator"');
-        expect(html).toContain('<span class="day-date-label hide-on-desktop">📅');
+        expect(html).toContain('<span class="day-date-label"');
+        expect(html).not.toContain('hide-on-desktop');
         expect(html).toContain('06 Sep'); // 06 Sept 2026 or 06 Sep 2026 depending on locale
         expect(html).toContain('class="day-separator-total"');
         expect(html).toContain('1,504.00'); // 850 + 654
-        expect(html).toContain('colspan="3"');
+        expect(html).toContain('colspan="2"');
         expect(html).toContain('batch-select-day');
     });
 
     it('should render day-date-label with formatted date for 6-column table (Dashboard)', () => {
         const html = getDaySeparatorHTML('2026-09-06', dataset, 6);
         expect(html).toContain('class="day-separator"');
-        expect(html).toContain('<span class="day-date-label hide-on-desktop">📅');
+        expect(html).toContain('<span class="day-date-label"');
+        expect(html).not.toContain('hide-on-desktop');
         expect(html).toContain('06 Sep');
         expect(html).toContain('class="day-separator-total"');
         expect(html).toContain('1,504.00');
-        expect(html).toContain('colspan="3"');
-        expect(html).toContain('colspan="2"'); // colsAfter = 6 - 4 = 2
+        expect(html).toContain('colspan="2"');
     });
 });
 

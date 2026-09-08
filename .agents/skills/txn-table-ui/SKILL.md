@@ -17,27 +17,32 @@ The Transaction Table UI renders all transaction lists (Recent Transactions on D
 ### 1.1 Column Alignment & Boundary Constraints
 | Column | `data-label` | CSS Target | Target Width / Constraint | Text Alignment | Truncation / Overflow |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Date & Location** | `Date & Location` | `td[data-label="Date"]` | `width: 190px` (Dashboard: `115px`) | Left | `ellipsis` |
+| **Date (in Day Separator)** | `Date & Location` / `Date` | Elevated to `tr.day-separator .day-date-label` (`th.col-date`, `td[data-label="Date"]` hidden via `display: none !important;`) | N/A | Left | `ellipsis` |
 | **Category** | `Category` | `td[data-label="Category"]` | `width: 135px` | Left | `ellipsis` |
 | **Note & Badges** | `Note` | `td[data-label="Note"]` | `width: auto` | Left | `white-space: normal`, `word-break: break-word` |
 | **Mode (Badge on Desktop)** | `Mode` / `Txn Mode` | `.badge-mode` inside `.badges-wrapper` | `.badge-mode` (Desktop: in Note cell; `td[data-label="Mode"]` hidden on desktop) | Left | `white-space: nowrap` |
 | **Amount** | `Amount` | `td[data-label="Amount"]` | `width: auto` (dynamic) | Right | `white-space: nowrap` |
 | **Actions** | `Actions` | `td[data-label="Actions"]` | `width: 60px` (`padding-right: 16px`) | Right | `white-space: nowrap` |
 
-*Note: The `Actions` heading text has been removed from table `<th>` headers (`<th class="col-actions" data-col="actions"></th>`) for a clean appearance above the `⋮` action dropdown buttons.*
+*Note: The Date and Mode columns are hidden on desktop (`th.col-date`, `td[data-label="Date"]`, `th.col-mode`, `td[data-label="Mode"]` all set to `display: none !important;`). The date is elevated into the day separator (`tr.day-separator .day-date-label`), which is clickable to toggle date sorting (`window.toggleDateSort`). When sorted by Amount, a date badge (`dateBadge`) appears in Note. Location is displayed as a badge (`.badge-location`) in Note.*
 
-### 1.2 Note Content & Badges Flexbox Alignment
+### 1.2 Day Separator & Month Header Alignment
+- **Day Separator**: On desktop, the empty cell before the Amount column spans `colspan="2"` (`Category` and `Note`). In `#all-table`, this follows the 1-column `col-batch-select` cell, placing the `day-separator-total` directly under the Amount column (column 4). In `#recent-table`, the `colspan="2"` cell is first, aligning `day-separator-total` under Amount (column 3).
+- **Month Header**: Uses `<td colspan="2">${mName}</td>` followed by `<td class="month-header-total">` and trailing empty cell, aligning month net totals precisely under the Amount column.
+- **Date Sorting**: Clicking on the day date in `.day-date-label` toggles date sort order (`window.toggleDateSort`). Clicking the Amount header cycles Amount Desc -> Amount Asc -> Date Desc.
+
+### 1.3 Note Content & Badges Flexbox Alignment
 - **Container**: `.note-content` (`display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: 100%;`).
-- **Desktop Mode Badge**: On desktop (`> 860px`), `txnMode` is rendered as a badge (`.badge-mode`) inside `.badges-wrapper` in the `Note` column, and the separate `Mode` column (`th.col-mode`, `td[data-label="Mode"]`) is hidden (`display: none !important`).
+- **Desktop Badges**: On desktop (`> 860px`), `txnMode`, `location`, and (when sorted non-chronologically) `date` are rendered as badges in `.badges-wrapper` inside the `Note` column.
 - **Desktop Badge Alignment**: On desktop (`min-width: 768px`), `.note-content` uses `justify-content: flex-start;` and `.badges-wrapper` uses `margin-left: 0; justify-content: flex-start;` so badges stay left-aligned immediately beside the note text.
 - **Empty Note Handling**: When a transaction has no note text, the template renders `<span class="empty-dash"></span>`. To prevent flexbox `gap` from introducing an unwanted leading gap before badges, `.note-content > span:empty` and `.note-content > span.empty-dash` MUST have `display: none !important;`.
 
-### 1.3 Amount & Expression Vertical Alignment Guidelines
+### 1.4 Amount & Expression Vertical Alignment Guidelines
 - **Structured Amount Layout**: Amounts use structured HTML elements (`<span class="amount-main"><span class="amount-sign"></span><span class="amount-symbol">₹</span><span class="amount-val"></span></span>`) with `font-variant-numeric: tabular-nums`.
 - **Fixed-Width Sign Slot**: `.amount-sign` has `width: 0.85em` and `text-align: right`, displaying `+`, `-`, or `&nbsp;` placeholder. This ensures `₹` symbols and digits line up 100% vertically across positive amounts, negative amounts, refunds, expenses, month totals, and day totals.
 - **Dashboard Table Padding Alignment**: On Dashboard (`#recent-table`), `padding-right: 28px !important` is applied identically across `th.col-amount`, `td[data-label="Amount"]`, `.month-header-total`, and `.day-separator-total` so month header net totals and row amounts align to the exact same right boundary.
 
-### 1.4 Actions Dropdown Menu & Smart Drop-Up Architecture
+### 1.5 Actions Dropdown Menu & Smart Drop-Up Architecture
 - **Single Action Button**: Table row actions render a single `⋮` button (`.action-dropdown-wrap`, `.action-dropdown-btn`) that opens a floating popup menu (`.action-dropdown-menu`).
 - **Subrow Unique Keying**: In collapsible refund subrows, dropdown IDs MUST be uniquely keyed with `sub-${prefix}-${realIdx}-${itemIdx}` (`action-dropdown-sub-${prefix}-${realIdx}-${itemIdx}`) to avoid DOM ID collisions when multiple parent rows link to the same original expense/refund.
 - **Smart Drop-Up Overflow Handling**: `window.toggleActionDropdown` measures available space below the button relative to viewport height and scroll container bounds (`.table-wrap`, `.card`, `.refund-collapsible-container`). If space below is insufficient (< menu height + 12px), it dynamically adds `.drop-up` (`bottom: calc(100% + 4px); top: auto;`), opening the menu upwards without container clipping.
@@ -91,7 +96,7 @@ gap: 2px 10px;
 - **Line 2 (`note note [actions]`)**:
   - `Note`: `grid-area: note`, `align-self: start`.
   - **Structure**: Renders the note text directly followed by all badges:
-    `[Note Text] [📍 Location Badge] [Txn Mode Badge] [Tag Badge] [Source Badge] [Txn ID Badge] [Type Badge] [Refund Badge]`
+    `[Note Text] [📍 Location Badge] [Txn Mode Badge] [Tag Badge] [Type Badge] [Source Badge] [Txn ID Badge] [Refund Badge]`
   - **Mobile Badge Alignment**: `.note-content` and `.badges-wrapper` use `justify-content: flex-start; margin-left: 0; display: inline-flex; gap: 4px; align-items: center;` so all badges follow immediately after the note text without being pushed to the far right.
   - **Location as Badge**: When present, location is rendered as `.badge-location` (`📍 LocationName`) in `.badges-wrapper`.
   - **Mode as Badge**: `.badge-mode` is styled as a rounded pill badge displayed directly in `.badges-wrapper`.

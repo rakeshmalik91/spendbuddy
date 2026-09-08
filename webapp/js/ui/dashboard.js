@@ -287,9 +287,9 @@ function renderRecentTransactions() {
             const mNetText = `<span class="${mNetClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(mNet).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>`;
 
             if (lastDateRecent) {
-                sepHTML += `<tr class="month-separator"><td colspan="6"></td></tr>`;
+                sepHTML += `<tr class="month-separator"><td colspan="4"></td></tr>`;
             }
-            sepHTML += `<tr class="month-header"><td colspan="3">${mName}</td><td class="month-header-total">${mNetText}</td><td class="month-header-empty" colspan="2"></td></tr>`;
+            sepHTML += `<tr class="month-header"><td colspan="2">${mName}</td><td class="month-header-total">${mNetText}</td><td class="month-header-empty"></td></tr>`;
             sepHTML += getDaySeparatorHTML(e.date, recentExpenses, 6);
         } else if (lastDateRecent && lastDateRecent !== e.date) {
             sepHTML = getDaySeparatorHTML(e.date, recentExpenses, 6);
@@ -303,7 +303,7 @@ function renderRecentTransactions() {
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
-        let badges = modeBadge + sourceBadge + txnBadge + typeBadge;
+        let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
 
         let amountHtml = `
             <td data-label="Amount" class="${amountClass(e)}">
@@ -447,7 +447,7 @@ export function renderSelectedDayTransactions() {
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
-        let badges = modeBadge + sourceBadge + txnBadge + typeBadge;
+        let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
 
         let actionHTML = '';
         if (e.isScheduledPreview) {
