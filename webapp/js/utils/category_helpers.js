@@ -1,5 +1,6 @@
 import { state } from "../core/state.js";
 import { KEYWORD_MAPPINGS, TXN_TYPE_MAPPINGS } from "./category_mappings.js";
+import { getTxnTypeFromMapping } from "./txn_mode_mapping.js";
 
 /* ══════════════ CATEGORY / MERCHANT HELPERS ══════════════ */
 
@@ -147,6 +148,11 @@ export function getTxnTypeForMerchant(merchantName, defaultTxnType, extraText) {
         return normalizeTxnType(customRule.txnType);
     }
 
+    // If caller explicitly expected a Refund, preserve Refund and do not let historical Expense frequency override it
+    if (defaultTxnType === 'Refund') {
+        return 'Refund';
+    }
+
     const textToMatch = merchantName || extraText;
     if (textToMatch) {
         const cleanMerchant = cleanMerchantName(textToMatch);
@@ -174,10 +180,9 @@ export function getTxnTypeForMerchant(merchantName, defaultTxnType, extraText) {
                 return bestType;
             }
 
-            for (const [keyword, type] of Object.entries(TXN_TYPE_MAPPINGS)) {
-                if (cleanMerchant.includes(keyword)) {
-                    return type;
-                }
+            const mappedType = getTxnTypeFromMapping(cleanMerchant);
+            if (mappedType) {
+                return mappedType;
             }
         }
     }

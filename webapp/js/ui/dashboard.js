@@ -1,5 +1,5 @@
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state } from "../core/state.js";
@@ -576,9 +576,11 @@ export function renderQuickAdd() {
     pendingSms.forEach((txn, i) => {
         if (txn.date !== todayStr) return;
         const title = txn.merchant || txn.source || 'SMS';
-        const isRefund = txn.txnType === 'Refund' || txn.txnType === 'Income' || txn.amount < 0;
-        const displayType = isRefund ? '+' : '';
-        const amtColor = isRefund ? 'var(--green)' : 'var(--amount-negative)';
+        const isRefund = isRefundTxn(txn);
+        const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+        const isCredit = isRefund || isIncome || txn.amount < 0;
+        const displayType = isCredit ? '+' : '';
+        const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
         const emoji = (txn.source || '').toLowerCase().includes('email') ? '📧' : '💬';
         html += `
         <button class="btn-quick-add sms-quick-add" data-index="${i}" title="Approve: ${escHtml(title)}" style="border: 1px solid var(--accent);">
@@ -644,8 +646,16 @@ export function renderQuickAdd() {
             const txn = state.pendingSmsTransactions[idx];
             if (!txn) return;
 
-            const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-            const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+            const isRefund = isRefundTxn(txn);
+            const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+            let computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
+            if (!computedType) {
+                const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
+                computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+            }
+            if (isRefund) {
+                computedType = 'Refund';
+            }
             const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
 

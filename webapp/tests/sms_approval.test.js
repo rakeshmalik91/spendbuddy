@@ -408,6 +408,38 @@ describe('SMS Approval Logic', () => {
             expect(computedType).toBe('Refund');
         });
 
+        it('should preserve Refund even when merchant has historical Expense transactions', () => {
+            state.expenses = [
+                { note: 'Swiggy', category: 'Food', txnType: 'Expense', amount: 350 },
+                { note: 'Swiggy', category: 'Food', txnType: 'Expense', amount: 420 },
+                { note: 'Swiggy', category: 'Food', txnType: 'Expense', amount: 500 }
+            ];
+            state.rawSmsTransactions = [
+                { date: '2026-07-19', amount: -250, merchant: 'Swiggy', source: 'SMS: Swiggy Refund' }
+            ];
+
+            recomputePendingSmsTransactions();
+
+            const txn = state.pendingSmsTransactions[0];
+            const isRefund = helpers.isRefundTxn(txn);
+            expect(isRefund).toBe(true);
+
+            const computedType = helpers.getTxnTypeForMerchant(txn.merchant, 'Refund', txn.source);
+            expect(computedType).toBe('Refund');
+        });
+
+        it('should recognize refund from body or source text keywords even if amount was positive', () => {
+            state.expenses = [];
+            state.rawSmsTransactions = [
+                { date: '2026-07-19', amount: 250, merchant: 'Swiggy', body: 'Refund of Rs 250 completed', source: 'SMS: Bank' }
+            ];
+
+            recomputePendingSmsTransactions();
+
+            const txn = state.pendingSmsTransactions[0];
+            expect(helpers.isRefundTxn(txn)).toBe(true);
+        });
+
         it('should resolve to Income when Android app specifies txnType as Income', () => {
             state.expenses = [];
             state.rawSmsTransactions = [

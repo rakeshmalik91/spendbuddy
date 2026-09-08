@@ -25,6 +25,7 @@ jest.mock('../js/utils/helpers.js', () => ({
     formatDate: (d) => d || '',
     renderAmountHTML: (e) => e ? String(e.amount) : '',
     isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),
+    normalizeTxnType: (t) => t ? (t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : t,
     getLastLocation: jest.fn(() => ''),
     getCurrentLocationTag: jest.fn().mockResolvedValue(''),
     resetLocationPermissionDenied: jest.fn(),
@@ -312,6 +313,7 @@ describe('Add Page Form UI', () => {
                     <div id="txntype-chips">
                         <div class="chip" data-value="Expense">Expense</div>
                         <div class="chip" data-value="Income">Income</div>
+                        <div class="chip" data-value="Refund">Refund</div>
                     </div>
                     <input type="hidden" id="input-txn-type" value="UPI">
                     <div id="txnmode-chips">
@@ -436,6 +438,44 @@ describe('Add Page Form UI', () => {
                 // Txn Mode was manually set to Cash -> should NOT be overwritten to UPI
                 expect(document.getElementById('input-txn-type').value).toBe('Cash');
             }
+        });
+
+        it('should correctly autofill Refund type and negative amount when refund suggestion card is clicked', () => {
+            const { setTxnTypeManuallyChanged, setFormSubmittingState, renderSmsSuggestions } = require('../js/ui/form.js');
+            const smsApproval = require('../js/ui/sms_approval.js');
+            
+            let container = document.getElementById('sms-suggestions-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'sms-suggestions-container';
+                container.innerHTML = '<div id="sms-suggestions-list"></div>';
+                document.body.appendChild(container);
+            }
+
+            setFormSubmittingState(false);
+            setTxnTypeManuallyChanged(false);
+            document.getElementById('input-date').value = '2026-07-19';
+
+            const refundTxn = {
+                merchant: 'Swiggy',
+                transactionMode: 'UPI',
+                amount: -250,
+                date: '2026-07-19',
+                source: 'SMS: Swiggy Refund',
+                body: 'Refund of Rs 250 processed'
+            };
+            smsApproval.getRawSmsSuggestionsForDate = jest.fn(() => [refundTxn]);
+            localStorage.setItem('expman_raw_sms_cache', JSON.stringify([refundTxn]));
+
+            renderSmsSuggestions();
+
+            const card = document.querySelector('.sms-suggestion-card');
+            expect(card).not.toBeNull();
+            card.click();
+
+            expect(document.getElementById('input-transaction-type').value).toBe('Refund');
+            expect(document.getElementById('input-amount').value).toBe('-250');
+            expect(document.querySelector('#txntype-chips .chip.active')?.dataset.value).toBe('Refund');
         });
     });
 

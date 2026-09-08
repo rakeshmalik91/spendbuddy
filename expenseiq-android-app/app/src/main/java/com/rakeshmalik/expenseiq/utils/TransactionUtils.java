@@ -283,23 +283,19 @@ public class TransactionUtils {
         String cleaned = lower
             .replaceAll("<[^>]*>", " ")
             .replaceAll("https?://[^\\s\"'<>]+", "")
-            .replaceAll("(?i)[^\\r\\n.]*?(?:cancellation|order cancellation|refund request|refund status|for your refund|submit a refund)[^\\r\\n.]*", "")
-
-
-
-            .replaceAll("(?i)[^\\r\\n.]*?(?:refund[s\\-_\\s]*policy|refund[s\\-_\\s]*rules|steam[\\-_\\s]*refunds|store[\\-_\\s]*refund)[^\\r\\n.]*", "")
+            .replaceAll("(?i)[^\\r\\n.]*?(?:cancellation\\s+policy|order cancellation\\s+policy|refund[s\\-_\\s]*policy|refund[s\\-_\\s]*rules|refund[s\\-_\\s]*faq|steam[\\-_\\s]*refunds|store[\\-_\\s]*refund)[^\\r\\n.]*", "")
+            .replaceAll("(?i)in\\s+case\\s+of[^\\r\\n.]*?(?:cancellation|order cancellation)[^\\r\\n.]*?refund[^\\r\\n.]*", "")
+            .replaceAll("(?i)in\\s+case[^\\r\\n.]*?refund[^\\r\\n.]*?(?:admissible|granted|rules|only when)[^\\r\\n.]*", "")
+            .replaceAll("(?i)(?:submit|choose.*?reason for|reason for|contact [^\\r\\n.]*? for)(?: a| your)?\\s+refund[^\\r\\n.]*", "")
+            .replaceAll("(?i)(?:full|automatic|without any|forfeited without any)\\s+refund[^\\r\\n.]*", "")
             .replaceAll("(?i)eligible\\s+for\\s+(?:a\\s+)?refund", "")
             .replaceAll("(?i)(?:non-?)?refundable", "")
             .replaceAll("(?i)refunds?\\s+(?:and/or|and|or)\\s+returns?", "")
             .replaceAll("(?i)returns?\\s+(?:and/or|and|or)\\s+refunds?", "")
-            .replaceAll("(?i)request\\s+(?:a\\s+)?refund|refund\\s+request", "")
-            .replaceAll("(?i)full\\s+refund\\s+(?:of\\s+fare|of\\s+the\\s+ticket)?", "")
+            .replaceAll("(?i)request\\s+(?:a\\s+)?refund|submit\\s+a\\s+refund", "")
             .replaceAll("(?i)refund\\s+is\\s+admissible", "")
-            .replaceAll("(?i)refund\\s+of\\s+(?:money|fare|the\\s+ticket\\s+amount)", "")
             .replaceAll("(?i)no[\\-_\\s]+refund", "")
-            .replaceAll("(?i)claiming\\s+refund", "")
-            .replaceAll("(?i)automatic\\s+refund", "")
-            .replaceAll("(?i)refund[s\\-_\\s]+faq", "");
+            .replaceAll("(?i)claiming\\s+refund", "");
 
 
 

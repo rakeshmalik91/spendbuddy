@@ -85,9 +85,19 @@ export function hasMatchingTxnId(t1, t2) {
 
 export function isRefundTxn(t) {
     if (!t) return false;
-    if (t.txnType === 'Refund') return true;
-    if (t.txnType === 'Expense' || t.txnType === 'Income' || t.txnType === 'Investment' || t.txnType === 'Transfer') return false;
-    return t.amount < 0;
+    const type = (t.txnType || '').trim().toLowerCase();
+    if (type === 'refund') return true;
+    if (type === 'income' || type === 'investment' || type === 'transfer') return false;
+
+    // Check keywords across all text fields (merchant, note, source, body, originalMessage)
+    const text = `${t.merchant || ''} ${t.source || ''} ${t.note || ''} ${t.body || ''} ${t.originalMessage || ''}`.toLowerCase();
+    if (/\b(refund|refunded|refunding|reversal|reversed|cashback|returned)\b/i.test(text)) {
+        return true;
+    }
+
+    if (type === 'expense') return false;
+
+    return Number(t.amount) < 0;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag } from "../utils/helpers.js";
+import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
 import { amountToStr } from "../services/storage.js";
 import { renderAll } from "./render_all.js";
@@ -529,8 +529,16 @@ export function setupSmsApproval() {
                 const txn = snapshot[idx];
                 const selectEl = document.querySelector(`.sms-category-select[data-index="${idx}"]`);
                 const chosenCategory = selectEl ? selectEl.value : (txn.masterCategory || 'Others');
-                const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-                const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+                const isRefund = isRefundTxn(txn);
+                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+                let computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
+                if (!computedType) {
+                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
+                    computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+                }
+                if (isRefund) {
+                    computedType = 'Refund';
+                }
                 const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
 
                 state.expenses.unshift({
@@ -619,10 +627,11 @@ export function showSmsApprovalModal(txns) {
         }
 
         const isEmail = (txn.source || '').toLowerCase().includes('email');
-        const sourceStr = isEmail ? 'Email' : 'SMS';
-        const isRefund = txn.txnType === 'Refund' || txn.txnType === 'Income' || txn.amount < 0;
-        const amountColor = isRefund ? 'var(--green)' : 'var(--red)';
-        const amountPrefix = isRefund ? '+' : '';
+        const isRefund = isRefundTxn(txn);
+        const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+        const isCredit = isRefund || isIncome || txn.amount < 0;
+        const amountColor = isCredit ? 'var(--green)' : 'var(--red)';
+        const amountPrefix = isCredit ? '+' : '';
 
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
 

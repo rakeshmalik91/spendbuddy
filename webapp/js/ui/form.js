@@ -2,7 +2,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -1217,7 +1217,8 @@ export function renderSmsSuggestions() {
 
     suggestions.forEach(txn => {
 
-        const isExpense = txn.amount >= 0;
+        const isRefund = isRefundTxn(txn);
+        const isExpense = !isRefund && normalizeTxnType(txn.txnType) !== 'Income' && txn.amount >= 0;
         const amountColor = isExpense ? 'var(--red)' : 'var(--green)';
         const amountPrefix = isExpense ? '' : '+';
 
@@ -1274,14 +1275,21 @@ export function renderSmsSuggestions() {
             }
 
             if (!isTxnTypeManuallyChanged) {
-                const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-                const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+                let bestTxnType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
+                if (!bestTxnType) {
+                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
+                    bestTxnType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+                }
+                if (isRefund) {
+                    bestTxnType = 'Refund';
+                }
                 
                 $('#input-transaction-type').value = bestTxnType;
                 syncChips('#txntype-chips', bestTxnType);
             }
 
-            const effectiveType = $('#input-transaction-type')?.value || (txn.amount < 0 ? 'Refund' : 'Expense');
+            const effectiveType = $('#input-transaction-type')?.value || (isRefund ? 'Refund' : (txn.amount < 0 ? 'Refund' : 'Expense'));
             const fillAmount = (effectiveType === 'Income' || effectiveType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             $('#input-amount').value = fillAmount;
 
@@ -1290,7 +1298,8 @@ export function renderSmsSuggestions() {
             currentSuggestionTxnId = txn.transactionId || '';
             currentSelectedSuggestionTxn = txn;
 
-            if (!$('#input-location').value) {
+            const locInput = $('#input-location');
+            if (locInput && !locInput.value) {
                 prefillLocation();
             }
 
@@ -1302,7 +1311,7 @@ export function renderSmsSuggestions() {
                 setTimeout(() => formCard.style.boxShadow = '', 1000);
             }
             const amountInput = $('#input-amount');
-            if (amountInput) {
+            if (amountInput && typeof amountInput.scrollIntoView === 'function') {
                 amountInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
