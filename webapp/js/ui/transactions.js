@@ -8,6 +8,11 @@ import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
 /* ══════════════ TRANSACTIONS TABLE ══════════════ */
 
 export function renderTransactions() {
+    const toggleMergeRefundsTxn = $('#toggle-merge-refunds-txn');
+    if (toggleMergeRefundsTxn && toggleMergeRefundsTxn.checked !== (state.mergeRefunds !== false)) {
+        toggleMergeRefundsTxn.checked = state.mergeRefunds !== false;
+    }
+
     let filtered = getFilteredExpenses();
 
     // Group matching refunds BEFORE sorting

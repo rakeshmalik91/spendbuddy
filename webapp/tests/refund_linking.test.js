@@ -250,4 +250,56 @@ describe('openRefundLinkingModal UI behavior', () => {
             state.mergeRefunds = true;
         }
     });
+
+    test('txn page toggle-merge-refunds-txn updates state, localStorage, and settings toggle', async () => {
+        const { setupFilters } = await import('../js/ui/filters.js');
+        document.body.innerHTML = `
+            <input type="checkbox" id="toggle-merge-refunds-txn" checked />
+            <input type="checkbox" id="toggle-merge-refunds" checked />
+            <table id="all-table"><tbody id="all-tbody"></tbody></table>
+            <div id="view-transactions"><div class="table-footer"></div></div>
+        `;
+
+        setupFilters();
+
+        const txnToggle = document.getElementById('toggle-merge-refunds-txn');
+        const settingsToggle = document.getElementById('toggle-merge-refunds');
+
+        // Turn OFF
+        txnToggle.checked = false;
+        txnToggle.dispatchEvent(new Event('change'));
+
+        expect(state.mergeRefunds).toBe(false);
+        expect(localStorage.getItem('expman_merge_refunds')).toBe('false');
+        expect(settingsToggle.checked).toBe(false);
+
+        // Turn ON
+        txnToggle.checked = true;
+        txnToggle.dispatchEvent(new Event('change'));
+
+        expect(state.mergeRefunds).toBe(true);
+        expect(localStorage.getItem('expman_merge_refunds')).toBe('true');
+        expect(settingsToggle.checked).toBe(true);
+    });
+
+    test('renderTransactions synchronizes toggle-merge-refunds-txn with state.mergeRefunds', async () => {
+        const { renderTransactions } = await import('../js/ui/transactions.js');
+        document.body.innerHTML = `
+            <input type="checkbox" id="toggle-merge-refunds-txn" checked />
+            <table id="all-table"><tbody id="all-tbody"></tbody></table>
+            <div id="view-transactions"><div class="table-footer"></div></div>
+        `;
+
+        state.expenses = [
+            { date: '2026-09-01', amount: 1000, category: 'Food', txnType: 'Expense', txnMode: 'UPI', note: 'Lunch', txnId: 'T1' }
+        ];
+
+        state.mergeRefunds = false;
+        renderTransactions();
+        expect(document.getElementById('toggle-merge-refunds-txn').checked).toBe(false);
+
+        state.mergeRefunds = true;
+        renderTransactions();
+        expect(document.getElementById('toggle-merge-refunds-txn').checked).toBe(true);
+    });
 });

@@ -88,3 +88,52 @@
         justify-content: flex-start;
     }
 }
+
+/* ══════════════ TRANSACTIONS HEADER ══════════════ */
+.txn-header-grid {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-top: 4px;
+}
+
+.txn-header-grid .view-title {
+    margin-bottom: 0;
+}
+
+.txn-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.txn-refund-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    padding: 6px 14px;
+    border-radius: var(--radius-full, 9999px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all var(--transition);
+}
+
+.txn-refund-toggle-wrap:hover {
+    border-color: var(--border);
+}
+
+.txn-refund-toggle-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.txn-refund-toggle-label:hover {
+    color: var(--text-primary);
+}

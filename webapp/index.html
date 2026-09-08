@@ -455,7 +455,18 @@
             <!-- ── TRANSACTIONS VIEW ── -->
             <section class="view" id="view-transactions">
 
-                <h1 class="view-title">All Transactions</h1>
+                <div class="dash-header-grid txn-header-grid">
+                    <h1 class="view-title">All Transactions</h1>
+                    <div class="txn-header-actions">
+                        <div class="txn-refund-toggle-wrap">
+                            <label for="toggle-merge-refunds-txn" class="txn-refund-toggle-label">Merge Refunds</label>
+                            <label class="toggle-switch" title="Toggle merging refunds with expenses">
+                                <input type="checkbox" id="toggle-merge-refunds-txn">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Filters -->
                 <div class="filter-bar card" id="transaction-filter-bar">
@@ -2054,7 +2065,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=383"></script>
+    <script type="module" src="app.js?v=385"></script>
 </body>
 
 </html>

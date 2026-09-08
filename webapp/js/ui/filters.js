@@ -61,6 +61,30 @@ export function setupFilters() {
     }
     updateClearFiltersBtnState();
 
+    const toggleMergeRefundsTxn = $('#toggle-merge-refunds-txn');
+    if (toggleMergeRefundsTxn) {
+        toggleMergeRefundsTxn.checked = state.mergeRefunds !== false;
+        toggleMergeRefundsTxn.addEventListener('change', async (e) => {
+            const isEnabled = e.target.checked;
+            state.mergeRefunds = isEnabled;
+            localStorage.setItem('expman_merge_refunds', isEnabled ? 'true' : 'false');
+
+            const settingsToggle = $('#toggle-merge-refunds');
+            if (settingsToggle) settingsToggle.checked = isEnabled;
+
+            try {
+                const { updateUserSettings } = await import('../services/user_settings.js');
+                await updateUserSettings({ ui: { mergeRefunds: state.mergeRefunds } });
+            } catch(err) {
+                console.error('Failed to sync mergeRefunds to cloud', err);
+            }
+
+            const { toast } = await import('../utils/helpers.js');
+            toast(isEnabled ? 'Refund merging enabled' : 'Refund merging disabled', 'info');
+            renderTransactions();
+        });
+    }
+
     const toggleBtn = $('#filter-toggle');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
@@ -83,12 +107,12 @@ export function setupSort() {
 
 export function getFilteredExpenses() {
     const currentExpenses = getGlobalFilteredExpenses();
-    const category = $('#filter-category').value;
-    const txnMode = $('#filter-type').value;
-    const txnType = $('#filter-transaction-type').value;
-    const location = $('#filter-location').value;
-    const tag = $('#filter-tag')?.value;
-    const search = $('#filter-search').value.toLowerCase();
+    const category = $('#filter-category')?.value || '';
+    const txnMode = $('#filter-type')?.value || '';
+    const txnType = $('#filter-transaction-type')?.value || '';
+    const location = $('#filter-location')?.value || '';
+    const tag = $('#filter-tag')?.value || '';
+    const search = $('#filter-search')?.value?.toLowerCase() || '';
 
     return currentExpenses.filter(e => {
         if (category && e.category !== category) return false;

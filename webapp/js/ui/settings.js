@@ -510,6 +510,8 @@ export function setupSettings() {
         toggleMergeRefunds.addEventListener('change', async (e) => {
             state.mergeRefunds = e.target.checked;
             localStorage.setItem('expman_merge_refunds', e.target.checked ? 'true' : 'false');
+            const toggleTxn = $('#toggle-merge-refunds-txn');
+            if (toggleTxn) toggleTxn.checked = e.target.checked;
             try { await updateUserSettings({ ui: { mergeRefunds: state.mergeRefunds } }); } catch(err) { console.error('Failed to sync mergeRefunds to cloud', err); }
             toast(e.target.checked ? 'Refund merging enabled' : 'Refund merging disabled', 'info');
             onSettingsChanged();

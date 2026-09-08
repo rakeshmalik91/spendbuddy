@@ -743,7 +743,22 @@
 
 @media (max-width: 860px) {
 
-    #view-transactions .view-title,
+    .txn-header-grid {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .txn-header-grid .view-title {
+        text-align: left;
+        width: auto;
+        margin-bottom: 0;
+        font-size: 1.4rem;
+    }
+
     #view-charts .view-title {
         text-align: center;
         width: 100%;

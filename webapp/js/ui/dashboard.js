@@ -1,5 +1,5 @@
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state } from "../core/state.js";
@@ -263,18 +263,15 @@ function renderRecentTransactions() {
         recentExpenses = contextExpenses.filter(e => e.date && e.date >= cutoffDateStr && e.date <= latestDateStr);
     }
 
-    const grouped = mergeRefundTransactions(recentExpenses, state.expenses);
+    recentExpenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-    grouped.sort((a, b) => b.main.date.localeCompare(a.main.date));
-
-    const isTruncated = grouped.length > state.limitDashboard;
-    const itemsToRender = grouped.slice(0, state.limitDashboard);
+    const isTruncated = recentExpenses.length > state.limitDashboard;
+    const itemsToRender = recentExpenses.slice(0, state.limitDashboard);
 
     const tbody = $('#recent-tbody');
     if (!tbody) return;
     let lastDateRecent = null;
-    let htmlContent = itemsToRender.map(g => {
-        const e = g.main;
+    let htmlContent = itemsToRender.map(e => {
         let sepHTML = '';
         if (!lastDateRecent || lastDateRecent.slice(0, 7) !== e.date.slice(0, 7)) {
             const currentMonthStr = e.date.slice(0, 7);
@@ -299,7 +296,6 @@ function renderRecentTransactions() {
         }
         lastDateRecent = e.date;
         const realIdx = state.expenses.indexOf(e);
-        const refundRealIdx = g.refund ? state.expenses.indexOf(g.refund) : -1;
         
         let displaySource = getDisplaySource(e.source);
         let sourceBadge = displaySource ? `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(displaySource)}</span>` : '';
@@ -309,51 +305,13 @@ function renderRecentTransactions() {
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
         let badges = modeBadge + sourceBadge + txnBadge + typeBadge;
 
-        const refunds = g.refunds || (g.merged ? [g.merged] : []);
-        const linkedExpenses = g.linkedExpenses || [];
-        const hasRefunds = refunds.length > 0;
-        const hasLinkedExpenses = linkedExpenses.length > 0;
-        const totalRefunded = g.totalRefunded !== undefined ? g.totalRefunded : (g.merged ? Math.abs(g.merged.amount) : 0);
-        const netAmt = g.netAmount !== undefined ? g.netAmount : (hasRefunds ? Math.max(0, Math.abs(e.amount) - totalRefunded) : Math.abs(e.amount));
-
-        const isSameDaySingleRef = hasRefunds && isSameDaySameAmountSingleRefund(e, refunds);
-        const isSameDaySingleExp = hasLinkedExpenses && isSameDaySameAmountSingleRefund(e, linkedExpenses);
-        const isCollapsedByDefault = isSameDaySingleRef || isSameDaySingleExp;
-
-        if (hasRefunds) {
-            const arrowRotate = isCollapsedByDefault ? '0deg' : '180deg';
-            badges += `
-            <span class="badge-txn type-investment hide-on-mobile badge-refund-toggle" onclick="toggleRefundCollapsible('dash-row-${realIdx}', event)" title="Click to toggle linked refund details" style="cursor: pointer; user-select: none;">
-                Refunded (${refunds.length}) <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s ease; font-size: 0.7rem; margin-left: 2px; transform: rotate(${arrowRotate});">▼</span>
-            </span>
-            <span class="badge-txn type-investment hide-on-desktop" title="${refunds.length} linked refund(s): ₹${totalRefunded}">
-                Refunded (${refunds.length})
-            </span>`;
-        } else if (hasLinkedExpenses) {
-            const arrowRotate = isCollapsedByDefault ? '0deg' : '180deg';
-            badges += `
-            <span class="badge-txn type-income hide-on-mobile badge-refund-toggle" onclick="toggleRefundCollapsible('dash-row-${realIdx}', event)" title="Click to toggle linked original expense details" style="cursor: pointer; user-select: none;">
-                Original Expense <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s ease; font-size: 0.7rem; margin-left: 2px; transform: rotate(${arrowRotate});">▼</span>
-            </span>`;
-        }
-
         let amountHtml = `
             <td data-label="Amount" class="${amountClass(e)}">
                 ${renderAmountHTML(e)}
             </td>
         `;
 
-        if (hasRefunds) {
-            amountHtml = `
-            <td data-label="Amount" class="${amountClass(e)}">
-                <div class="amount-cell-wrap" style="flex-direction: column; align-items: flex-end; text-align: right;">
-                    <div style="text-decoration: line-through; opacity: 0.6; color: var(--amount-positive);">₹${Math.abs(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <div class="${netAmt === 0 ? 'amount-negative net-zero' : 'amount-positive'}"> (Net: ₹${netAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</div>
-                </div>
-            </td>`;
-        }
-
-        const isExpense = !e.txnType || e.txnType === 'Expense';
+        const isExpense = !isRefundTxn(e);
         let actionsHtml = `
             <td data-label="Actions">
                 <div class="row-actions action-dropdown-wrap">
@@ -375,10 +333,8 @@ function renderRecentTransactions() {
                 </div>
             </td>`;
 
-        const hasSubrow = hasRefunds || hasLinkedExpenses;
-        const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const mainRowHtml = `
-        <tr id="dash-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx}" data-merged="${g.merged ? 'true' : 'false'}" data-row-prefix="dash-row">
+        <tr id="dash-row-${realIdx}" class="touchable-row" data-real-idx="${realIdx}" data-merged="false" data-row-prefix="dash-row">
             <td data-label="Date"><span class="txn-date-text hide-on-mobile">📅 ${formatDate(e.date)}</span></td>
             <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
             <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
@@ -392,9 +348,7 @@ function renderRecentTransactions() {
             ${actionsHtml}
         </tr>`;
 
-        const subrowHtml = renderRefundCollapsibleSubrow('dash-row', realIdx, refunds, totalRefunded, netAmt, 6, linkedExpenses);
-
-        return sepHTML + mainRowHtml + subrowHtml;
+        return sepHTML + mainRowHtml;
     }).join('');
 
     if (isTruncated) {
