@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { initAuth, getUserEmail, loginUser, signupUser, logoutUser, deleteUserAccount, sendResetEmail, verifyPassword, sendUserEmailVerification } from "../services/auth.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { setupSort, setupFilters } from "../ui/filters.js";
-import { loadMetadata, loadAllCSVs, loadScheduledCSV, processScheduledTransactions, syncCloudDataInBackground, startBackgroundRefresh, loadLocationsCsv } from "../services/storage.js";
+import { loadMetadata, loadAllCSVs, loadScheduledCSV, syncCloudDataInBackground, startBackgroundRefresh, loadLocationsCsv } from "../services/storage.js";
 import { state } from "./state.js";
 import { toast, validatePasswordStrength } from "../utils/helpers.js";
 import { setupForm } from "../ui/form.js";
@@ -150,9 +150,7 @@ export const initApp = async () => {
     if (settings) {
         applyUserSettings(settings);
     }
-    
-    // Process scheduled transactions due today or earlier immediately on boot
-    await processScheduledTransactions();
+
     setupNavigation();
     setupForm();
     setupFilters();

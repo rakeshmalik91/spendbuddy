@@ -322,6 +322,13 @@ export async function reEncryptAllCloudData(enabling, newKey) {
 
 export async function processScheduledTransactions() {
     const today = getLocalDateString();
+
+    // Snapshot state so that if saving encounters an ETag conflict or network failure,
+    // we can revert in-memory mutations. This guarantees next_run_date is never permanently
+    // advanced when the corresponding transactions fail to save.
+    const scheduledSnapshot = JSON.parse(JSON.stringify(state.scheduledTransactions));
+    const expensesSnapshot = [...state.expenses];
+
     let modifiedYears = new Set();
     let modifiedScheduled = false;
 
@@ -460,6 +467,10 @@ export async function processScheduledTransactions() {
             } else {
                 console.error("Failed to upload processed scheduled transactions:", e);
             }
+            // Revert state in memory so next_run_date is NOT updated and schedules are NOT skipped
+            state.scheduledTransactions = scheduledSnapshot;
+            state.expenses = expensesSnapshot;
+            return false;
         }
     }
 
@@ -467,9 +478,14 @@ export async function processScheduledTransactions() {
         try {
             await saveScheduledCSV();
         } catch (e) {
-            if (e.message !== "CONFLICT_DETECTED") {
+            if (e.message === "CONFLICT_DETECTED") {
+                console.warn("Conflict saving scheduled CSV. Cloud has newer data. Waiting for background sync.");
+            } else {
                 console.error("Failed to upload scheduled CSV:", e);
             }
+            // Revert schedules in memory so next_run_date is NOT updated
+            state.scheduledTransactions = scheduledSnapshot;
+            return false;
         }
     }
 

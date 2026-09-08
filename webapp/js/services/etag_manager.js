@@ -20,15 +20,29 @@ export async function storeFileHash(fileRef) {
  */
 export async function verifyFileHashBeforeUpload(fileRef) {
     const filePath = fileRef.fullPath;
-    if (state.fileHashes[filePath] !== undefined) {
-        try {
-            const currentMetadata = await getMetadata(fileRef);
-            if (currentMetadata.md5Hash !== state.fileHashes[filePath]) {
+    const knownHash = state.fileHashes[filePath];
+
+    try {
+        const currentMetadata = await getMetadata(fileRef);
+        // If file exists in cloud (has an md5Hash in metadata):
+        // 1. If our client has no knownHash (undefined, null, or empty), we never validated or synced this file in this session.
+        //    Overwriting existing cloud data without a known base hash is dangerous and rejected as a conflict.
+        // 2. If the cloud hash differs from our known local hash, another device has updated the file.
+        if (currentMetadata && currentMetadata.md5Hash) {
+            if (!knownHash || currentMetadata.md5Hash !== knownHash) {
+                console.warn(`[ETag] Conflict detected for ${filePath}. Known local hash: "${knownHash}", Cloud md5Hash: "${currentMetadata.md5Hash}"`);
                 throw new Error("CONFLICT_DETECTED");
             }
-        } catch (e) {
-            if (e.message === "CONFLICT_DETECTED") throw e;
-            // Ignore object-not-found
         }
+    } catch (e) {
+        if (e.message === "CONFLICT_DETECTED") throw e;
+        // If the file does not exist in the cloud yet (e.g. brand new user or new year file), upload is safe.
+        const isNotFound = e.code === 'storage/object-not-found' ||
+            (e.message && (e.message.includes('object-not-found') || e.message.includes('does not exist')));
+        if (isNotFound) {
+            return;
+        }
+        // Rethrow network or permission errors so unverified uploads cannot proceed
+        throw e;
     }
 }
