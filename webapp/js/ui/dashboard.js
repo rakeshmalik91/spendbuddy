@@ -1,5 +1,5 @@
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, getLastLocation, mapTxnMode, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state } from "../core/state.js";
@@ -645,9 +645,9 @@ export function renderQuickAdd() {
             if (!txn) return;
 
             const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-            const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
+            const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
             const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
-            let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
+            let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
 
             const today = getLocalDateString();
 
@@ -657,7 +657,7 @@ export function renderQuickAdd() {
                 currency: txn.currency || 'INR',
                 category: bestMatch,
                 txnType: computedType,
-                txnMode: mapTxnMode(txn.transactionMode, state.txnModes),
+                txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
                 note: txn.merchant || '',
                 source: txn.source || 'SMS',
                 txnId: txn.transactionId || '',

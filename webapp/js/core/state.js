@@ -38,5 +38,13 @@ export const state = {
     hideIncome: localStorage.getItem('expman_hide_income') === 'true',
     hideInvestment: localStorage.getItem('expman_hide_investment') === 'true',
     hideTransfer: localStorage.getItem('expman_hide_transfer') === 'true',
-    mergeRefunds: localStorage.getItem('expman_merge_refunds') !== 'false'
+    mergeRefunds: localStorage.getItem('expman_merge_refunds') !== 'false',
+    keywordMappings: (() => {
+        try {
+            const val = localStorage.getItem('expman_keyword_mappings');
+            return val ? JSON.parse(val) : [];
+        } catch (_) {
+            return [];
+        }
+    })()
 };

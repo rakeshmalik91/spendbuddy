@@ -2,6 +2,7 @@ import { ref, uploadString } from "https://www.gstatic.com/firebasejs/10.12.2/fi
 import { getRequiredEmail } from "./auth.js";
 import { state } from "../core/state.js";
 import { getCsvContent } from "./storage.js";
+import { stripEmojiPrefix, normalizeTxnType } from "../utils/category_helpers.js";
 
 export function applyUserSettings(settings) {
     if (!settings) return false;
@@ -102,7 +103,33 @@ export function applyUserSettings(settings) {
         }
     }
 
+    // Keyword Mappings Group
+    if (settings.keywordMappings !== undefined) {
+        const mappings = normalizeKeywordMappings(settings.keywordMappings);
+        const currentJson = JSON.stringify(state.keywordMappings || []);
+        const newJson = JSON.stringify(mappings);
+        if (currentJson !== newJson) {
+            state.keywordMappings = mappings;
+            localStorage.setItem('expman_keyword_mappings', newJson);
+            localChanged = true;
+        }
+    }
+
     return localChanged;
+}
+
+/**
+ * Normalizes keyword mapping rules so category, txnType, and txnMode are clean without emojis.
+ */
+export function normalizeKeywordMappings(rules) {
+    if (!Array.isArray(rules)) return [];
+    return rules.map(r => ({
+        id: r.id || 'kw_' + Date.now(),
+        keyword: (r.keyword || '').trim(),
+        category: r.category ? stripEmojiPrefix(r.category) : null,
+        txnType: r.txnType ? normalizeTxnType(r.txnType) : null,
+        txnMode: r.txnMode ? stripEmojiPrefix(r.txnMode) : null
+    }));
 }
 
 export async function loadUserSettings() {
@@ -123,7 +150,7 @@ export async function loadUserSettings() {
 async function saveUserSettings(settings) {
     const userEmail = getRequiredEmail();
     const fileRef = ref(state.storage, `${userEmail}/user_settings.json`);
-    await uploadString(fileRef, JSON.stringify(settings));
+    await uploadString(fileRef, JSON.stringify(settings, null, 2));
 }
 
 export async function updateUserSettings(updates) {
@@ -159,6 +186,14 @@ export async function updateUserSettings(updates) {
         merged.gmail = current.gmail;
     }
 
+    // Merge Keyword Mappings
+    if (updates.keywordMappings !== undefined) {
+        merged.keywordMappings = normalizeKeywordMappings(updates.keywordMappings);
+    } else if (current.keywordMappings !== undefined) {
+        merged.keywordMappings = normalizeKeywordMappings(current.keywordMappings);
+    }
+
     await saveUserSettings(merged);
     return merged;
 }
+

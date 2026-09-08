@@ -1,5 +1,6 @@
 import { renderDashboard } from "./dashboard.js";
 import { renderSettings } from "./settings.js";
+import { renderKeywordMappings } from "./keyword_mappings.js";
 import { renderChartsPage } from "./charts.js";
 import { $$, $ } from "../core/init.js";
 import { renderScheduledTransactions } from "./chart_builders.js";
@@ -161,10 +162,13 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName === 'dashboard') renderDashboard();
     if (viewName === 'charts') renderChartsPage();
     if (viewName === 'transactions') renderTransactions();
-    if (['settings', 'categories', 'txnmodes', 'locations', 'backups'].includes(viewName)) {
+    if (['settings', 'categories', 'txnmodes', 'locations', 'backups', 'keyword-mappings'].includes(viewName)) {
         renderSettings();
+        if (viewName === 'keyword-mappings') {
+            renderKeywordMappings();
+        }
         if (typeof window.syncCloudDataInBackground === 'function') {
-            if (['settings', 'backups'].includes(viewName) && previousViewId !== viewName) {
+            if (['settings', 'backups', 'keyword-mappings'].includes(viewName) && previousViewId !== viewName) {
                 if (shouldSyncOnNav('user_settings.json')) {
                     window.syncCloudDataInBackground(['user_settings.json']);
                 }

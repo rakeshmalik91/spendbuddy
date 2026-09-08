@@ -464,11 +464,23 @@
     color: var(--text-muted);
 }
 
+.badge-txn-type.type-expense {
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    color: var(--red);
+}
+
+.badge-txn-type.type-refund {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: var(--cyan);
+}
+
 @media (min-width: 861px) {
-    .data-table th.col-mode,
-    .data-table th[data-col="mode"],
-    .data-table td[data-label="Mode"],
-    .data-table td[data-label="Txn Mode"] {
+    .data-table:not(#keyword-mapping-table) th.col-mode,
+    .data-table:not(#keyword-mapping-table) th[data-col="mode"],
+    .data-table:not(#keyword-mapping-table) td[data-label="Mode"],
+    .data-table:not(#keyword-mapping-table) td[data-label="Txn Mode"] {
         display: none !important;
     }
 

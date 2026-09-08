@@ -27,7 +27,9 @@ jest.mock('../js/utils/helpers.js', () => ({
     isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),
     getLastLocation: jest.fn(() => ''),
     getCurrentLocationTag: jest.fn().mockResolvedValue(''),
-    resetLocationPermissionDenied: jest.fn()
+    resetLocationPermissionDenied: jest.fn(),
+    findMatchingKeywordRule: jest.fn(() => null),
+    getTxnModeForMerchant: jest.fn((m, mode, modes) => mode || (modes ? modes[0] : 'UPI'))
 }));
 
 // Provide a minimalistic mock for the form initialization

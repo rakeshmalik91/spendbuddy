@@ -8,6 +8,7 @@ import { renderTransactions } from "./transactions.js";
 import { recomputePendingSmsTransactions } from "./sms_approval.js";
 import { renderSettings } from "./settings.js";
 import { renderBalanceTracker } from "./balance.js?v=4";
+import { renderKeywordMappings } from "./keyword_mappings.js";
 
 /* ══════════════ RENDER ALL ══════════════ */
 
@@ -23,9 +24,10 @@ export function renderAll() {
     if (typeof renderSmsSuggestions === 'function') renderSmsSuggestions();
     if (typeof prefillLocation === 'function') prefillLocation();
     
-    // Also update settings pages (Category/TxnMode tables) and balance tracker
+    // Also update settings pages (Category/TxnMode/Keyword tables) and balance tracker
     if (typeof renderSettings === 'function') renderSettings();
     if (typeof renderBalanceTracker === 'function') renderBalanceTracker();
+    if (typeof renderKeywordMappings === 'function') renderKeywordMappings();
 }
 window.renderAll = renderAll;
 

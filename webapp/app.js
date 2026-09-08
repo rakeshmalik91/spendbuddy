@@ -1,5 +1,6 @@
 import { showLoader, hideLoader, receiveSmsTransactions, showSmsSpinner, hideSmsSpinner, showEmailSpinner, hideEmailSpinner } from './js/core/init.js';
 import { openRefundLinkingModal } from './js/ui/refund_linking_modal.js';
+import './js/ui/keyword_mappings.js';
 
 // Re-attach globals required by Android WebView & inline HTML handlers
 window.showLoader = showLoader;

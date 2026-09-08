@@ -16,13 +16,57 @@ function cleanMerchantName(name) {
 }
 
 /**
+ * Finds a matching custom keyword mapping rule from user settings/state.
+ * Supports comma-separated aliases (e.g. 'NPS, Protean') and prioritizes
+ * longer (more specific) matching keyword tokens first.
+ * @param {string} text - The input text to search (note, merchant, source, etc.)
+ * @param {Array} [customRulesList] - Optional rules list to search (defaults to state.keywordMappings)
+ */
+export function findMatchingKeywordRule(text, customRulesList) {
+    const rules = customRulesList || state.keywordMappings;
+    if (!text || !rules || !Array.isArray(rules) || rules.length === 0) {
+        return null;
+    }
+    const cleanText = text.trim().toLowerCase();
+    if (!cleanText) return null;
+
+    let bestRule = null;
+    let maxMatchLength = 0;
+
+    for (const rule of rules) {
+        if (!rule || !rule.keyword) continue;
+        const tokens = rule.keyword.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+        for (const token of tokens) {
+            if (cleanText.includes(token)) {
+                if (token.length > maxMatchLength) {
+                    maxMatchLength = token.length;
+                    bestRule = rule;
+                }
+            }
+        }
+    }
+
+    return bestRule;
+}
+
+/**
  * Maps a merchant name to the best matching user category using:
- * 1. Historical transaction frequency for the same merchant (strongest signal)
+ * 0. User's manual custom keyword mappings (HIGHEST priority - overrides all defaults)
+ * 1. Historical transaction frequency for the same merchant (strongest heuristic signal)
  * 2. Keyword-to-synonym mapping from KEYWORD_MAPPINGS
  * 3. Fuzzy match of Android-parsed masterCategory against user categories
  */
-export function getCategoryForMerchant(merchantName, masterCategory) {
+export function getCategoryForMerchant(merchantName, masterCategory, extraText) {
     let fallbackCategory = state.categories.find(c => c.toLowerCase().includes('other')) || 'Others';
+
+    // 0. Highest priority: User's manual custom keyword mapping
+    const customRule = findMatchingKeywordRule(merchantName)
+        || (masterCategory ? findMatchingKeywordRule(masterCategory) : null)
+        || (extraText ? findMatchingKeywordRule(extraText) : null);
+    if (customRule && customRule.category) {
+        const catMatch = resolveCategoryName(customRule.category, state.categories);
+        if (catMatch) return catMatch;
+    }
 
     // 1. First attempt: Learn from historical transactions with the same merchant name (STRONGEST signal)
     if (merchantName) {
@@ -96,9 +140,16 @@ export function getCategoryForMerchant(merchantName, masterCategory) {
     return bestMatch;
 }
 
-export function getTxnTypeForMerchant(merchantName, defaultTxnType) {
-    if (merchantName) {
-        const cleanMerchant = cleanMerchantName(merchantName);
+export function getTxnTypeForMerchant(merchantName, defaultTxnType, extraText) {
+    // 0. Highest priority: User's manual custom keyword mapping
+    const customRule = findMatchingKeywordRule(merchantName) || (extraText ? findMatchingKeywordRule(extraText) : null);
+    if (customRule && customRule.txnType) {
+        return normalizeTxnType(customRule.txnType);
+    }
+
+    const textToMatch = merchantName || extraText;
+    if (textToMatch) {
+        const cleanMerchant = cleanMerchantName(textToMatch);
 
         if (cleanMerchant) {
             const typeCounts = {};
@@ -133,15 +184,72 @@ export function getTxnTypeForMerchant(merchantName, defaultTxnType) {
     return defaultTxnType;
 }
 
-// Strips a leading emoji+space prefix (e.g. "🍜 Food" → "Food") for matching.
+// Strips leading emoji prefixes, symbols, and whitespace (e.g. "🍜 Food" → "Food", "🏦 Bank Transfer" → "Bank Transfer")
 export function stripEmojiPrefix(name) {
     if (!name) return '';
-    return name.replace(/^\p{Emoji_Presentation}\uFE0F?\s*/u, '').replace(/^\p{Emoji}\uFE0F?\s*/u, '').trim();
+    return name
+        .replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\p{Emoji}\uFE0F\u200D\s]+/u, '')
+        .trim();
+}
+
+/**
+ * Normalizes a transaction type to standard casing (Income, Expense, Investment, Transfer, Refund).
+ */
+export function normalizeTxnType(rawType) {
+    if (!rawType) return null;
+    const clean = rawType.trim().toLowerCase();
+    const valid = ['Income', 'Expense', 'Investment', 'Transfer', 'Refund'];
+    const match = valid.find(v => v.toLowerCase() === clean);
+    return match || rawType.trim();
+}
+
+/**
+ * Resolves a normalized category name to its current state.categories counterpart (with emoji if present).
+ */
+export function resolveCategoryName(rawCat, categories) {
+    if (!rawCat) return null;
+    const cats = categories || state.categories || [];
+    const clean = stripEmojiPrefix(rawCat).toLowerCase();
+    const match = cats.find(c => stripEmojiPrefix(c).toLowerCase() === clean || c.toLowerCase() === rawCat.toLowerCase());
+    return match || stripEmojiPrefix(rawCat);
+}
+
+/**
+ * Resolves a normalized txn mode name to its current state.txnModes counterpart (with emoji if present).
+ */
+export function resolveTxnModeName(rawMode, txnModes) {
+    if (!rawMode) return null;
+    const modes = txnModes || state.txnModes || [];
+    const clean = stripEmojiPrefix(rawMode).toLowerCase();
+    const match = modes.find(m => stripEmojiPrefix(m).toLowerCase() === clean || m.toLowerCase() === rawMode.toLowerCase());
+    return match || stripEmojiPrefix(rawMode);
+}
+
+/**
+ * Maps a merchant or raw txn mode to the matching txn mode, checking custom keyword mappings first.
+ */
+export function getTxnModeForMerchant(merchantName, rawMode, txnModes, extraText) {
+    const modes = txnModes || state.txnModes || [];
+    // 0. Highest priority: User's manual custom keyword mapping matching merchantName, rawMode, or extraText
+    const customRule = findMatchingKeywordRule(merchantName)
+        || (rawMode ? findMatchingKeywordRule(rawMode) : null)
+        || (extraText ? findMatchingKeywordRule(extraText) : null);
+    if (customRule && customRule.txnMode) {
+        return resolveTxnModeName(customRule.txnMode, modes);
+    }
+    return mapTxnMode(rawMode, modes);
 }
 
 // Maps a raw txn mode (from SMS or old data) to the closest matching current txn mode (ignoring emojis)
 export function mapTxnMode(rawMode, txnModes) {
     if (!rawMode) return txnModes[0] || 'UPI';
+
+    // Check custom keyword mappings for rawMode override
+    const customRule = findMatchingKeywordRule(rawMode);
+    if (customRule && customRule.txnMode) {
+        return resolveTxnModeName(customRule.txnMode, txnModes);
+    }
+
     const cleanMode = stripEmojiPrefix(rawMode).toLowerCase();
 
     for (const tm of txnModes) {

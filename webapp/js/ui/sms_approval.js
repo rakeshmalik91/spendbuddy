@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag } from "../utils/helpers.js";
+import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
 import { amountToStr } from "../services/storage.js";
 import { renderAll } from "./render_all.js";
@@ -530,7 +530,7 @@ export function setupSmsApproval() {
                 const selectEl = document.querySelector(`.sms-category-select[data-index="${idx}"]`);
                 const chosenCategory = selectEl ? selectEl.value : (txn.masterCategory || 'Others');
                 const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-                const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
+                const computedType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
                 const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
 
                 state.expenses.unshift({
@@ -539,7 +539,7 @@ export function setupSmsApproval() {
                     currency: txn.currency || 'INR',
                     category: chosenCategory,
                     txnType: computedType,
-                    txnMode: mapTxnMode(txn.transactionMode, state.txnModes),
+                    txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
                     note: txn.merchant || '',
                     source: txn.source,
                     txnId: txn.transactionId || '',
@@ -612,7 +612,7 @@ export function showSmsApprovalModal(txns) {
     if (countEl) countEl.textContent = `${txns.length} transaction${txns.length !== 1 ? 's' : ''}`;
 
     txns.forEach((txn, i) => {
-        let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
+        let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
         let catOptions = state.categories.map(c => `<option value="${escHtml(c)}" ${c === bestMatch ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
         if (bestMatch === 'Others' && !state.categories.includes('Others')) {
             catOptions = `<option value="Others" selected>Others</option>` + catOptions;
@@ -624,7 +624,7 @@ export function showSmsApprovalModal(txns) {
         const amountColor = isRefund ? 'var(--green)' : 'var(--red)';
         const amountPrefix = isRefund ? '+' : '';
 
-        const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
+        const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
 
         const div = document.createElement('div');
         div.className = 'sms-card';

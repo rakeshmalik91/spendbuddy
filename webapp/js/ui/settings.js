@@ -10,6 +10,7 @@ import { state } from "../core/state.js";
 import { PROTECTED_CATEGORIES, PROTECTED_TXN_MODES } from "../../config.js";
 import { isGmailSupported, syncGmail, unlinkGmail, getLinkedGmail } from "../services/gmail.js";
 import { updateUserSettings, loadUserSettings } from "../services/user_settings.js";
+import { syncKeywordMappingsOnEntityChange, renderKeywordMappings } from "./keyword_mappings.js";
 
 /* ══════════════ SETTINGS — CATEGORY & TXN TYPE CRUD ══════════════ */
 
@@ -556,6 +557,9 @@ export function onSettingsChanged() {
     populateFormDropdowns();
     populateFilterOptions();
     renderSettings();
+    if (typeof renderKeywordMappings === 'function' && $('#keyword-mapping-tbody')) {
+        renderKeywordMappings();
+    }
 }
 
 export function renderSettings() {
@@ -698,6 +702,8 @@ export function editCategory(idx) {
             try {
                 await bulkUpdateCSVs('category', oldName, newName);
                 await saveMetadataCSV();
+                // Reflect category rename in keyword mappings config
+                await syncKeywordMappingsOnEntityChange('category', 'rename', oldName, newName);
                 hideLoader();
                 toast(`Renamed "${oldName}" → "${newName}"`, 'success');
             } catch (err) {
@@ -714,21 +720,32 @@ export function deleteCategory(idx) {
     const name = state.categories[idx];
     if (isCategoryProtected(name)) { toast('This is a built-in category and cannot be deleted', 'error'); return; }
     const usedCount = state.expenses.filter(e => e.category === name).length;
+    const kwUsedCount = (state.keywordMappings || []).filter(r => r.category === name || (r.category && r.category.trim().toLowerCase() === name.trim().toLowerCase())).length;
+    const isUsed = usedCount > 0 || kwUsedCount > 0;
     const availableOptions = state.categories.filter((c, i) => i !== idx);
 
-    if (usedCount > 0 && availableOptions.length === 0) {
+    if (isUsed && availableOptions.length === 0) {
         availableOptions.push('Others');
+    }
+
+    let usageMsg = '';
+    if (usedCount > 0 && kwUsedCount > 0) {
+        usageMsg = ` It is used in ${usedCount} transaction(s) and ${kwUsedCount} keyword rule(s). Select a replacement:`;
+    } else if (usedCount > 0) {
+        usageMsg = ` It is used in ${usedCount} transaction(s). Select a replacement:`;
+    } else if (kwUsedCount > 0) {
+        usageMsg = ` It is used in ${kwUsedCount} keyword rule(s). Select a replacement:`;
     }
 
     openModal({
         title: 'Delete Category?',
-        message: `Delete "${name}"?${usedCount > 0 ? ` It is used in ${usedCount} transaction(s). Select a replacement:` : ''}`,
+        message: `Delete "${name}"?${usageMsg}`,
         confirmLabel: 'Delete',
         confirmClass: 'btn-danger',
-        showSelect: usedCount > 0,
-        selectOptions: usedCount > 0 ? availableOptions : [],
+        showSelect: isUsed,
+        selectOptions: isUsed ? availableOptions : [],
         onConfirm: async () => {
-            const fallback = usedCount > 0 ? $('#modal-select-input').value : null;
+            const fallback = isUsed ? $('#modal-select-input').value : null;
 
             showLoader('Bulk updating all records...');
             state.expenses.forEach(e => {
@@ -742,6 +759,8 @@ export function deleteCategory(idx) {
             try {
                 await bulkUpdateCSVs('category', name, fallback);
                 await saveMetadataCSV();
+                // Reflect category delete in keyword mappings config
+                await syncKeywordMappingsOnEntityChange('category', 'delete', name, fallback);
                 hideLoader();
                 toast(`Category "${name}" deleted`, 'info');
             } catch (err) {
@@ -782,6 +801,8 @@ export function editTxnMode(idx) {
             try {
                 await bulkUpdateCSVs('txnmode', oldName, newName);
                 await saveMetadataCSV();
+                // Reflect txn mode rename in keyword mappings config
+                await syncKeywordMappingsOnEntityChange('txnmode', 'rename', oldName, newName);
                 hideLoader();
                 toast(`Renamed "${oldName}" → "${newName}"`, 'success');
             } catch (err) {
@@ -798,21 +819,32 @@ export function deleteTxnMode(idx) {
     const name = state.txnModes[idx];
     if (isTxnModeProtected(name)) { toast('This is a built-in transaction mode and cannot be deleted', 'error'); return; }
     const usedCount = state.expenses.filter(e => e.txnMode === name).length;
+    const kwUsedCount = (state.keywordMappings || []).filter(r => r.txnMode === name || (r.txnMode && r.txnMode.trim().toLowerCase() === name.trim().toLowerCase())).length;
+    const isUsed = usedCount > 0 || kwUsedCount > 0;
     const availableOptions = state.txnModes.filter((c, i) => i !== idx);
 
-    if (usedCount > 0 && availableOptions.length === 0) {
+    if (isUsed && availableOptions.length === 0) {
         availableOptions.push('Cash');
+    }
+
+    let usageMsg = '';
+    if (usedCount > 0 && kwUsedCount > 0) {
+        usageMsg = ` It is used in ${usedCount} transaction(s) and ${kwUsedCount} keyword rule(s). Select a replacement:`;
+    } else if (usedCount > 0) {
+        usageMsg = ` It is used in ${usedCount} transaction(s). Select a replacement:`;
+    } else if (kwUsedCount > 0) {
+        usageMsg = ` It is used in ${kwUsedCount} keyword rule(s). Select a replacement:`;
     }
 
     openModal({
         title: 'Delete Transaction Mode?',
-        message: `Delete "${name}"?${usedCount > 0 ? ` It is used in ${usedCount} transaction(s). Select a replacement:` : ''}`,
+        message: `Delete "${name}"?${usageMsg}`,
         confirmLabel: 'Delete',
         confirmClass: 'btn-danger',
-        showSelect: usedCount > 0,
-        selectOptions: usedCount > 0 ? availableOptions : [],
+        showSelect: isUsed,
+        selectOptions: isUsed ? availableOptions : [],
         onConfirm: async () => {
-            const fallback = usedCount > 0 ? $('#modal-select-input').value : null;
+            const fallback = isUsed ? $('#modal-select-input').value : null;
 
             showLoader('Bulk updating all records...');
             state.expenses.forEach(e => {
@@ -826,8 +858,10 @@ export function deleteTxnMode(idx) {
             try {
                 await bulkUpdateCSVs('txnmode', name, fallback);
                 await saveMetadataCSV();
+                // Reflect txn mode delete in keyword mappings config
+                await syncKeywordMappingsOnEntityChange('txnmode', 'delete', name, fallback);
                 hideLoader();
-                toast(`Transaction type "${name}" deleted`, 'info');
+                toast(`Transaction mode "${name}" deleted`, 'info');
             } catch (err) {
                 hideLoader();
                 console.error(err);
@@ -837,6 +871,7 @@ export function deleteTxnMode(idx) {
         }
     });
 }
+
 
 // ── Map state globals
 let _mapInstance = null;

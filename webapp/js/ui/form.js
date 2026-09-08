@@ -2,7 +2,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -571,6 +571,18 @@ export function setupForm() {
                 if (bestTxnType && bestTxnType !== currentTxnType) {
                     $('#input-transaction-type').value = bestTxnType;
                     syncChips('#txntype-chips', bestTxnType);
+                }
+            }
+
+            // Only infer transaction mode if left untouched by user and custom mapping specifies txnMode
+            if (!isTxnModeManuallyChanged && !currentSelectedSuggestionTxn) {
+                const rule = findMatchingKeywordRule(val);
+                if (rule && rule.txnMode) {
+                    const mappedMode = getTxnModeForMerchant(val, null, state.txnModes);
+                    if (mappedMode && state.txnModes.includes(mappedMode)) {
+                        $('#input-txn-type').value = mappedMode;
+                        syncChips('#txnmode-chips', mappedMode);
+                    }
                 }
             }
         }
@@ -1213,7 +1225,7 @@ export function renderSmsSuggestions() {
         div.className = 'sms-suggestion-card';
         div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;';
 
-        const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
+        const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
 
         div.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -1248,14 +1260,14 @@ export function renderSmsSuggestions() {
             recordFormFillTime();
 
             if (!isCategoryManuallyChanged) {
-                let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory);
+                let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
                 if (!state.categories.includes(bestMatch)) bestMatch = state.categories[0];
 
                 $('#input-category').value = bestMatch;
                 syncChips('#category-chips', bestMatch);
             }
 
-            const mappedMode = mapTxnMode(txn.transactionMode, state.txnModes);
+            const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
             if (!isTxnModeManuallyChanged && mappedMode && state.txnModes.includes(mappedMode)) {
                 $('#input-txn-type').value = mappedMode;
                 syncChips('#txnmode-chips', mappedMode);
@@ -1263,7 +1275,7 @@ export function renderSmsSuggestions() {
 
             if (!isTxnTypeManuallyChanged) {
                 const expectedType = txn.amount < 0 ? 'Refund' : 'Expense';
-                const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType);
+                const bestTxnType = txn.txnType || getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
                 
                 $('#input-transaction-type').value = bestTxnType;
                 syncChips('#txntype-chips', bestTxnType);

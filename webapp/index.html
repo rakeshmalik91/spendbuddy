@@ -1116,6 +1116,19 @@
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('keyword-mappings')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">🔤</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Keyword Mappings
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Override category, txn type, and txn mode</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
                 </div>
             </section>
 
@@ -1133,32 +1146,40 @@
                         <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
                             <span>👁️</span> Hide Data
                         </h2>
-                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
-                            Toggle these options to completely hide specific transaction types from your dashboard,
-                            charts, and transaction lists.
+                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
+                            Hide specific transaction types across the entire app (Dashboard, Transactions list, and Charts). Hidden records remain stored safely in your data.
                         </p>
 
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div style="font-weight: 500; color: var(--text-main);">Hide Income</div>
+                        <!-- Hide Income Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Income</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude income records from dashboard totals and lists</div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-income">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div style="font-weight: 500; color: var(--text-main);">Hide Investment</div>
+                        <!-- Hide Investments Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Investments</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude investment records from dashboard totals and lists</div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-investment">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
-                            <div style="font-weight: 500; color: var(--text-main);">Hide Transfer</div>
+                        <!-- Hide Transfers Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Transfers</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude transfer records from dashboard totals and lists</div>
+                            </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-transfer">
                                 <span class="toggle-slider"></span>
@@ -1166,17 +1187,18 @@
                         </div>
                     </div>
 
+                    <!-- Refund Preferences Card -->
                     <div class="card">
                         <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
-                            <span>↩️</span> Refund Merging
+                            <span>↩️</span> Refund Preferences
                         </h2>
-                        <p style="color: var(--text-dim); margin-bottom: 16px; line-height: 1.5;">
-                            Control how refund transactions are displayed across your dashboard and transaction tables.
+                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
+                            Control how refunds are displayed and calculated in the dashboard and transaction tables.
                         </p>
 
-                        <div
-                            style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0;">
-                            <div>
+                        <!-- Merge Refunds Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div style="max-width: 80%;">
                                 <div style="font-weight: 500; color: var(--text-main);">Merge Refunds with Expenses</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">
                                     Auto-group matching refunds into collapsible expense rows to show net amounts. When disabled, refunds appear as independent standalone entries.
@@ -1186,6 +1208,52 @@
                                 <input type="checkbox" id="toggle-merge-refunds">
                                 <span class="toggle-slider"></span>
                             </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── KEYWORD MAPPINGS VIEW ── -->
+            <section class="view" id="view-keyword-mappings">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">Keyword Mappings</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h2 class="chart-title" style="margin-bottom: 4px;">Custom Keyword Rules</h2>
+                                <p style="color: var(--text-dim); font-size: 0.9rem; margin: 0;">
+                                    Override default categorization, transaction type, or payment mode when keywords match.
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-sm" id="btn-run-all-rules"
+                                    style="padding: 10px 16px; white-space: nowrap;">⚡ Run on Existing Txns</button>
+                                <button class="btn btn-primary btn-sm" id="btn-add-keyword-mapping"
+                                    style="padding: 10px 18px; white-space: nowrap;">➕ Add Rule</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <input type="text" id="kw-search-input" placeholder="🔍 Search keyword or override..."
+                                style="width: 100%; max-width: 320px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.9rem;">
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table" id="keyword-mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th data-col="keyword">Keyword</th>
+                                        <th data-col="category">Category</th>
+                                        <th data-col="txntype">Txn Type</th>
+                                        <th data-col="txnmode">Txn Mode</th>
+                                        <th data-col="actions" style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keyword-mapping-tbody"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1739,6 +1807,62 @@
         </div>
     </div>
 
+    <!-- ═══════════ KEYWORD MAPPING MODAL ═══════════ -->
+    <div class="modal-overlay" id="keyword-mapping-modal-overlay" style="z-index: 10006;">
+        <div class="modal card" style="max-width: 480px; width: 90%; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 id="kw-modal-title" style="font-size: 1.35rem; margin: 0;">Add Keyword Mapping</h2>
+                <button type="button" id="kw-modal-close-btn" class="close-btn" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 0.9rem; line-height: 1.4;">
+                When this keyword matches a transaction's merchant or note, the selected fields will override default logic.
+            </p>
+
+            <form id="kw-mapping-form" onsubmit="event.preventDefault(); window.saveKeywordMapping();">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label for="kw-input-keyword" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Keyword / Substring <span style="color: var(--red);">*</span>
+                        </label>
+                        <input type="text" id="kw-input-keyword" class="form-control" placeholder="e.g. swiggy, uber, salary" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                    </div>
+
+                    <div>
+                        <label for="kw-input-category" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Category Override
+                        </label>
+                        <select id="kw-input-category" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="kw-input-txntype" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Transaction Type Override
+                        </label>
+                        <select id="kw-input-txntype" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="kw-input-txnmode" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Transaction Mode Override
+                        </label>
+                        <select id="kw-input-txnmode" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" id="kw-modal-cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="kw-modal-save">Save Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ═══════════ SMS & EMAIL APPROVAL MODAL ═══════════ -->
     <div class="modal-overlay" id="sms-modal-overlay">
         <div class="modal card" style="max-width: 500px; width: 90%; padding: 24px;">
@@ -1930,7 +2054,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=374"></script>
+    <script type="module" src="app.js?v=380"></script>
 </body>
 
 </html>

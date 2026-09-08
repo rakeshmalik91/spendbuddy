@@ -1,10 +1,6 @@
 import { applyUserSettings, updateUserSettings, loadUserSettings } from '../js/services/user_settings.js';
 import { state } from '../js/core/state.js';
 
-jest.mock('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js', () => ({
-    ref: jest.fn(() => 'mock-ref'),
-    uploadString: jest.fn().mockResolvedValue(true)
-}), { virtual: true });
 
 jest.mock('../js/services/auth.js', () => ({
     getRequiredEmail: jest.fn(() => 'testuser@gmail.com')
