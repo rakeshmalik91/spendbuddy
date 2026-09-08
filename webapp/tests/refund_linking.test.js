@@ -302,4 +302,109 @@ describe('openRefundLinkingModal UI behavior', () => {
         renderTransactions();
         expect(document.getElementById('toggle-merge-refunds-txn').checked).toBe(true);
     });
+
+    test('txn page toggle-hide-source-txnid updates state, localStorage, and settings toggle', async () => {
+        const { setupFilters } = await import('../js/ui/filters.js');
+        document.body.innerHTML = `
+            <input type="checkbox" id="toggle-hide-source-txnid" />
+            <input type="checkbox" id="toggle-hide-source-txnid-settings" />
+            <table id="all-table"><tbody id="all-tbody"></tbody></table>
+            <div id="view-transactions"><div class="table-footer"></div></div>
+        `;
+
+        state.hideSourceTxnId = false;
+        setupFilters();
+
+        const txnToggle = document.getElementById('toggle-hide-source-txnid');
+        const settingsToggle = document.getElementById('toggle-hide-source-txnid-settings');
+
+        // Turn ON (hide)
+        txnToggle.checked = true;
+        txnToggle.dispatchEvent(new Event('change'));
+
+        expect(state.hideSourceTxnId).toBe(true);
+        expect(localStorage.getItem('expman_hide_source_txnid')).toBe('true');
+        expect(settingsToggle.checked).toBe(true);
+
+        // Turn OFF (show)
+        txnToggle.checked = false;
+        txnToggle.dispatchEvent(new Event('change'));
+
+        expect(state.hideSourceTxnId).toBe(false);
+        expect(localStorage.getItem('expman_hide_source_txnid')).toBe('false');
+        expect(settingsToggle.checked).toBe(false);
+    });
+
+    test('renderTransactions hides source and txn id badges when state.hideSourceTxnId is true', async () => {
+        const { renderTransactions } = await import('../js/ui/transactions.js');
+        document.body.innerHTML = `
+            <input type="checkbox" id="toggle-hide-source-txnid" />
+            <table id="all-table"><tbody id="all-tbody"></tbody></table>
+            <div id="view-transactions"><div class="table-footer"></div></div>
+        `;
+
+        state.expenses = [
+            { date: '2026-09-01', amount: 1000, category: 'Food', txnType: 'Expense', txnMode: 'UPI', note: 'Lunch', txnId: 'TXN12345', source: 'HDFC Bank' }
+        ];
+
+        // When hideSourceTxnId is false, badges should appear
+        state.hideSourceTxnId = false;
+        renderTransactions();
+        expect(document.getElementById('toggle-hide-source-txnid').checked).toBe(false);
+        const htmlShown = document.getElementById('all-tbody').innerHTML;
+        expect(htmlShown).toContain('badge-source');
+        expect(htmlShown).toContain('TXN12345');
+
+        // When hideSourceTxnId is true, badges should NOT appear
+        state.hideSourceTxnId = true;
+        renderTransactions();
+        expect(document.getElementById('toggle-hide-source-txnid').checked).toBe(true);
+        const htmlHidden = document.getElementById('all-tbody').innerHTML;
+        expect(htmlHidden).not.toContain('badge-source');
+        expect(htmlHidden).not.toContain('TXN12345');
+
+        // Cleanup
+        state.hideSourceTxnId = false;
+    });
+
+    test('txn header hamburger button toggles txn-menu-dropdown show class and closes on outside click or escape', async () => {
+        const { setupFilters } = await import('../js/ui/filters.js');
+        document.body.innerHTML = `
+            <div id="txn-header-actions">
+                <button type="button" class="txn-menu-btn" id="txn-menu-btn">☰</button>
+                <div class="txn-menu-dropdown" id="txn-menu-dropdown"></div>
+            </div>
+            <div id="outside-element"></div>
+        `;
+
+        setupFilters();
+
+        const btn = document.getElementById('txn-menu-btn');
+        const dropdown = document.getElementById('txn-menu-dropdown');
+        const outside = document.getElementById('outside-element');
+
+        expect(dropdown.classList.contains('show')).toBe(false);
+
+        // Click hamburger
+        btn.click();
+        expect(dropdown.classList.contains('show')).toBe(true);
+        expect(btn.classList.contains('active')).toBe(true);
+
+        // Click hamburger again to toggle off
+        btn.click();
+        expect(dropdown.classList.contains('show')).toBe(false);
+        expect(btn.classList.contains('active')).toBe(false);
+
+        // Open and click outside
+        btn.click();
+        expect(dropdown.classList.contains('show')).toBe(true);
+        outside.click();
+        expect(dropdown.classList.contains('show')).toBe(false);
+
+        // Open and press Escape
+        btn.click();
+        expect(dropdown.classList.contains('show')).toBe(true);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(dropdown.classList.contains('show')).toBe(false);
+    });
 });

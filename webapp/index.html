@@ -156,7 +156,7 @@
     <link rel="stylesheet" href="css/base/scrollbar.css?v=4">
     <link rel="stylesheet" href="css/layout/sidebar.css?v=6">
     <link rel="stylesheet" href="css/layout/header.css?v=4">
-    <link rel="stylesheet" href="css/layout/main.css?v=5">
+    <link rel="stylesheet" href="css/layout/main.css?v=8">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
     <link rel="stylesheet" href="css/components/cards.css?v=10">
     <link rel="stylesheet" href="css/components/tables.css?v=53">
@@ -164,7 +164,7 @@
     <link rel="stylesheet" href="css/components/filters.css?v=9">
     <link rel="stylesheet" href="css/components/modals.css?v=11">
     <link rel="stylesheet" href="css/views/settings.css?v=4">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=40">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=43">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -457,13 +457,25 @@
 
                 <div class="dash-header-grid txn-header-grid">
                     <h1 class="view-title">All Transactions</h1>
-                    <div class="txn-header-actions">
-                        <div class="txn-refund-toggle-wrap">
-                            <label for="toggle-merge-refunds-txn" class="txn-refund-toggle-label">Merge Refunds</label>
-                            <label class="toggle-switch" title="Toggle merging refunds with expenses">
-                                <input type="checkbox" id="toggle-merge-refunds-txn">
-                                <span class="toggle-slider"></span>
-                            </label>
+                    <div class="txn-header-actions" id="txn-header-actions">
+                        <button type="button" class="txn-menu-btn" id="txn-menu-btn" title="Display options" aria-label="Display options">
+                            <span>☰</span>
+                        </button>
+                        <div class="txn-menu-dropdown" id="txn-menu-dropdown">
+                            <div class="txn-refund-toggle-wrap">
+                                <label for="toggle-merge-refunds-txn" class="txn-refund-toggle-label">Merge Refunds</label>
+                                <label class="toggle-switch" title="Toggle merging refunds with expenses">
+                                    <input type="checkbox" id="toggle-merge-refunds-txn">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="txn-refund-toggle-wrap">
+                                <label for="toggle-hide-source-txnid" class="txn-refund-toggle-label">Compact View</label>
+                                <label class="toggle-switch" title="Toggle compact view (hides source &amp; transaction ID badges)">
+                                    <input type="checkbox" id="toggle-hide-source-txnid">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1186,13 +1198,25 @@
                         </div>
 
                         <!-- Hide Transfers Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
                             <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Transfers</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude transfer records from dashboard totals and lists</div>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-transfer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Compact View Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div>
+                                <div style="font-weight: 500; color: var(--text-main);">Compact View</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Hide source badges and transaction ID tags in transaction lists for a clean, compact display</div>
+                            </div>
+                            <label class="toggle-switch" title="Toggle compact view (hides source &amp; transaction ID badges)">
+                                <input type="checkbox" id="toggle-hide-source-txnid-settings">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -2065,7 +2089,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=387"></script>
+    <script type="module" src="app.js?v=392"></script>
 </body>
 
 </html>

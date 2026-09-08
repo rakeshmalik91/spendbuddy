@@ -519,6 +519,20 @@ export function setupSettings() {
         });
     }
 
+    const toggleHideSourceTxnId = $('#toggle-hide-source-txnid-settings');
+    if (toggleHideSourceTxnId) {
+        toggleHideSourceTxnId.checked = state.hideSourceTxnId;
+        toggleHideSourceTxnId.addEventListener('change', async (e) => {
+            state.hideSourceTxnId = e.target.checked;
+            localStorage.setItem('expman_hide_source_txnid', e.target.checked ? 'true' : 'false');
+            const toggleTxn = $('#toggle-hide-source-txnid');
+            if (toggleTxn) toggleTxn.checked = e.target.checked;
+            toast(e.target.checked ? 'Compact view enabled' : 'Compact view disabled', 'info');
+            onSettingsChanged();
+            if (typeof window.renderAll === 'function') window.renderAll();
+        });
+    }
+
     updateAccountView();
 }
 
@@ -674,6 +688,8 @@ export function renderSettings() {
     if (toggleTr) toggleTr.checked = state.hideTransfer;
     const toggleMr = $('#toggle-merge-refunds');
     if (toggleMr) toggleMr.checked = state.mergeRefunds;
+    const toggleCompact = $('#toggle-hide-source-txnid-settings');
+    if (toggleCompact) toggleCompact.checked = state.hideSourceTxnId;
 }
 
 // ── Category CRUD ──

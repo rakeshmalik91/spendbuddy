@@ -171,7 +171,7 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
         let typeBadge = txnTypeBadgeHTML(item.txnType) || '';
         let modeBadge = item.txnMode ? `<span class="badge-mode" title="${escHtml(item.txnMode)}">${escHtml(item.txnMode)}</span>` : '';
         let sourceBadge = '';
-        if (itemRawSources.length > 0) {
+        if (itemRawSources.length > 0 && !(prefix !== 'dash-row' && state.hideSourceTxnId)) {
             if (prefix !== 'dash-row') {
                 const fullBadges = itemRawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
                 const shortBadges = itemDisplaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(item.source)}">${escHtml(s)}</span>`).join('');
@@ -180,7 +180,7 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
                 sourceBadge = itemDisplaySources.map(s => `<span class="badge-source" title="${escHtml(item.source)}">${escHtml(s)}</span>`).join('');
             }
         }
-        let txnBadge = itemDisplayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('');
+        let txnBadge = !(prefix !== 'dash-row' && state.hideSourceTxnId) ? itemDisplayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('') : '';
         let tagBadge = (prefix !== 'dash-row' && item.tag) ? `<span class="badge-tag" title="Tag: ${escHtml(item.tag)}">🏷️ ${escHtml(item.tag)}</span>` : '';
         let itemBadges = typeBadge + modeBadge + tagBadge + sourceBadge + txnBadge;
 

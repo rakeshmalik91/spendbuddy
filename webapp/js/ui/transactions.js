@@ -13,6 +13,11 @@ export function renderTransactions() {
         toggleMergeRefundsTxn.checked = state.mergeRefunds !== false;
     }
 
+    const toggleHideSourceTxnId = $('#toggle-hide-source-txnid');
+    if (toggleHideSourceTxnId && toggleHideSourceTxnId.checked !== (state.hideSourceTxnId === true)) {
+        toggleHideSourceTxnId.checked = state.hideSourceTxnId === true;
+    }
+
     let filtered = getFilteredExpenses();
 
     // Group matching refunds BEFORE sorting
@@ -101,14 +106,14 @@ export function renderTransactions() {
         const rawSources = getRawSourceList(e.source);
         const displaySources = getDisplaySourceList(e.source);
         let sourceBadge = '';
-        if (rawSources.length > 0) {
+        if (rawSources.length > 0 && !state.hideSourceTxnId) {
             const fullBadges = rawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
             const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
             sourceBadge = fullBadges + shortBadges;
         }
         let locationBadge = e.location ? `<span class="badge-location" title="${escHtml(e.location)}">📍 ${escHtml(e.location)}</span>` : '';
         const displayTxnIds = getDisplayTxnIdList(e);
-        let txnBadge = displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('');
+        let txnBadge = (!state.hideSourceTxnId && displayTxnIds.length > 0) ? displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('') : '';
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
         let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
