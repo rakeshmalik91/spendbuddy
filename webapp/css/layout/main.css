@@ -185,6 +185,51 @@
     color: var(--text-primary);
 }
 
+.txn-menu-dropdown .txn-menu-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 4px 0;
+    width: 100%;
+}
+
+.txn-menu-dropdown .txn-menu-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    margin: 2px 0 0 0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background var(--transition), color var(--transition);
+}
+
+.txn-menu-dropdown .txn-menu-action-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.txn-menu-dropdown .txn-menu-action-btn:active {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.txn-menu-dropdown .txn-menu-action-icon {
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 @keyframes fadeInDropdown {
     from {
         opacity: 0;

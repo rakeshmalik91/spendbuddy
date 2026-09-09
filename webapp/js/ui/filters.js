@@ -136,6 +136,16 @@ export function setupFilters() {
             }
         });
     }
+
+    const exportCsvBtn = $('#btn-export-filtered-csv');
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', async () => {
+            if (txnMenuDropdown) txnMenuDropdown.classList.remove('show');
+            if (txnMenuBtn) txnMenuBtn.classList.remove('active');
+            const { exportFilteredTransactionsToCSV } = await import('../services/export.js');
+            exportFilteredTransactionsToCSV();
+        });
+    }
 }
 
 export function setupSort() {

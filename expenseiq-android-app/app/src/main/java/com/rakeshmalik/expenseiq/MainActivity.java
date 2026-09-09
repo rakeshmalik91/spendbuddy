@@ -709,11 +709,12 @@ public class MainActivity extends AppCompatActivity {
     public void saveFileFromBase64(String base64Data, String filename) {
         try {
             byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
+            String mimeType = filename.endsWith(".csv") ? "text/csv" : (filename.endsWith(".zip") ? "application/zip" : "application/octet-stream");
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 android.content.ContentValues contentValues = new android.content.ContentValues();
                 contentValues.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename);
-                contentValues.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/zip");
+                contentValues.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
                 contentValues.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS);
 
                 android.net.Uri uri = getContentResolver().insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues);
@@ -723,7 +724,7 @@ public class MainActivity extends AppCompatActivity {
                             outputStream.write(bytes);
                         }
                     }
-                    Toast.makeText(this, "Backup saved to Downloads folder", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Saved " + filename + " to Downloads folder", Toast.LENGTH_LONG).show();
                 }
             } else {
                 File dir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
@@ -731,11 +732,11 @@ public class MainActivity extends AppCompatActivity {
                 try (FileOutputStream fos = new FileOutputStream(file)) {
                     fos.write(bytes);
                 }
-                Toast.makeText(this, "Backup saved to Downloads folder", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Saved " + filename + " to Downloads folder", Toast.LENGTH_LONG).show();
             }
         } catch (Exception e) {
-            Log.e("ExpenseIQ", "Failed to save backup file: " + filename, e);
-            Toast.makeText(this, "Failed to save backup: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Log.e("ExpenseIQ", "Failed to save file: " + filename, e);
+            Toast.makeText(this, "Failed to save " + filename + ": " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 

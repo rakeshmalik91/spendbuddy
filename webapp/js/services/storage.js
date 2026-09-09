@@ -745,9 +745,10 @@ export function normalizeRow(row) {
     };
 }
 
-export function expensesToCSV(data) {
+export function expensesToCSV(data, preserveOrder = false) {
     const header = 'Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag';
-    const sorted = Array.isArray(data) ? [...data].sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
+    const list = Array.isArray(data) ? [...data] : [];
+    const sorted = preserveOrder ? list : list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const rows = sorted.map(e => {
         const note = csvEscape(e.note);
         const cat = csvEscape(e.category);

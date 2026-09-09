@@ -4,10 +4,67 @@ import { toast, getLocalDateString } from "../utils/helpers.js";
 import { showLoader, hideLoader } from "../core/init.js";
 import { USE_LOCAL_DATA } from "../../config.js";
 import { decryptData } from "../utils/crypto.js";
-import { uploadFile } from "./storage.js";
+import { uploadFile, expensesToCSV } from "./storage.js";
 import { uploadString } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getRequiredEmail } from "./auth.js";
 import { openModal } from "../ui/modal.js";
+import { getFilteredExpenses } from "../ui/filters.js";
+
+/**
+ * Triggers a file download across Android WebViews and desktop/mobile web browsers.
+ * @param {Blob} blob 
+ * @param {string} filename 
+ */
+export function downloadBlob(blob, filename) {
+    if (window.Android && window.Android.saveBackup) {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+            const base64data = reader.result ? reader.result.split(',')[1] : '';
+            window.Android.saveBackup(base64data, filename);
+        };
+    } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+}
+
+/**
+ * Exports currently filtered transactions to a CSV file.
+ * @param {Array|null} transactions Optional transactions array (defaults to getFilteredExpenses())
+ * @returns {boolean} Whether the export succeeded
+ */
+export function exportFilteredTransactionsToCSV(transactions = null) {
+    const list = transactions !== null ? transactions : getFilteredExpenses();
+    if (!list || list.length === 0) {
+        toast('No transactions to export', 'warning');
+        return false;
+    }
+
+    // Sort matching active table sort order
+    const sorted = [...list].sort((a, b) => {
+        let cmp = 0;
+        if (state.sortCol === 'date') cmp = (a.date || '').localeCompare(b.date || '');
+        else if (state.sortCol === 'amount') cmp = (a.amount || 0) - (b.amount || 0);
+        return state.sortAsc ? cmp : -cmp;
+    });
+
+    const csvContent = expensesToCSV(sorted, true);
+    const dateStr = getLocalDateString(new Date()).replace(/-/g, '');
+    const filename = `ExpenseIQ_Transactions_${dateStr}.csv`;
+
+    // Prepend UTF-8 BOM so Excel and spreadsheet tools decode special characters correctly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, filename);
+
+    toast(`Exported ${sorted.length} transaction${sorted.length === 1 ? '' : 's'} to CSV`, 'success');
+    return true;
+}
 
 /**
  * Generates a ZIP blob containing all user data from Firebase Storage.
@@ -71,25 +128,8 @@ export async function exportAllDataAsZip() {
     try {
         showLoader('Preparing backup...');
         const { blob, filename } = await generateBackupZip();
-
-        if (window.Android && window.Android.saveBackup) {
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = () => {
-                const base64data = reader.result ? reader.result.split(',')[1] : '';
-                window.Android.saveBackup(base64data, filename);
-                toast('Backup downloaded successfully!');
-            };
-        } else {
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-            toast('Backup downloaded successfully!');
-        }
+        downloadBlob(blob, filename);
+        toast('Backup downloaded successfully!');
     } catch (error) {
         console.error('Export failed', error);
         toast(error.message || 'Failed to export data.', 'error');
