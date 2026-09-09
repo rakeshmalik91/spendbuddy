@@ -16,6 +16,7 @@ import { setupTimeFilter } from "../ui/time_filter.js";
 import { renderAll } from "../ui/render_all.js";
 import { setupSmsApproval, initSmsFromCache } from "../ui/sms_approval.js";
 import { initBatchUpdate } from "../ui/batch_update.js";
+import { setupChartPopupListeners } from "../ui/chart_popup.js";
 
 /* ══════════════ GLOBAL ERROR LOGGING ══════════════ */
 window.onerror = function(message, source, lineno, colno, error) {
@@ -727,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupChartDefaults();
     setupAuthListeners();
     setupFullscreenListeners();
+    setupChartPopupListeners();
     setupSmsApproval();
     startAuthFlow();
 

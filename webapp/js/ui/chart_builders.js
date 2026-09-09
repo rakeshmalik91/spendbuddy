@@ -4,6 +4,7 @@ import { getLocalDateString, toast, formatDate, editScheduledTransaction, format
 import { $$, $ } from "../core/init.js";
 import { saveScheduledCSV } from "../services/storage.js";
 import { state } from "../core/state.js";
+import { ensureChartFullscreenButton, openChartPopup } from "./chart_popup.js";
 
 /* ══════════════ CHART BUILDERS ══════════════ */
 
@@ -85,7 +86,16 @@ export function renderChart(canvasId, builderFn) {
         ctx.dataset.fullscreenBound = 'true';
     }
 
+    const wrap = ctx.closest('.chart-wrap');
+    if (wrap) {
+        ensureChartFullscreenButton(wrap, canvasId);
+    }
+
     state.chartInstances[canvasId] = builderFn(ctx.getContext('2d'));
+
+    if (state.activePopupCanvasId === canvasId) {
+        openChartPopup(canvasId);
+    }
 }
 
 Chart.defaults.color = '#8b95a8';

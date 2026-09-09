@@ -3,6 +3,7 @@ import { state } from "../core/state.js";
 import { amountToStr, saveBalanceCSV } from "../services/storage.js";
 import { escHtml, getLocalDateString, toast } from "../utils/helpers.js";
 import { evaluateExpression } from "./form.js";
+import { ensureChartFullscreenButton, openChartPopup } from "./chart_popup.js";
 
 let newColumnDate = null;
 let currentAccounts = [];
@@ -1377,5 +1378,15 @@ function renderBalanceChart(uniqueAccounts, uniqueDatesDesc) {
             }
         });
         canvas.dataset.fullscreenBound = 'true';
+    }
+
+    state.chartInstances['balance-chart'] = balanceChartInstance;
+    const wrap = canvas.closest('.chart-wrap');
+    if (wrap) {
+        ensureChartFullscreenButton(wrap, 'balance-chart');
+    }
+
+    if (state.activePopupCanvasId === 'balance-chart') {
+        openChartPopup('balance-chart');
     }
 }
