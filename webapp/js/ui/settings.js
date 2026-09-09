@@ -1268,7 +1268,7 @@ export function getDaySeparatorHTML(dateStr, dataset, totalCols = 7, selectedInd
             <td class="col-batch-select hide-on-mobile" style="text-align: center;">
                 <input type="checkbox" class="batch-select-checkbox batch-select-day" data-date="${dateStr}" ${isChecked ? 'checked' : ''} ${isIndet ? 'data-indeterminate="true"' : ''} onclick="event.stopPropagation(); window.toggleDaySelection('${dateStr}', this.checked);">
             </td>
-            <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">📅 ${formatDate(dateStr)}</span></td>
+            <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">${formatDate(dateStr)}</span></td>
             <td class="day-separator-total">
                 <span class="${colorClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(dayAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
             </td>
@@ -1277,7 +1277,7 @@ export function getDaySeparatorHTML(dateStr, dataset, totalCols = 7, selectedInd
     }
 
     return `<tr class="day-separator">
-        <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">📅 ${formatDate(dateStr)}</span></td>
+        <td class="day-separator-empty" colspan="2"><span class="day-date-label" onclick="window.toggleDateSort && window.toggleDateSort()" style="cursor: pointer;" title="Click to toggle date order">${formatDate(dateStr)}</span></td>
         <td class="day-separator-total">
             <span class="${colorClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(dayAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
         </td>

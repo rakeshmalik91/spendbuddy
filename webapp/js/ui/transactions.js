@@ -117,7 +117,7 @@ export function renderTransactions() {
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
         let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
-        let dateBadge = state.sortCol !== 'date' ? `<span class="badge-txn" title="Date: ${formatDate(e.date)}">📅 ${formatDate(e.date)}</span>` : '';
+        let dateBadge = state.sortCol !== 'date' ? `<span class="badge-txn" title="Date: ${formatDate(e.date)}">${formatDate(e.date)}</span>` : '';
         let badges = dateBadge + locationBadge + modeBadge + tagBadge + typeBadge + sourceBadge + txnBadge;
 
         const refunds = g.refunds || (g.merged ? [g.merged] : []);
@@ -200,7 +200,7 @@ export function renderTransactions() {
             </td>
             <td data-label="Date">
                 <div style="display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; width: 100%;">
-                    <div class="txn-date-text hide-on-mobile" style="flex-shrink: 0;">📅 ${formatDate(e.date)}</div>
+                    <div class="txn-date-text hide-on-mobile" style="flex-shrink: 0;">${formatDate(e.date)}</div>
                     ${e.location ? `<div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 2px; overflow: hidden; min-width: 0;" title="${escHtml(e.location)}"><span>📍</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escHtml(e.location)}</span></div>` : ''}
                 </div>
             </td>
@@ -318,7 +318,7 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
             let badgesHtml = (typeBadge || modeBadge || tagBadge || sourceBadge || txnBadge) ? `<div class="badges-wrapper" style="justify-content: flex-start; margin: 0; padding-top: 4px;">${typeBadge}${modeBadge}${tagBadge}${sourceBadge}${txnBadge}</div>` : '';
 
             let metaHtml = `<div class="mobile-txn-details-meta">
-                <span>📅 ${formatDate(txn.date)}</span>
+                <span>${formatDate(txn.date)}</span>
                 <span>${escHtml(txn.txnMode)}</span>
                 ${txn.location ? `<span>📍 ${escHtml(txn.location)}</span>` : ''}
             </div>`;
@@ -476,7 +476,7 @@ window.openScheduledMobileMenu = function (idx) {
         let typeBadge = txnTypeBadgeHTML(st.txnType);
         let badgesHtml = typeBadge ? `<div class="badges-wrapper" style="justify-content: flex-start; margin: 0; padding-top: 4px;">${typeBadge}</div>` : '';
 
-        let nextRunHtml = st.frequency === 'instant' ? '' : `<span>📅 Next: ${formatDate(st.next_run_date)}</span>`;
+        let nextRunHtml = st.frequency === 'instant' ? '' : `<span>Next: ${formatDate(st.next_run_date)}</span>`;
         let metaHtml = `<div class="mobile-txn-details-meta">
             <span style="text-transform: capitalize;">🔄 ${escHtml(buildFrequencyString(st, formatDate))}</span>
             ${nextRunHtml}

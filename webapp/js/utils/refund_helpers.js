@@ -192,7 +192,7 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
         return `
         <div class="refund-item-card">
             <div class="refund-item-left">
-                <span class="refund-item-date">📅 ${formatDate(item.date)}</span>
+                <span class="refund-item-date">${formatDate(item.date)}</span>
                 <span class="refund-item-category">${escHtml(item.category)}</span>
                 ${item.note ? `<span class="refund-item-note">${escHtml(item.note)}</span>` : ''}
                 ${itemBadges ? `<div class="badges-wrapper">${itemBadges}</div>` : ''}

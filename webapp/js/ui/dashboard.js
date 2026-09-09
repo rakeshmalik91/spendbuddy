@@ -335,7 +335,7 @@ function renderRecentTransactions() {
 
         const mainRowHtml = `
         <tr id="dash-row-${realIdx}" class="touchable-row" data-real-idx="${realIdx}" data-merged="false" data-row-prefix="dash-row">
-            <td data-label="Date"><span class="txn-date-text hide-on-mobile">📅 ${formatDate(e.date)}</span></td>
+            <td data-label="Date"><span class="txn-date-text hide-on-mobile">${formatDate(e.date)}</span></td>
             <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
             <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
                 <div class="note-content">
@@ -470,7 +470,7 @@ export function renderSelectedDayTransactions() {
 
         return sepHTML + `
         <tr id="txn-row-${realIdx !== -1 ? realIdx : 'sched-' + Math.random().toString(36).substr(2, 5)}" class="touchable-row" data-real-idx="${realIdx !== -1 ? realIdx : ''}" data-row-prefix="txn-row">
-            <td data-label="Date">📅 ${formatDate(e.date)}</td>
+            <td data-label="Date">${formatDate(e.date)}</td>
             <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
             <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
                 <div class="note-content">

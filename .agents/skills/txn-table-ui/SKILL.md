@@ -74,7 +74,7 @@ grid-template-areas:
 grid-template-columns: 1fr auto;
 gap: 3px 10px;
 ```
-Month headers and day separators on `#recent-table` similarly use `grid-template-columns: 1fr auto !important;` with their dummy trailing empty cells hidden (`display: none !important;`). The day separator displays `📅 [Date]` on the left and the day total on the right, styled with `margin-top: 14px` and `padding: 10px 4px 6px 4px` to provide clean visual breathing room above each day grouping.
+Month headers and day separators on `#recent-table` similarly use `grid-template-columns: 1fr auto !important;` with their dummy trailing empty cells hidden (`display: none !important;`). The day separator displays `[Date]` on the left and the day total on the right, styled with `margin-top: 14px` and `padding: 10px 4px 6px 4px` to provide clean visual breathing room above each day grouping.
 
 - **Scheduled Transactions Table (`#scheduled-table`)**:
 Retains metadata row for Next Run and Frequency:
