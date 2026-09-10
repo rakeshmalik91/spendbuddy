@@ -161,10 +161,10 @@
     <link rel="stylesheet" href="css/components/cards.css?v=11">
     <link rel="stylesheet" href="css/components/tables.css?v=54">
     <link rel="stylesheet" href="css/components/forms.css?v=14">
-    <link rel="stylesheet" href="css/components/filters.css?v=9">
+    <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=12">
     <link rel="stylesheet" href="css/views/settings.css?v=4">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=43">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=44">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -525,14 +525,16 @@
                                 <option value="">All</option>
                             </select>
                         </div>
-                        <div class="filter-group">
-                            <label for="filter-search">Search Notes</label>
-                            <input type="text" id="filter-search" placeholder="Search…">
-                        </div>
-                        <div class="filter-group filter-group-action">
-                            <button type="button" class="btn-clear-filters" id="btn-clear-filters" title="Reset all filters" disabled>
-                                <span>✕</span> Clear Filters
-                            </button>
+                        <div class="filter-search-action">
+                            <div class="filter-group filter-group-search">
+                                <label for="filter-search">Search Notes</label>
+                                <input type="text" id="filter-search" placeholder="Search…">
+                            </div>
+                            <div class="filter-group filter-group-action">
+                                <button type="button" class="btn-clear-filters" id="btn-clear-filters" title="Reset all filters" disabled>
+                                    <span>✕</span> Clear Filters
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

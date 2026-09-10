@@ -190,6 +190,19 @@
     color: var(--text-muted);
 }
 
+.filter-search-action {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex: 1 1 380px;
+    min-width: 260px;
+}
+
+.filter-group-search {
+    flex: 1;
+    min-width: 140px;
+}
+
 .filter-group-action {
     flex: 0 0 auto;
     min-width: auto;
