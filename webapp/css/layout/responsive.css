@@ -21,10 +21,40 @@
 
     .sidebar {
         transform: translateX(-100%);
+        width: 260px !important;
+        padding: 28px 18px !important;
     }
 
     .sidebar.open {
         transform: translateX(0);
+    }
+
+    .sidebar-collapse-btn {
+        display: none !important;
+    }
+
+    .sidebar .sidebar-header {
+        flex-direction: row !important;
+        margin-bottom: 24px !important;
+    }
+
+    .sidebar .brand-text {
+        display: inline !important;
+    }
+
+    .sidebar #sidebar-user-id {
+        display: block !important;
+    }
+
+    .sidebar .nav-btn {
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+        width: auto !important;
+        gap: 12px !important;
+    }
+
+    .sidebar .nav-btn .nav-text {
+        display: inline !important;
     }
 
     .mobile-header {
@@ -118,6 +148,10 @@
     .bottom-nav .fab-btn {
         width: 64px;
         height: 64px;
+        min-width: 64px;
+        max-width: 64px;
+        aspect-ratio: 1 / 1;
+        flex-shrink: 0;
         background: linear-gradient(135deg, var(--accent), var(--purple));
         border-radius: 50%;
         color: white;

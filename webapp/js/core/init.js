@@ -10,6 +10,7 @@ import { SESSION_VALIDITY_MINUTES, FIREBASE_CONFIG, USE_LOCAL_DATA } from "../..
 import { setupNavigation } from "../ui/navigation.js";
 import { populateFormDropdowns } from "../ui/form_dropdowns.js";
 import { setupMobileMenu } from "../ui/mobile_menu.js";
+import { setupSidebar } from "../ui/sidebar.js";
 import { setupSettings } from "../ui/settings.js";
 import { setupModal, openModal } from "../ui/modal.js";
 import { setupTimeFilter } from "../ui/time_filter.js";
@@ -158,6 +159,7 @@ export const initApp = async () => {
     setupSort();
     setupModal();
     setupMobileMenu();
+    setupSidebar();
     setupSettings();
     import('../services/encryption_manager.js').then(m => m.setupEncryptionSettings());
     setupTimeFilter();

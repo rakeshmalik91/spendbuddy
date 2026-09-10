@@ -42,13 +42,19 @@
     --text-muted: #5a6478;
 
     /* Layout */
-    --sidebar-w: 260px;
+    --sidebar-w-expanded: 260px;
+    --sidebar-w-collapsed: 68px;
+    --sidebar-w: var(--sidebar-w-expanded);
     --radius: 20px;
     --radius-sm: 14px;
     --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Fonts */
     --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body.sidebar-collapsed {
+    --sidebar-w: var(--sidebar-w-collapsed);
 }
 
 html {

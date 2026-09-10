@@ -144,6 +144,9 @@
         </div>
     </div>
     <script>
+        if (localStorage.getItem('expman_sidebar_collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
         // Start animations strictly after the First Paint to prevent timer drift "teleporting"
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -152,11 +155,11 @@
             });
         });
     </script>
-    <link rel="stylesheet" href="css/base/reset.css?v=9">
+    <link rel="stylesheet" href="css/base/reset.css?v=10">
     <link rel="stylesheet" href="css/base/scrollbar.css?v=4">
-    <link rel="stylesheet" href="css/layout/sidebar.css?v=6">
+    <link rel="stylesheet" href="css/layout/sidebar.css?v=9">
     <link rel="stylesheet" href="css/layout/header.css?v=4">
-    <link rel="stylesheet" href="css/layout/main.css?v=9">
+    <link rel="stylesheet" href="css/layout/main.css?v=10">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
     <link rel="stylesheet" href="css/components/tables.css?v=54">
@@ -164,7 +167,7 @@
     <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=12">
     <link rel="stylesheet" href="css/views/settings.css?v=4">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=44">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=46">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -237,36 +240,50 @@
 
     <!-- ═══════════ SIDEBAR ═══════════ -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand" style="margin-bottom: 24px;">
-            <span class="brand-icon" style="display: flex; align-items: center;"><img src="logo.svg" alt="logo"
-                    style="width: 1.2em; height: 1.2em;"></span>
-            <span class="brand-text">ExpenseIQ</span>
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon"><img src="logo.svg" alt="logo"
+                        style="width: 1.2em; height: 1.2em;"></span>
+                <span class="brand-text">ExpenseIQ</span>
+            </div>
+            <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">
+                <svg class="icon-collapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="m14 9-3 3 3 3"/>
+                </svg>
+                <svg class="icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M9 3v18"/>
+                    <path d="m13 15 3-3-3-3"/>
+                </svg>
+            </button>
         </div>
         <div id="sidebar-user-id"
-            style="padding: 0 16px 24px 16px; font-size: 0.8rem; color: var(--text-dim); text-align: left; word-break: break-all;">
+            style="padding: 0 16px 24px 16px; font-size: 0.8rem; color: var(--text-dim); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
         </div>
         <nav class="sidebar-nav">
-            <button class="nav-btn" data-view="add" id="nav-add">
-                <span class="nav-icon">➕</span> Add Entry
+            <button class="nav-btn" data-view="add" id="nav-add" title="Add Entry">
+                <span class="nav-icon">➕</span> <span class="nav-text">Add Entry</span>
             </button>
-            <button class="nav-btn active" data-view="dashboard" id="nav-dashboard">
-                <span class="nav-icon">📊</span> Dashboard
+            <button class="nav-btn active" data-view="dashboard" id="nav-dashboard" title="Dashboard">
+                <span class="nav-icon">📊</span> <span class="nav-text">Dashboard</span>
             </button>
-            <button class="nav-btn" data-view="transactions" id="nav-transactions">
-                <span class="nav-icon">📋</span> Transactions
+            <button class="nav-btn" data-view="transactions" id="nav-transactions" title="Transactions">
+                <span class="nav-icon">📋</span> <span class="nav-text">Transactions</span>
             </button>
-            <button class="nav-btn" data-view="charts" id="nav-charts">
-                <span class="nav-icon">📈</span> Charts
+            <button class="nav-btn" data-view="charts" id="nav-charts" title="Charts">
+                <span class="nav-icon">📈</span> <span class="nav-text">Charts</span>
             </button>
-            <button class="nav-btn" data-view="balance" id="nav-balance">
-                <span class="nav-icon">💰</span> Balance
+            <button class="nav-btn" data-view="balance" id="nav-balance" title="Balance">
+                <span class="nav-icon">💰</span> <span class="nav-text">Balance</span>
             </button>
-            <button class="nav-btn" data-view="settings" id="nav-settings">
-                <span class="nav-icon">⚙️</span> Settings
+            <button class="nav-btn" data-view="settings" id="nav-settings" title="Settings">
+                <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
             </button>
             <div class="sidebar-spacer" style="flex: 1;"></div>
-            <button class="nav-btn" id="nav-lock">
-                <span class="nav-icon">🚪</span> Lock App
+            <button class="nav-btn" id="nav-lock" title="Lock App">
+                <span class="nav-icon">🔒</span> <span class="nav-text">Lock App</span>
             </button>
         </nav>
     </aside>
@@ -2109,7 +2126,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=396"></script>
+    <script type="module" src="app.js?v=398"></script>
 </body>
 
 </html>

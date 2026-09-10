@@ -8,6 +8,7 @@
     scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
     min-width: 0;
+    transition: margin-left var(--transition);
 }
 
 /* ══════════════ VIEW SWITCHING & TITLES ══════════════ */
