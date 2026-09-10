@@ -1,6 +1,7 @@
 import { state } from "../core/state.js";
 import { escHtml, formatDate } from "./date_helpers.js";
 import { getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, hasMatchingTxnId, isRefundTxn, txnTypeBadgeHTML } from "./txn_id_helpers.js";
+import { txnModeBadgeHTML } from "./category_helpers.js";
 
 /* ══════════════ REFUND LINKING & RENDERING ══════════════ */
 
@@ -169,18 +170,28 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
         const itemDisplaySources = getDisplaySourceList(item.source);
         const itemRawSources = getRawSourceList(item.source);
         let typeBadge = txnTypeBadgeHTML(item.txnType) || '';
-        let modeBadge = item.txnMode ? `<span class="badge-mode" title="${escHtml(item.txnMode)}">${escHtml(item.txnMode)}</span>` : '';
+        const isCompact = prefix !== 'dash-row' ? state.hideSourceTxnId : false;
+        let modeBadge = txnModeBadgeHTML(item.txnMode, isCompact);
         let sourceBadge = '';
-        if (itemRawSources.length > 0 && !(prefix !== 'dash-row' && state.hideSourceTxnId)) {
-            if (prefix !== 'dash-row') {
+        if (itemDisplaySources.length > 0) {
+            if (prefix !== 'dash-row' && !state.hideSourceTxnId) {
                 const fullBadges = itemRawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
                 const shortBadges = itemDisplaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(item.source)}">${escHtml(s)}</span>`).join('');
                 sourceBadge = fullBadges + shortBadges;
             } else {
+                // Shortened on dashboard or in compact view
                 sourceBadge = itemDisplaySources.map(s => `<span class="badge-source" title="${escHtml(item.source)}">${escHtml(s)}</span>`).join('');
             }
         }
-        let txnBadge = !(prefix !== 'dash-row' && state.hideSourceTxnId) ? itemDisplayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('') : '';
+        let txnBadge = '';
+        if (itemDisplayTxnIds.length > 0) {
+            if (prefix !== 'dash-row' && !state.hideSourceTxnId) {
+                txnBadge = itemDisplayTxnIds.map(id => `<span class="badge-txn" title="#${escHtml(id)}">#${escHtml(id)}</span>`).join('');
+            } else {
+                // Shortened / hidden on mobile on dashboard or in compact view
+                txnBadge = itemDisplayTxnIds.map(id => `<span class="badge-txn hide-on-mobile" title="#${escHtml(id)}">#${escHtml(id)}</span>`).join('');
+            }
+        }
         let tagBadge = (prefix !== 'dash-row' && item.tag) ? `<span class="badge-tag" title="Tag: ${escHtml(item.tag)}">🏷️ ${escHtml(item.tag)}</span>` : '';
         let itemBadges = typeBadge + modeBadge + tagBadge + sourceBadge + txnBadge;
 

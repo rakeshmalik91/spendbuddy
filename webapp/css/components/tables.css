@@ -393,6 +393,29 @@
     letter-spacing: 0.02em;
 }
 
+.badge-mode.badge-mode-emoji {
+    padding: 2px 6px;
+    cursor: default;
+}
+
+.badge-mode.badge-mode-emoji .badge-mode-label {
+    display: none;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
+@media (hover: hover) {
+    .badge-mode.badge-mode-emoji:hover .badge-mode-label {
+        display: inline;
+    }
+}
+
+.badge-mode-emoji-icon {
+    font-size: 1.05em;
+    line-height: 1;
+    display: inline-block;
+}
+
 .badge-location {
     font-size: 0.72rem;
     font-weight: 500;

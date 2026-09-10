@@ -1,5 +1,5 @@
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state } from "../core/state.js";
@@ -302,7 +302,7 @@ function renderRecentTransactions() {
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
-        let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
+        let modeBadge = txnModeBadgeHTML(e.txnMode, state.hideSourceTxnId);
         let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
 
         let amountHtml = `
@@ -446,7 +446,7 @@ export function renderSelectedDayTransactions() {
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
-        let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
+        let modeBadge = txnModeBadgeHTML(e.txnMode, state.hideSourceTxnId);
         let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
 
         let actionHTML = '';

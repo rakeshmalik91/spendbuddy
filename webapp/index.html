@@ -159,7 +159,7 @@
     <link rel="stylesheet" href="css/layout/main.css?v=9">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
-    <link rel="stylesheet" href="css/components/tables.css?v=53">
+    <link rel="stylesheet" href="css/components/tables.css?v=54">
     <link rel="stylesheet" href="css/components/forms.css?v=14">
     <link rel="stylesheet" href="css/components/filters.css?v=9">
     <link rel="stylesheet" href="css/components/modals.css?v=12">
@@ -471,7 +471,7 @@
                             </div>
                             <div class="txn-refund-toggle-wrap">
                                 <label for="toggle-hide-source-txnid" class="txn-refund-toggle-label">Compact View</label>
-                                <label class="toggle-switch" title="Toggle compact view (hides source &amp; transaction ID badges)">
+                                <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
                                     <input type="checkbox" id="toggle-hide-source-txnid">
                                     <span class="toggle-slider"></span>
                                 </label>
@@ -1218,9 +1218,9 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
                             <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Compact View</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Hide source badges and transaction ID tags in transaction lists for a clean, compact display</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes for a clean display</div>
                             </div>
-                            <label class="toggle-switch" title="Toggle compact view (hides source &amp; transaction ID badges)">
+                            <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
                                 <input type="checkbox" id="toggle-hide-source-txnid-settings">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -2107,7 +2107,7 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=395"></script>
+    <script type="module" src="app.js?v=396"></script>
 </body>
 
 </html>

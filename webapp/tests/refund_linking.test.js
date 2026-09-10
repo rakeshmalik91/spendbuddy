@@ -335,7 +335,7 @@ describe('openRefundLinkingModal UI behavior', () => {
         expect(settingsToggle.checked).toBe(false);
     });
 
-    test('renderTransactions hides source and txn id badges when state.hideSourceTxnId is true', async () => {
+    test('renderTransactions shortens source and txn id badges and displays emoji mode when state.hideSourceTxnId is true', async () => {
         const { renderTransactions } = await import('../js/ui/transactions.js');
         document.body.innerHTML = `
             <input type="checkbox" id="toggle-hide-source-txnid" />
@@ -343,25 +343,37 @@ describe('openRefundLinkingModal UI behavior', () => {
             <div id="view-transactions"><div class="table-footer"></div></div>
         `;
 
+        state.txnModes = ['📱 UPI', '💳 Credit Card'];
         state.expenses = [
-            { date: '2026-09-01', amount: 1000, category: 'Food', txnType: 'Expense', txnMode: 'UPI', note: 'Lunch', txnId: 'TXN12345', source: 'HDFC Bank' }
+            { date: '2026-09-01', amount: 1000, category: 'Food', txnType: 'Expense', txnMode: 'UPI', note: 'Lunch', txnId: 'TXN12345', source: 'SMS: HDFC Bank' }
         ];
 
-        // When hideSourceTxnId is false, badges should appear
+        // When hideSourceTxnId is false, full badges should appear
         state.hideSourceTxnId = false;
         renderTransactions();
         expect(document.getElementById('toggle-hide-source-txnid').checked).toBe(false);
         const htmlShown = document.getElementById('all-tbody').innerHTML;
-        expect(htmlShown).toContain('badge-source');
+        expect(htmlShown).toContain('badge-source hide-on-mobile');
+        expect(htmlShown).toContain('SMS: HDFC Bank');
         expect(htmlShown).toContain('TXN12345');
+        expect(htmlShown).toContain('📱 UPI');
 
-        // When hideSourceTxnId is true, badges should NOT appear
+        // When hideSourceTxnId is true, source is shortened, txnId has hide-on-mobile, mode is emoji-only
         state.hideSourceTxnId = true;
         renderTransactions();
         expect(document.getElementById('toggle-hide-source-txnid').checked).toBe(true);
-        const htmlHidden = document.getElementById('all-tbody').innerHTML;
-        expect(htmlHidden).not.toContain('badge-source');
-        expect(htmlHidden).not.toContain('TXN12345');
+        const htmlCompact = document.getElementById('all-tbody').innerHTML;
+        // Source should be shortened to 'SMS' with full source in title
+        expect(htmlCompact).toContain('badge-source');
+        expect(htmlCompact).toContain('>SMS<');
+        expect(htmlCompact).toContain('title="SMS: HDFC Bank"');
+        // Txn id should have hide-on-mobile
+        expect(htmlCompact).toContain('badge-txn hide-on-mobile');
+        expect(htmlCompact).toContain('#TXN12345');
+        // Mode should be emoji only with badge-mode-emoji
+        expect(htmlCompact).toContain('badge-mode badge-mode-emoji');
+        expect(htmlCompact).toContain('badge-mode-emoji-icon">📱</span>');
+        expect(htmlCompact).toContain('badge-mode-label">UPI</span>');
 
         // Cleanup
         state.hideSourceTxnId = false;

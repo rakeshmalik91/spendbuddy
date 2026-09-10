@@ -22,6 +22,7 @@ jest.mock('../js/utils/helpers.js', () => ({
     escHtml: (str) => str || '',
     amountClass: () => 'amt-expense',
     txnTypeBadgeHTML: () => '',
+    txnModeBadgeHTML: (mode) => mode ? `<span class="badge-mode">${mode}</span>` : '',
     formatDate: (d) => d || '',
     renderAmountHTML: (e) => e ? String(e.amount) : '',
     isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),

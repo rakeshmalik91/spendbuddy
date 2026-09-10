@@ -1,6 +1,7 @@
 import { state } from "../core/state.js";
 import { KEYWORD_MAPPINGS, TXN_TYPE_MAPPINGS } from "./category_mappings.js";
 import { getTxnTypeFromMapping } from "./txn_mode_mapping.js";
+import { escHtml } from "./date_helpers.js";
 
 /* ══════════════ CATEGORY / MERCHANT HELPERS ══════════════ */
 
@@ -272,3 +273,24 @@ export function mapTxnMode(rawMode, txnModes) {
     }
     return txnModes[0] || 'UPI';
 }
+
+/**
+ * Renders the HTML badge for a transaction mode.
+ * In compact mode, if the resolved transaction mode contains an emoji,
+ * displays only the emoji by default (similar to categoryChipHTML on Add Txn page)
+ * with the label hidden until hover on desktop, plus full title tooltip.
+ */
+export function txnModeBadgeHTML(txnMode, isCompact = false) {
+    if (!txnMode) return '';
+    const modes = state.txnModes || [];
+    const resolvedMode = resolveTxnModeName(txnMode, modes) || txnMode;
+    const emojiMatch = resolvedMode.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})[\uFE0F\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}]*/u);
+
+    if (isCompact && emojiMatch) {
+        const emoji = escHtml(emojiMatch[0]);
+        const label = escHtml(resolvedMode.slice(emojiMatch[0].length).trim());
+        return `<span class="badge-mode badge-mode-emoji" title="${escHtml(resolvedMode)}"><span class="badge-mode-emoji-icon">${emoji}</span>${label ? `<span class="badge-mode-label">${label}</span>` : ''}</span>`;
+    }
+    return `<span class="badge-mode" title="${escHtml(resolvedMode)}">${escHtml(resolvedMode)}</span>`;
+}
+

@@ -1,6 +1,6 @@
 import { getFilteredExpenses } from "./filters.js";
 import { getDaySeparatorHTML } from "./settings.js";
-import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
 import { $ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
@@ -106,16 +106,29 @@ export function renderTransactions() {
         const rawSources = getRawSourceList(e.source);
         const displaySources = getDisplaySourceList(e.source);
         let sourceBadge = '';
-        if (rawSources.length > 0 && !state.hideSourceTxnId) {
-            const fullBadges = rawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
-            const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
-            sourceBadge = fullBadges + shortBadges;
+        if (displaySources.length > 0) {
+            if (state.hideSourceTxnId) {
+                // In compact view, shorten sources similar to dashboard
+                sourceBadge = displaySources.map(s => `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
+            } else {
+                const fullBadges = rawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
+                const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
+                sourceBadge = fullBadges + shortBadges;
+            }
         }
         let locationBadge = e.location ? `<span class="badge-location" title="${escHtml(e.location)}">📍 ${escHtml(e.location)}</span>` : '';
         const displayTxnIds = getDisplayTxnIdList(e);
-        let txnBadge = (!state.hideSourceTxnId && displayTxnIds.length > 0) ? displayTxnIds.map(id => `<span class="badge-txn">#${escHtml(id)}</span>`).join('') : '';
+        let txnBadge = '';
+        if (displayTxnIds.length > 0) {
+            if (state.hideSourceTxnId) {
+                // In compact view, show txn ID on desktop and hide on mobile similar to dashboard
+                txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile" title="#${escHtml(id)}">#${escHtml(id)}</span>`).join('');
+            } else {
+                txnBadge = displayTxnIds.map(id => `<span class="badge-txn" title="#${escHtml(id)}">#${escHtml(id)}</span>`).join('');
+            }
+        }
         let typeBadge = txnTypeBadgeHTML(e.txnType);
-        let modeBadge = e.txnMode ? `<span class="badge-mode" title="${escHtml(e.txnMode)}">${escHtml(e.txnMode)}</span>` : '';
+        let modeBadge = txnModeBadgeHTML(e.txnMode, state.hideSourceTxnId);
         let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
         let dateBadge = state.sortCol !== 'date' ? `<span class="badge-txn" title="Date: ${formatDate(e.date)}">${formatDate(e.date)}</span>` : '';
         let badges = dateBadge + locationBadge + modeBadge + tagBadge + typeBadge + sourceBadge + txnBadge;
@@ -309,7 +322,7 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
             let amtHtml = `<div class="mobile-txn-details-amount ${amountClass(txn)}">${renderAmountHTML(txn)}</div>`;
             
             let typeBadge = txnTypeBadgeHTML(txn.txnType) || '';
-            let modeBadge = txn.txnMode ? `<span class="badge-mode" title="${escHtml(txn.txnMode)}">${escHtml(txn.txnMode)}</span>` : '';
+            let modeBadge = txnModeBadgeHTML(txn.txnMode, false);
             let tagBadge = txn.tag ? `<span class="badge-tag" title="${escHtml(txn.tag)}">🏷️ ${escHtml(txn.tag)}</span>` : '';
             let rawSources = getRawSourceList(txn.source);
             let sourceBadge = rawSources.map(s => `<span class="badge-source" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');

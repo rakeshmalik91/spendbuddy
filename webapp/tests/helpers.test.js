@@ -233,5 +233,38 @@ describe('Helpers', () => {
             expect(helpers.isMobileView()).toBe(false);
         });
     });
+
+    describe('txnModeBadgeHTML', () => {
+        it('should return empty string if txnMode is empty', () => {
+            expect(helpers.txnModeBadgeHTML('')).toBe('');
+            expect(helpers.txnModeBadgeHTML(null)).toBe('');
+        });
+
+        it('should render standard badge when isCompact is false', () => {
+            state.txnModes = ['📱 UPI', '💳 Credit Card', '💵 Cash'];
+            const html = helpers.txnModeBadgeHTML('UPI', false);
+            expect(html).toContain('badge-mode');
+            expect(html).toContain('📱 UPI');
+            expect(html).not.toContain('badge-mode-emoji');
+        });
+
+        it('should render emoji-only badge when isCompact is true and emoji exists', () => {
+            state.txnModes = ['📱 UPI', '💳 Credit Card', '💵 Cash'];
+            const html = helpers.txnModeBadgeHTML('UPI', true);
+            expect(html).toContain('badge-mode');
+            expect(html).toContain('badge-mode-emoji');
+            expect(html).toContain('badge-mode-emoji-icon">📱</span>');
+            expect(html).toContain('badge-mode-label">UPI</span>');
+            expect(html).toContain('title="📱 UPI"');
+        });
+
+        it('should fallback to text if mode has no emoji', () => {
+            state.txnModes = ['Cheque'];
+            const html = helpers.txnModeBadgeHTML('Cheque', true);
+            expect(html).toContain('badge-mode');
+            expect(html).not.toContain('badge-mode-emoji');
+            expect(html).toContain('Cheque');
+        });
+    });
 });
 
