@@ -1,8 +1,3 @@
----
-name: login-and-caching-knowledge
-description: Core documentation, architecture, and implementation details for the Login And Caching feature.
----
-
 # Initial Login & Caching Architecture
 
 This document explains the initialization, authentication, data caching, and Android WebView asset caching architecture of the application. The system is designed for **zero-wait, instant startup** for returning users by aggressively trusting local caches and performing all network operations asynchronously in the background.
@@ -53,7 +48,32 @@ New users can opt into **End-to-End (E2E) Encryption** directly on the signup sc
 
 ---
 
-## 3. Decryption Flow
+## 3. Decryption Flow & Cryptographic Pipeline
+
+```mermaid
+flowchart TD
+    subgraph KeyDerivation["1. Zero-Knowledge Key Derivation (crypto.js)"]
+        Pwd["User Password (from Login or Unlock Overlay)"] --> Salt["Constant Salt: 'expman_secure_salt'"]
+        Pwd --> PBKDF2["PBKDF2 (SHA-256, 100,000 iterations)"]
+        Salt --> PBKDF2
+        PBKDF2 --> Key["CryptoKey: AES-GCM 256-bit"]
+        Key --> Memory["state.encryptionKey (In-memory only, never persisted to disk!)"]
+    end
+
+    subgraph OfflineStorage["2. Offline Instant Read / Write Tier"]
+        Memory --> DecryptLocal["Read Encrypted Records from IndexedDB"]
+        DecryptLocal --> DecryptAES["AES-GCM Decrypt (decryptData)"]
+        DecryptAES --> PlainState["state.expenses, state.balanceData, state.categories"]
+        PlainState --> RenderUI["Instant UI Render (~0ms startup)"]
+    end
+
+    subgraph CloudSyncTier["3. Remote Cloud Sync Tier (storage.js)"]
+        PlainState --> EncryptAES["AES-GCM Encrypt (encryptData)"]
+        EncryptAES --> CipherPayload["Ciphertext + IV (12 bytes) + Auth Tag"]
+        CipherPayload --> RemoteUpload["Firebase Storage Upload:<br/>expenses_YYYY.csv, balance.csv"]
+        RemoteUpload <--> ETag["ETag & Timestamp Validation<br/>(syncCloudDataInBackground)"]
+    end
+```
 
 The optimistic load or login flow triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](file:///d:/Projects/expense-manager/webapp/js/services/encryption_manager.js):
 - **Immediate Login**: When logging in with email and password, the login handler derives `state.encryptionKey = await deriveKey(pwd)` immediately. Thus, when `checkEncryptionAndUnlock()` checks `!state.encryptionKey`, it passes without prompting and unlocks instantly.
@@ -62,7 +82,7 @@ The optimistic load or login flow triggers `checkEncryptionAndUnlock()` from [en
 
 ---
 
-## 3. Instant Local Cache Render (`initApp`)
+## 4. Instant Local Cache Render (`initApp`)
 
 The `initApp()` function is responsible for assembling the UI using cached data:
 - `loadAllCSVs()`, `loadMetadata()`, and `loadScheduledCSV()` are called. These functions query the local **IndexedDB** cache to fetch all financial records instantly.
@@ -71,7 +91,7 @@ The `initApp()` function is responsible for assembling the UI using cached data:
 
 ---
 
-## 4. Background Sync (`syncCloudDataInBackground`)
+## 5. Background Sync (`syncCloudDataInBackground`)
 
 Once the UI is fully rendered and interactive, network requests begin strictly in the background:
 - `syncCloudDataInBackground()` connects to Firebase Storage.
@@ -82,7 +102,7 @@ Once the UI is fully rendered and interactive, network requests begin strictly i
 
 ---
 
-## 5. Manual Sync (Pull-to-Refresh)
+## 6. Manual Sync (Pull-to-Refresh)
 
 On mobile devices, users can manually trigger a cache invalidation check via a native-feeling "Pull-to-Refresh" gesture on the dashboard:
 - This bypasses the 5-minute polling interval and immediately invokes `syncCloudDataInBackground()`.
@@ -91,7 +111,7 @@ On mobile devices, users can manually trigger a cache invalidation check via a n
 
 ---
 
-## 6. Android WebView Web Asset Caching (`SiteCache.java` & `CachedWebViewClient.java`)
+## 7. Android WebView Web Asset Caching (`SiteCache.java` & `CachedWebViewClient.java`)
 
 To ensure zero latency and offline capability inside the Android APK while allowing web updates to deploy seamlessly without freezing stale assets:
 
@@ -114,7 +134,7 @@ flowchart TD
     CheckDisk -- No --> FetchDisk[Download, write to site_cache, and serve]
 ```
 
-### 6.1 Key Asset Caching Principles:
+### 7.1 Key Asset Caching Principles:
 1. **Entry Point Revalidation (`index.html`)**:
    - `index.html` is the root shell containing script tags like `<script type="module" src="app.js?v=XXX">`.
    - On launch / refresh, [SiteCache.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java) sends a conditional `If-None-Match` request.
@@ -129,16 +149,8 @@ flowchart TD
 
 ---
 
-## 7. Late Auth Confirmation
+## 8. Late Auth Confirmation
 
 Eventually, the Firebase `onAuthStateChanged` callback fires:
 - **Success:** If the optimistic load was correct (the user has a valid Firebase session), it simply updates the UI with the user's email (e.g., in the sidebar).
 - **Failure:** If the session is invalid or expired (meaning the `onAuthStateChanged` returns a `null` user), the app detects that the optimistic load was a false positive. It immediately purges all `expman_*` keys from `localStorage` and reloads the page to safely present the login screen.
-
----
-
-## Advantages of this Flow
-1. **Instant UX:** The user never stares at a loading spinner waiting for Firebase Auth or Cloud Storage on a cold start.
-2. **Offline-First:** The app functions perfectly offline based on the last known IndexedDB and `site_cache` state.
-3. **Automated Web Deployment Delivery:** Web app updates are immediately and seamlessly picked up by Android clients without requiring manual cache wipes.
-4. **Eventual Consistency:** Background sync ensures the data is eventually consistent across all devices without blocking the main thread.

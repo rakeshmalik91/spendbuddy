@@ -1,12 +1,29 @@
----
-name: refund-linking-knowledge
-description: Core documentation, architecture, ID matching algorithms, collapsible sub-row UI, interactive linking modal, and multi-device rules for the Refund Linking feature.
----
-
 # Refund Linking & Sub-Row UI Architecture
 
 ## Overview
 The Refund Linking feature connects **Original Expenses** with **Refund Transactions**. It automatically groups matching refunds with expenses to present net expense totals, provides a collapsible desktop sub-row UI, and exposes an interactive modal for manual linking and unlinking across multi-year data.
+
+```mermaid
+flowchart TD
+    subgraph DataInput["Transaction Array"]
+        A["All Transactions (Current Year & Past Years)"]
+    end
+
+    subgraph AutoMerge["mergeRefundTransactions Engine"]
+        B["Step 1: Partition Expenses vs Refunds<br/>(isRefundTxn: txnType='Refund' or amount < 0)"]
+        B --> C["Step 2: Exact Pipe-Separated txnId Match<br/>(hasMatchingTxnId: shared reference or system ID)"]
+        C --> D{"Step 3: Unlinked Refunds Remaining?"}
+        D -- Yes --> E["7-Day Heuristic Fallback Match:<br/>|expense.amount| == |refund.amount|<br/>0 <= (refundDate - expenseDate) <= 7 days"]
+        D -- No --> F["Calculate Net Expense:<br/>netAmount = max(0, originalAmount - totalRefunded)"]
+        E --> F
+    end
+
+    subgraph UIOutput["UI Presentation"]
+        F --> G1["Desktop: Original Expense Row with Linked Refund Cards in Collapsible Sub-Row"]
+        F --> G2["Mobile: Independent Cards with Linked Badges (Sub-row hidden)"]
+        F --> G3["Linking Modal (openRefundLinkingModal):<br/>Search, Checkbox candidates, and Multi-Year CSV Persistence"]
+    end
+```
 
 ---
 
@@ -67,6 +84,14 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
   - Displays linked refund cards with Date, Category, Note, Badges (Source ID), Mode, and Amount (`+₹X.XX`).
   - Action buttons in sub-row cards allow inline Linking (`🔗`), Editing (`✏️`), and Deleting (`🗑️`).
 
+### 3.2 Mobile Actions & Linking Access
+- **Mobile Grid Card Integrity**: On mobile screens (`<= 860px`), full-width nested sub-rows are suppressed (`hide-on-mobile`) to prevent horizontal card stretching.
+- **Mobile Action Sheet**: Tapping the `⋮` action button on an expense or refund card opens the slide-up action sheet, exposing:
+  - **"Link Refund"** (or **"Link Expense"**): Directly opens the interactive linking modal.
+  - **"Add Refund Entry"**: Automatically generates a linked refund.
+  - **"Delete Linked Refund(s)"**: Bulk deletes all linked refunds for that expense.
+- **Visual Feedback**: Mobile cards render compact inline pill badges (`[Refund]`, `[Net ₹X.XX]`) directly beside the note text on Line 2.
+
 ### 3.3 Direct One-Click Refund Generation (`generateRefund`)
 - Clicking the refund action button (`↩️`) on an expense row directly creates, links, and saves a corresponding refund entry (`txnType: 'Refund'`, amount `-Math.abs(expense.amount)`, shared `txnId`).
 - It saves the updated CSV for that year and refreshes the UI immediately **without navigating away to the Add Entry form**.
@@ -75,7 +100,40 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
 
 ## 4. Interactive Linking Modal (`refund_linking_modal.js`)
 
-`openRefundLinkingModal(txnIdx)` opens a modal overlay allowing users to search, select, link, or unlink candidate transactions.
+`openRefundLinkingModal(txnIdx)` opens a modal overlay allowing users to search, select, link, or unlink candidate transactions across current and past years.
+
+```mermaid
+flowchart TD
+    subgraph Trigger["1. Modal Launch"]
+        A["Click 'Link Refund/Expense' (🔗) on Transaction"] --> B["openRefundLinkingModal(txnIdx)"]
+        B --> C{"Does targetTxn have txnId?"}
+        C -- No --> D["Auto-generate __TXN_<timestamp><rand> ID"]
+        C -- Yes --> E["Keep existing txnId"]
+    end
+
+    subgraph CandidateQuery["2. Dynamic Candidate Filtering"]
+        D --> F["Scan state.expenses for Candidate Matches"]
+        E --> F
+        F --> G{"Target is Refund or Expense?"}
+        G -- "Target is Refund" --> H["Filter: !isRefundTxn, date <= refundDate, amount >= refundAmount<br/>Render Radio Buttons (rl-expense-choice)"]
+        G -- "Target is Expense" --> I["Filter: isRefundTxn, date >= expenseDate, amount <= expenseAmount<br/>Render Checkboxes (rl-cb)"]
+        H --> J["Exclude candidates linked to other transactions<br/>Default: 7-day window (Expandable via 'Show All')"]
+        I --> J
+    end
+
+    subgraph Interaction["3. Live Calculation"]
+        J --> K["User Checks / Selects Candidates"]
+        K --> L["updateSummary():<br/>- Sum selected refunds<br/>- netAmount = max(0, originalAmount - totalRefunded)"]
+    end
+
+    subgraph Persistence["4. Multi-Year CSV Persistence"]
+        L --> M["Click 'Save Changes' (#btn-save-rl)"]
+        M --> N["Update pipe-separated txnId on target & candidates<br/>(e.g. 'REF-001|__TXN_ms8x6880vxej')"]
+        N --> O["Gather all modified years into modifiedYears Set"]
+        O --> P["For each yr in modifiedYears:<br/>await saveYearCSV(yr) (Parallel/Sequential cloud commit)"]
+        P --> Q["renderAll() + Success Toast Notification"]
+    end
+```
 
 - **System Txn ID Auto-Population**: Upon opening the modal, if `targetTxn` has no `txnId` (or if `txnId` is empty), a system transaction ID starting with `__TXN_` is automatically generated and populated for `targetTxn` (regardless of whether it is an Expense or a Refund target).
 
@@ -117,7 +175,7 @@ The Refund Linking feature connects **Original Expenses** with **Refund Transact
    - Always run `npm test` after modifying refund logic to verify `webapp/tests/refund_linking.test.js`.
 2. **Multi-Device Verification**:
    - **Desktop**: Verify clicking badge toggle expands sub-row smoothly and rotates arrow `▼`.
-   - **Mobile / Android**: Verify collapsible sub-row is hidden (`hide-on-mobile`) and mobile cards render clean right-aligned badges.
+   - **Mobile / Android**: Verify collapsible sub-row is hidden (`hide-on-mobile`) and mobile cards render clean left-aligned / inline badges.
    - **Modal**: Verify searching, checking/unchecking candidates, live summary calculation, and multi-year CSV saving.
 3. **Cache Bursting**:
    - Increment CSS/JS version parameters in `webapp/index.html` whenever updating refund modal or table sub-row styles.

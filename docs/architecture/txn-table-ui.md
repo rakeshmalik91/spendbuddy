@@ -1,14 +1,54 @@
----
-name: txn-table-ui-knowledge
-description: Core documentation, layout rules, CSS grid/flex architecture, and multi-device verification guidelines for the Transaction Table UI across desktop, mobile, Android, and split-screen views.
----
-
 # Transaction Table UI Architecture & Layout Guidelines
 
 ## Overview
 The Transaction Table UI renders all transaction lists (Recent Transactions on Dashboard, All Transactions, Selected Day Transactions, and Scheduled Transactions). To deliver a seamless user experience, the component uses a **dual-layout responsive strategy**:
 1. **Desktop View (`> 860px`)**: Traditional HTML data table (`display: table-row`) with auto layout and cell truncation constraints.
 2. **Mobile View (`<= 860px`)**: Compact card view using CSS Grid (`display: grid`) with 3-line grid template areas.
+
+```mermaid
+flowchart TD
+    A["Render Transaction Row (transactions.js, dashboard.js)"] --> B{Viewport Width Check}
+    
+    B -- "> 860px (Desktop)" --> C["display: table-row"]
+    C --> C1["th.col-date & td[data-label='Date']: display: none (Elevated to tr.day-separator)"]
+    C --> C2["Structured Tabular Numerals: font-variant-numeric: tabular-nums"]
+    C --> C3["Badges in Note Column: Left-aligned immediately beside note text"]
+    C --> C4["Single Action Button (⋮): Smart Drop-Up if < menuHeight + 12px from bottom"]
+    
+    B -- "<= 860px (Mobile & Tablets)" --> D["display: grid (Compact 2-Row Card)"]
+    D --> D1["Line 1: grid-area: category amount actions (1fr auto 28px)"]
+    D --> D2["Line 2: grid-area: note note actions (inline-flex badges wrapper)"]
+    D --> D3["Day Separator: [Date] on Left, Day Net Total on Right"]
+    D --> D4["Dashboard (#recent-table): 28px action column eliminated"]
+```
+
+```mermaid
+flowchart TD
+    subgraph DataPipeline["1. Data Preparation & Grouping"]
+        Raw["Raw Transactions Array (state.expenses)"] --> FilterSort["Filter & Sort Engine (Date Desc / Amount Desc)"]
+        FilterSort --> MergeCheck{state.mergeRefunds?}
+        MergeCheck -- true --> Merge["mergeRefundTransactions():<br/>- Group expenses with matching refunds<br/>- Compute netAmount = max(0, original - refunded)"]
+        MergeCheck -- false --> Standalone["Direct mapping (refunds as independent entries)"]
+    end
+
+    subgraph Assembly["2. Cell Content Construction"]
+        Merge --> Build["Build Row ViewModel"]
+        Standalone --> Build
+        Build --> Amt["Structured Amount Assembly:<br/>amount-sign slot (width: 0.85em)<br/>amount-symbol (₹)<br/>amount-val with tabular-nums"]
+        Build --> Badges["Badges Wrapper Assembly:<br/>location, mode, tag, type, source, txnId, refund"]
+        Build --> NoteCell["Note Cell Assembly:<br/>note text + inline badges-wrapper"]
+    end
+
+    subgraph Presentation["3. Dual-Layout Responsive Output"]
+        Amt --> TargetLayout{Viewport Width}
+        Badges --> TargetLayout
+        NoteCell --> TargetLayout
+
+        TargetLayout -- "> 860px (Desktop)" --> DesktopDOM["HTML Table Row (display: table-row):<br/>- Date elevated to tr.day-separator<br/>- Category (135px)<br/>- Note + Badges (auto)<br/>- Amount (right-aligned, tabular-nums)<br/>- Actions: Single ⋮ with Smart Drop-Up<br/>- Collapsible Refund Sub-row"]
+        
+        TargetLayout -- "<= 860px (Mobile)" --> MobileDOM["CSS Grid 2-Row Card (display: grid):<br/>- Line 1: category amount actions (1fr auto 28px)<br/>- Line 2: note note actions (inline-flex badges)<br/>- Day Separator: Date (left), Net Total (right)"]
+    end
+```
 
 ---
 
@@ -111,7 +151,7 @@ Any changes to table styles (`webapp/css/components/tables.css`, `webapp/css/lay
 1. **Desktop Browsers**:
    - Verify table column alignment, no horizontal scrollbars on standard displays, left-aligned badges, and proper `Mode` cell ellipsis.
 2. **Android App (`expenseiq-android-app`)**:
-   - Verify mobile card grid layout in WebView, tap responsiveness for action buttons, right-aligned badges, and mode display.
+   - Verify mobile card grid layout in WebView, tap responsiveness for action buttons, left-aligned inline badges, and mode display.
 3. **Mobile Browsers (iOS Safari / Android Chrome)**:
    - Verify touch scrolling, card gaps, and zero overflow on narrow screens (320px–420px).
 4. **Collapsible / Split-Screen iPad View (600px – 860px)**:

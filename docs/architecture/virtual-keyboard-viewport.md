@@ -1,8 +1,3 @@
----
-name: virtual-keyboard-viewport-knowledge
-description: Core documentation, architecture, WebKit viewport pan prevention, sticky header clearance, form bottom headroom, and multi-device stabilization for touch and virtual keyboard interactions.
----
-
 # Virtual Keyboard Viewport & Focus Architecture
 
 ## Overview
@@ -13,7 +8,36 @@ Without proactive viewport management, WebKit and mobile browsers introduce seve
 2. **Sticky Header Occlusion**: When focused inputs are scrolled into view, native browser focus-scrolling or simplistic offset calculations scroll the input (and its `<label>`) underneath `position: sticky` headers (such as `.sticky-header-wrapper`).
 3. **Keyboard Dismiss without Blur**: iPadOS Safari's "Hide Keyboard" accessory button hides the software keyboard **without** firing `blur` or `focusout` on the active input.
 
-This skill documents the comprehensive architectural solution implemented across CSS and JavaScript to eliminate these issues permanently.
+This document outlines the comprehensive architectural solution implemented across CSS and JavaScript to eliminate these issues permanently.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User (iPad / Touch)
+    participant Field as Form Group / Input
+    participant Handler as positionFocusedInput()
+    participant Scroll as .main-content
+    participant WebKit as WebKit Browser Engine
+    participant VP as window.visualViewport
+
+    User->>Field: Taps Text Input
+    Field->>Handler: focusin event
+    Handler->>Handler: Measure header bottom + 16px buffer
+    Handler->>Handler: Evaluate safeBottom vs keyboard hazard zone
+    alt Input is under header OR in keyboard zone
+        Handler->>Scroll: c.scrollTop += delta (Instant scroll to safeTop)
+    end
+    Note over WebKit: Keyboard begins opening animation (~250ms)
+    WebKit->>VP: Viewport height shrinks (e.g. 834px -> 450px)
+    Note over Handler: Follow-up ticks at 60ms & 250ms ensure clearance
+    Note over WebKit: Input is already safely visible (No window pan triggered!)
+    User->>WebKit: Taps "Hide Keyboard" button
+    WebKit->>VP: Viewport height expands
+    VP->>Handler: visualViewport resize event (delta > 80px)
+    Handler->>Field: activeElement.blur()
+    Handler->>Scroll: resetWindowScroll() (Pins window at 0, 0)
+    Note over User: Keyboard closes cleanly with ZERO bottom gap
+```
 
 ---
 
@@ -66,6 +90,33 @@ This skill documents the comprehensive architectural solution implemented across
 ### 1.5 Architectural Pillar 5: Dynamic Safe-Zone Focus Positioning (`positionFocusedInput`)
 - **Problem**: Hardcoding target offsets (e.g. `desiredTop = 70`) failed because `.sticky-header-wrapper` height is dynamic (~94px–110px + mask fade gradient), and targeting `<input>` alone scrolled the field's `<label>` behind the header.
 - **Solution**: The `positionFocusedInput(target)` engine dynamically measures boundaries and positions the entire `.form-group`:
+
+```mermaid
+flowchart TD
+    A["Event: focusin on target element"] --> B{"Is target editable input?<br/>(INPUT, TEXTAREA, SELECT, not hidden/modal)"}
+    B -- No --> End[No-Op]
+    B -- Yes --> C["Resolve scrollTarget:<br/>target.closest('.form-group, .filter-group') || target"]
+    
+    C --> D["Measure Sticky Header Bottom:<br/>headerBottom = max(.sticky-header-wrapper, #mobile-header)<br/>safeTop = headerBottom + 16px buffer"]
+    
+    D --> E["Measure Virtual Keyboard Hazard Zone:<br/>effectiveVp = visualViewport.height || window.innerHeight<br/>estimatedKb = isTouch ? max(320, innerHeight * 0.42) : 0<br/>safeBottom = min(effectiveVp, innerHeight - estimatedKb) - 16px"]
+    
+    E --> F{"Occlusion Check:<br/>groupRect.top < safeTop OR<br/>targetRect.bottom > safeBottom?"}
+    
+    F -- No --> Stable["Field already in safe zone - No Scroll Needed"]
+    F -- Yes --> Calc["Calculate delta = groupRect.top - safeTop"]
+    
+    Calc --> Threshold{"|delta| > 6px?"}
+    Threshold -- No --> Stable
+    Threshold -- Yes --> DeviceBranch{"Viewport Width Check"}
+    
+    DeviceBranch -- "<= 860px (Mobile)" --> MobScroll["window.scrollBy(0, delta)"]
+    DeviceBranch -- "> 860px (Desktop / iPad)" --> DeskScroll[".main-content.scrollTop += delta<br/>(Instant adjustment)"]
+    
+    MobScroll --> MultiTick["Multi-Tick Guardian:<br/>- Tick 0: 0ms (Preempt WebKit pan)<br/>- Tick 1: 60ms (Override native focus scroll)<br/>- Tick 2: 250ms (Post-keyboard slide-in verification)"]
+    DeskScroll --> MultiTick
+```
+
   ```javascript
   function positionFocusedInput(target) {
       if (!target || document.activeElement !== target) return;

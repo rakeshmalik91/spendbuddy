@@ -1,12 +1,47 @@
----
-name: keyword-mappings-knowledge
-description: Core documentation, architecture, inference override engine, cloud synchronization, batch rule execution, entity CRUD reflection, and multi-device UI guidelines for Custom Keyword Mappings.
----
-
 # Custom Keyword Mappings & Inference Override Engine
 
 ## Overview
 The **Custom Keyword Mappings** feature empowers users to define explicit, priority-0 rules that override the default categorization, transaction type, and payment mode inference across ExpenseIQ. When a transaction's merchant, note, or raw payment text matches a user-defined keyword, ExpenseIQ enforces the user's custom settings ahead of historical transaction frequency heuristics and hardcoded keyword dictionaries.
+
+```mermaid
+flowchart TD
+    subgraph Sources["5 Transaction Entry Points"]
+        S1["1. Manual Form Typing (#input-note)"]
+        S2["2. Suggestion Cards Click (.sms-suggestion-card)"]
+        S3["3. SMS/Email Approval Modal (showSmsApprovalModal)"]
+        S4["4. Dashboard Quick Add (.sms-quick-add)"]
+        S5["5. Batch Rule Runner (executeRulesOnExpenses)"]
+    end
+
+    subgraph Engine["Priority-0 Inference Engine (category_helpers.js)"]
+        In["Input Text: merchantName, note, rawMode, extraText"]
+        Match["findMatchingKeywordRule:<br/>- Comma-separated token splitting<br/>- Longest matching token specificity"]
+        
+        CheckRule{Matching Custom Rule?}
+        
+        CheckRule -- Yes (Priority 0) --> RuleApply["Apply Custom Rule Overrides:<br/>- Category: resolveCategoryName(rule.category)<br/>- Txn Type: normalizeTxnType(rule.txnType)<br/>- Txn Mode: resolveTxnModeName(rule.txnMode)"]
+        
+        CheckRule -- No --> Fallback["Fallback Cascade:<br/>- Priority 1: Historical Frequency in state.expenses<br/>- Priority 2: Built-in KEYWORD_MAPPINGS dictionary<br/>- Priority 3: Android MasterCategory fuzzy match"]
+    end
+
+    subgraph StateSync["State & Cloud Synchronization"]
+        Mem["state.keywordMappings"]
+        LS["localStorage (expman_keyword_mappings)"]
+        Cloud["Firebase Cloud Storage (user_settings.json)"]
+        Normalize["Normalization: stripEmojiPrefix() & normalizeTxnType()"]
+    end
+
+    S1 --> In
+    S2 --> In
+    S3 --> In
+    S4 --> In
+    S5 --> In
+    In --> Match --> CheckRule
+    RuleApply --> Mem
+    Normalize --> Mem
+    Mem <--> LS
+    Mem <--> Cloud
+```
 
 ---
 
@@ -87,56 +122,6 @@ The keyword mapping and inference engine is invoked across all 5 avenues through
 | **4. Dashboard Quick Add** | [`dashboard.js`](file:///d:/Projects/expense-manager/webapp/js/ui/dashboard.js) (`.sms-quick-add` click) | Category, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
 | **5. Batch Rule Runner** | [`keyword_mappings.js`](file:///d:/Projects/expense-manager/webapp/js/ui/keyword_mappings.js) (`executeRulesOnExpenses`) | Category, Txn Type, Txn Mode, Amount Sign | `e.note`, `e.merchant`, `e.source` |
 
-### 3.2 Autofill Architecture & Data Flow Diagram
-
-```mermaid
-flowchart TD
-    subgraph Sources["Transaction Input Sources"]
-        S1["1. Manual Form Entry<br/><code>#input-note</code> typing"]
-        S2["2. SMS Suggestion Card<br/><code>.sms-suggestion-card</code> click"]
-        S3["3. SMS/Email Approval Modal<br/><code>showSmsApprovalModal</code> approve"]
-        S4["4. Dashboard Quick Add<br/><code>.sms-quick-add</code> button click"]
-        S5["5. Batch Rule Runner<br/><code>executeRulesOnExpenses</code> on history"]
-    end
-
-    subgraph Extract["Normalized Search Inputs"]
-        T1["Text Candidates:<br/><code>merchant</code> / <code>note</code> / <code>source</code> / <code>masterCategory</code> / <code>rawMode</code>"]
-    end
-
-    subgraph Engine["Priority-0 Keyword Inference Engine (category_helpers.js)"]
-        K1["Tokenize Rules<br/><code>rule.keyword.split(',')</code>"]
-        K2{"Matches Any Token?<br/><code>cleanText.includes(token)</code>"}
-        K3["Calculate Specificity<br/>Select Longest Matching Token"]
-        K4["Apply Overrides:<br/>- Category: <code>resolveCategoryName()</code><br/>- Txn Type: <code>normalizeTxnType()</code><br/>- Txn Mode: <code>resolveTxnModeName()</code>"]
-    end
-
-    subgraph Fallbacks["Default Heuristics (When No Custom Rule Matches)"]
-        F1["Priority 1: Historical Frequency<br/>(Most frequent in <code>state.expenses</code>)"]
-        F2["Priority 2: Built-in Dictionaries<br/>(<code>KEYWORD_MAPPINGS</code> & <code>TXN_TYPE_MAPPINGS</code>)"]
-        F3["Priority 3: Android masterCategory & <code>mapTxnMode()</code>"]
-    end
-
-    subgraph Destination["Transaction Entity & UI Form"]
-        R1["<b>Category</b>: Active user category (with emojis)"]
-        R2["<b>Txn Type</b>: Income, Expense, Investment, Transfer, Refund"]
-        R3["<b>Txn Mode</b>: UPI, Credit Card, Meal Card, Bank Transfer, etc."]
-        R4["<b>Amount Sign</b>:<br/>Negative for Income & Refund<br/>Positive for Expense & Investment"]
-    end
-
-    S1 --> T1
-    S2 --> T1
-    S3 --> T1
-    S4 --> T1
-    S5 --> T1
-
-    T1 --> K1 --> K2
-    K2 -- "Match Found" --> K3 --> K4
-    K2 -- "No Match" --> Fallbacks
-
-    K4 --> Destination
-    Fallbacks --> Destination
-```
-
 ---
 
 ## 4. UI Architecture & Multi-Device Layout
@@ -160,9 +145,6 @@ flowchart TD
   - `td::before` (Label) sits on the far left (`text-align: left !important; white-space: nowrap !important; margin-right: 12px;`).
   - Values, badges, and action buttons sit on the far right (`margin-left: auto !important; text-align: right !important;`).
   - Action buttons (`⚡`, `✏️`, `🗑️`) render in a horizontal row (`.row-actions { flex-direction: row !important; }`).
-
-### 4.4 Badge Styling Consistency
-- Txn Type badges in the table use `.badge-txn-type` classes (`type-income`, `type-expense`, `type-investment`, `type-transfer`, `type-refund`) identical to the main Transactions list page.
 
 ---
 
@@ -188,17 +170,13 @@ flowchart TD
 
 Whenever a Category or Transaction Mode is renamed or deleted in Settings, `syncKeywordMappingsOnEntityChange(entityType, action, oldName, newNameOrFallback)` synchronizes `state.keywordMappings`:
 
-1. **Rename**:
-   - Updates matching rules with the new name stripped of emojis.
-2. **Delete with Fallback**:
-   - Replaces matching values with the user-selected fallback (stripped of emojis).
+1. **Rename**: Updates matching rules with the new name stripped of emojis.
+2. **Delete with Fallback**: Replaces matching values with the user-selected fallback (stripped of emojis).
 3. **Delete without Fallback**:
    - For multi-override rules, sets the deleted field to `null` while preserving other overrides.
    - For single-override rules, prunes the rule completely from `state.keywordMappings`.
-4. **Delete Dialog Usage Detection**:
-   - `deleteCategory` and `deleteTxnMode` count usage in both `state.expenses` and `state.keywordMappings`. If used in keyword rules, the replacement `<select>` prompt is displayed.
-5. **Persistence & UI Refresh**:
-   - Saves to `localStorage`, syncs to cloud `user_settings.json` via `updateUserSettings`, and re-renders the keyword mappings table.
+4. **Delete Dialog Usage Detection**: `deleteCategory` and `deleteTxnMode` count usage in both `state.expenses` and `state.keywordMappings`. If used in keyword rules, the replacement `<select>` prompt is displayed.
+5. **Persistence & UI Refresh**: Saves to `localStorage`, syncs to cloud `user_settings.json` via `updateUserSettings`, and re-renders the keyword mappings table.
 
 ---
 

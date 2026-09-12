@@ -1,8 +1,3 @@
----
-name: google-drive-backup-knowledge
-description: Core documentation, architecture, and implementation details for the Google Drive Automated & Periodic Backup feature.
----
-
 # Google Drive Periodic Backup & Retention Management
 
 ## Overview
@@ -61,6 +56,34 @@ flowchart TD
 ---
 
 ### 1.4 Configurable Retention & High-Performance Cleanup
+
+```mermaid
+flowchart TD
+    subgraph DataFetch["1. Parallel Extraction & Decryption (export.js)"]
+        CSV["Fetch all expenses_YYYY.csv, balance.csv, metadata"]
+        Decrypt["Decrypt with state.encryptionKey (Promise.all)"]
+        Zip["JSZip: Bundle plain CSVs + user_settings.json"]
+        Blob["Generate Binary Zip Stream (ExpenseIQ_Backup_YYYYMMDD_HHMMSS.zip)"]
+    end
+
+    subgraph Upload["2. Google Drive Multipart Upload (google_drive.js)"]
+        Token["Ensure valid GIS OAuth Token (drive.file scope)"]
+        Folder["ensureBackupFolder: Find/create 'ExpenseIQ Backups' in Drive root"]
+        Multipart["POST /upload/drive/v3/files?uploadType=multipart<br/>Boundary: metadata JSON + binary Zip"]
+        Success["Backup Complete! Update expman_gdrive_last_backup"]
+    end
+
+    subgraph Pruning["3. Concurrent Retention Pruning (cleanupOldBackups)"]
+        List["GET /drive/v3/files in 'ExpenseIQ Backups'<br/>Sorted by createdTime desc"]
+        Safety["Preserve at least 3 newest backups<br/>(Indices 0, 1, 2 NEVER deleted)"]
+        Filter["Evaluate files index >= 3 against retention threshold<br/>(e.g. 90 days cutoff)"]
+        Delete["Promise.allSettled(DELETE /drive/v3/files/{id})<br/>Asynchronous & Non-blocking"]
+    end
+
+    CSV --> Decrypt --> Zip --> Blob --> Token --> Folder --> Multipart --> Success
+    Success -.->|Dispatched in background| List --> Safety --> Filter --> Delete
+```
+
 - **Non-Blocking Background Pruning**: Immediately following a successful upload in [google_drive.js](file:///d:/Projects/expense-manager/webapp/js/services/google_drive.js), retention cleanup is dispatched asynchronously in the background. The backup operation resolves and notifies the user immediately without waiting for Drive deletion calls.
 - **Concurrent Deletions**: `cleanupOldBackups()` deletes outdated files concurrently via `Promise.allSettled()` rather than sequential round trips.
 - **Parallel Backup ZIP Packaging**: [export.js](file:///d:/Projects/expense-manager/webapp/js/services/export.js) fetches and decrypts user files concurrently via `Promise.all()` to minimize packaging latency.

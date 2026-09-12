@@ -1,12 +1,25 @@
----
-name: balance-tracker-knowledge
-description: Core documentation, architecture, and implementation details for the Balance Tracker feature.
----
-
 # Balance Tracker
 
 ## Overview
 The Balance Tracker is a core feature of the Expense Manager designed to track net worth and account balances over time. It provides a historical pivot-table view of various financial accounts (e.g., Savings, FD, EPF, Loans, Credit Cards) mapped against specific snapshot dates, alongside a visual stacked area chart.
+
+```mermaid
+flowchart TD
+    A["balance.csv (id, date, account, type, amount)"] --> B["Carry-Forward Gap Filler<br/>(Find closest entry where entry.date <= date)"]
+    B --> C{Grouping Mode Toggle}
+    C -- "Group by Account" --> D1["Bipartite Graph Grouping<br/>(Cluster accounts by primary name)"]
+    C -- "Group by Type" --> D2["Bipartite Graph Grouping<br/>(Cluster accounts by financial category)"]
+    
+    D1 --> E["Layout Render Engine"]
+    D2 --> E
+    
+    E --> F1["Desktop View (> 768px):<br/>Horizontally Scrollable Pivot Grid<br/>Frozen Account & Type columns (sticky)"]
+    E --> F2["Mobile View (<= 768px):<br/>Vertical Date-Grouped Cards<br/>Pagination & 'Show More' dates"]
+    
+    E --> G["Totals & Net Worth Calculation:<br/>- Assets (+) in Green Block<br/>- Liabilities (-) in Red Block<br/>- Net Balance = Assets + Liabilities"]
+    
+    E --> H["Chart.js Area Visualization:<br/>- Sign Separation Scan<br/>- Assets Stack: stack='pos'<br/>- Liabilities Stack: stack='neg'<br/>- Zero-line origin fills (prevents polygon bleed)"]
+```
 
 ---
 
@@ -33,6 +46,41 @@ A dynamic visualization built with Chart.js that plots the balance history over 
 ---
 
 ## 2. Implementation Details
+
+```mermaid
+flowchart TD
+    subgraph UserAction["1. User Interaction"]
+        Click["User Clicks Cell in Balance Pivot Grid"]
+        Input["Cell Transforms to Input Field"]
+        Type["User Enters Value or Math Expression<br/>(e.g. '50000+15000')"]
+        Blur["Press Enter or Click Away (blur event)"]
+    end
+
+    subgraph Evaluation["2. Math & State Mutation"]
+        Eval["evaluateExpression(str)<br/>Infix Math Engine"]
+        Valid{"Is Value Valid?"}
+        Update["Update in-memory state.balanceData<br/>{ id, date, account, type, amount: 65000 }"]
+        Revert["Cancel edit / Keep previous value"]
+    end
+
+    subgraph CarryForward["3. Carry-Forward Recalculation"]
+        Scan["Scan Timeline across all snapshot dates"]
+        Carry["For empty date: find latest entry where entry.date <= date"]
+        Flag["Apply carried-forward styling (muted/italic)"]
+    end
+
+    subgraph Outputs["4. Dual Presentation & Storage"]
+        Grid["Re-render Pivot Grid (renderBalanceView):<br/>- Assets in Green Block (rgba(34,197,94,0.15))<br/>- Liabilities in Red Block (rgba(239,68,68,0.15))<br/>- Net Balance in Accent Block"]
+        Chart["Re-render Chart.js (renderBalanceChart):<br/>- Assets: stack='pos', fill='origin'<br/>- Liabilities: stack='neg', fill='origin'<br/>- Zero-line clean separation"]
+        Sync["Async Cloud Sync (saveBalanceCSV):<br/>- Serialize to CSV<br/>- AES-GCM Encrypt with state.encryptionKey<br/>- Save to Firebase & IndexedDB cache"]
+    end
+
+    Click --> Input --> Type --> Blur --> Eval --> Valid
+    Valid -- Yes --> Update --> Scan --> Carry --> Flag --> Grid
+    Flag --> Chart
+    Update --> Sync
+    Valid -- No --> Revert
+```
 
 ### 2.1 State & Data Structure
 Data is stored securely in `balance.csv` containing the following fields:

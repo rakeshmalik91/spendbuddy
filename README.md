@@ -136,7 +136,9 @@ expense-manager/
 ├── data/                  # Shared data folder: synced user CSV data (git-crypt) & test-data
 ├── media/                 # Screenshots, icons, and graphic assets
 ├── utils/                 # Development and helper tools (sync.py, download_emails.py)
-├── scripts/               # Automation scripts (e.g., run_all_tests.js)
+├── docs/                  # System architecture guides & technical documentation
+│   ├── README.md          # Master architecture index & documentation map
+│   └── architecture/      # Deep-dive subsystem architecture specifications
 ├── netlify.toml           # Netlify build & deployment configuration
 ├── run_all_tests.ps1      # PowerShell test runner for both Web and Android
 ├── run.bat                # Quick-launch local web dev server
@@ -144,6 +146,21 @@ expense-manager/
 ├── package.json           # Root workspace scripts & orchestration
 └── README.md
 ```
+
+---
+
+## 📖 Documentation & Architecture
+
+Comprehensive architectural specifications and decision records are maintained in [`docs/`](docs/README.md):
+- [Virtual Keyboard Viewport & Sticky Headers](docs/architecture/virtual-keyboard-viewport.md)
+- [Transaction Table & Mobile Card Layouts](docs/architecture/txn-table-ui.md)
+- [Refund Merging & Sub-Rows](docs/architecture/refund-linking.md)
+- [Balance & Net Worth Tracker](docs/architecture/balance-tracker.md)
+- [Amount Math Expression Evaluator](docs/architecture/expression-as-amount.md)
+- [Google Drive Automated Periodic Backups](docs/architecture/google-drive-backup.md)
+- [Custom Keyword Mappings & Inference Engine](docs/architecture/keyword-mappings.md)
+- [Zero-Wait Login, Auth & Offline Caching](docs/architecture/login-and-caching.md)
+- [SMS & Email Inbox Extraction Pipeline](docs/architecture/sms-email-analysis.md)
 
 ---
 
