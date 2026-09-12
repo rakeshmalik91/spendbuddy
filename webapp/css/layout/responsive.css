@@ -66,6 +66,7 @@
         padding: 16px 16px 110px;
         height: auto;
         overflow-y: visible;
+        scroll-padding-top: 100px;
     }
 
     .sticky-header-wrapper {
@@ -833,6 +834,10 @@
     .batch-action-bar,
     #batch-action-bar,
     #modal-batch-update-overlay { display: none !important; }
+
+    .form-bottom-spacer {
+        height: 120px;
+    }
 }
 
 @media (min-width: 769px) { .mobile-only-inline, .hide-on-desktop { display: none !important; } }

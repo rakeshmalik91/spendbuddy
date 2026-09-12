@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <!-- Disable double-tap and pinch zoom on touch devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <meta name="description"
         content="ExpenseIQ — Track, visualize, and export your expenses with beautiful charts and CSV support.">
     <title>ExpenseIQ</title>
@@ -155,19 +155,19 @@
             });
         });
     </script>
-    <link rel="stylesheet" href="css/base/reset.css?v=10">
+    <link rel="stylesheet" href="css/base/reset.css?v=11">
     <link rel="stylesheet" href="css/base/scrollbar.css?v=4">
     <link rel="stylesheet" href="css/layout/sidebar.css?v=9">
     <link rel="stylesheet" href="css/layout/header.css?v=4">
-    <link rel="stylesheet" href="css/layout/main.css?v=10">
+    <link rel="stylesheet" href="css/layout/main.css?v=13">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
     <link rel="stylesheet" href="css/components/tables.css?v=54">
-    <link rel="stylesheet" href="css/components/forms.css?v=14">
+    <link rel="stylesheet" href="css/components/forms.css?v=15">
     <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=12">
     <link rel="stylesheet" href="css/views/settings.css?v=4">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=46">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=48">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -828,6 +828,7 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
 
             <!-- ── CHARTS VIEW ── -->
@@ -2126,7 +2127,140 @@
             }
         })();
     </script>
-    <script type="module" src="app.js?v=398"></script>
+    <!-- Keyboard handling & scroll stabilization for touch devices (iPad/tablets/phones) -->
+    <script>
+        (function () {
+            var mc = null;
+            function getMainContent() {
+                if (!mc) mc = document.querySelector('.main-content');
+                return mc;
+            }
+
+            function resetWindowScroll() {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+
+                var c = getMainContent();
+                if (c) {
+                    var maxScroll = c.scrollHeight - c.clientHeight;
+                    if (maxScroll <= 0) {
+                        c.scrollTop = 0;
+                    } else if (c.scrollTop > maxScroll) {
+                        c.scrollTop = maxScroll;
+                    }
+                }
+            }
+
+            // Proactively position focused inputs cleanly below sticky headers and above the virtual keyboard.
+            // With .form-bottom-spacer providing headroom, all fields (including Tag at bottom)
+            // can cleanly reach the safe zone without window-level pan or header clipping.
+            function positionFocusedInput(target) {
+                if (!target || document.activeElement !== target) return;
+                var tag = target.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+                if (target.type === 'hidden' || target.type === 'checkbox' || target.type === 'radio') return;
+                if (target.closest('.modal-overlay')) return;
+
+                var c = getMainContent();
+                if (!c) return;
+
+                var mcRect = c.getBoundingClientRect();
+                var scrollTarget = target.closest('.form-group, .filter-group') || target;
+                var groupRect = scrollTarget.getBoundingClientRect();
+                var targetRect = target.getBoundingClientRect();
+
+                // Compute sticky header bottom dynamically
+                var header = c.querySelector('.sticky-header-wrapper');
+                var headerBottom = mcRect.top;
+                if (header && header.offsetHeight > 0 && window.getComputedStyle(header).display !== 'none') {
+                    headerBottom = header.getBoundingClientRect().bottom;
+                }
+                var mobileHeader = document.getElementById('mobile-header');
+                if (mobileHeader && mobileHeader.offsetHeight > 0 && window.getComputedStyle(mobileHeader).display !== 'none') {
+                    headerBottom = Math.max(headerBottom, mobileHeader.getBoundingClientRect().bottom);
+                }
+                // Generous 16px buffer below sticky header to clear mask gradient
+                var safeTop = headerBottom + 16;
+
+                // On touch devices (iPad/tablets/phones), account for the software keyboard
+                var isTouch = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+                var effectiveVpHeight = window.visualViewport ? (window.visualViewport.offsetTop + window.visualViewport.height) : window.innerHeight;
+                var estimatedKbHeight = isTouch ? Math.max(320, window.innerHeight * 0.42) : 0;
+                var maxVisibleBottom = isTouch ? Math.min(effectiveVpHeight, window.innerHeight - estimatedKbHeight) : mcRect.bottom;
+                var safeBottom = maxVisibleBottom - 16;
+
+                // If element is behind/touching header OR covered/touching keyboard:
+                // Scroll so that the form group's top is positioned cleanly at safeTop
+                if (groupRect.top < safeTop || targetRect.bottom > safeBottom) {
+                    var delta = groupRect.top - safeTop;
+                    if (Math.abs(delta) > 6) {
+                        if (window.innerWidth <= 860) {
+                            window.scrollBy(0, delta);
+                        } else {
+                            c.scrollTop += delta;
+                        }
+                    }
+                }
+            }
+
+            document.addEventListener('focusin', function (e) {
+                var target = e.target;
+                if (!target) return;
+                var tag = target.tagName;
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return;
+                if (target.type === 'hidden' || target.type === 'checkbox' || target.type === 'radio') return;
+
+                // Run immediately to establish position before WebKit viewport pan
+                positionFocusedInput(target);
+                // Follow-up ticks to counter any native browser focus-scroll that pushed element behind header
+                setTimeout(function () { positionFocusedInput(target); }, 60);
+                setTimeout(function () { positionFocusedInput(target); }, 250);
+            }, true);
+
+            // Catch keyboard dismiss via Visual Viewport resize
+            // (e.g. when user taps the iPad "Hide Keyboard" button without blurring the input)
+            if (window.visualViewport) {
+                var lastVPHeight = window.visualViewport.height;
+                window.visualViewport.addEventListener('resize', function () {
+                    var currentHeight = window.visualViewport.height;
+                    // If viewport grew significantly (keyboard closed)
+                    if (currentHeight - lastVPHeight > 80) {
+                        var active = document.activeElement;
+                        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+                            active.blur();
+                        }
+                        resetWindowScroll();
+                        setTimeout(resetWindowScroll, 50);
+                        setTimeout(resetWindowScroll, 200);
+                    }
+                    lastVPHeight = currentHeight;
+                });
+            }
+
+            // On input blur / focusout
+            document.addEventListener('focusout', function (e) {
+                var tag = e.target && e.target.tagName;
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+                    setTimeout(function () {
+                        var active = document.activeElement;
+                        var isAnotherInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+                        if (!isAnotherInput) {
+                            resetWindowScroll();
+                        }
+                    }, 50);
+                }
+            });
+
+            // Guardian: On desktop/tablet layout (width > 860px), window itself should NEVER scroll
+            window.addEventListener('scroll', function () {
+                if (window.innerWidth > 860 && (window.scrollY > 0 || window.pageYOffset > 0 || document.documentElement.scrollTop > 0)) {
+                    resetWindowScroll();
+                }
+            }, { passive: true });
+        })();
+    </script>
+    <script type="module" src="app.js?v=404"></script>
 </body>
 
 </html>

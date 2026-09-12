@@ -61,7 +61,7 @@ html {
     font-size: 15px;
     scroll-behavior: smooth;
     height: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 /* Disable double-tap zoom for touch devices while preserving single-finger pan/scroll */
@@ -86,7 +86,7 @@ body {
     color: var(--text-primary);
     height: 100%;
     display: flex;
-    overflow: hidden;
+    overflow-x: hidden;
     /* Stop native scroll to lock viewport */
 }
 
