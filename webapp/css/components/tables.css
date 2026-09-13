@@ -440,9 +440,7 @@
 }
 
 #recent-table .badge-location,
-#recent-table .badge-tag,
-#selected-day-tbody .badge-location,
-#selected-day-tbody .badge-tag {
+#selected-day-tbody .badge-location {
     display: none !important;
 }
 

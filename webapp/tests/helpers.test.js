@@ -172,11 +172,28 @@ describe('Helpers', () => {
             expect(helpers.getDisplaySource('SMS: AD-HDFCBK Debited INR 500')).toBe('SMS');
             expect(helpers.getDisplaySource('Email: HDFC Bank Alert: Refund processed')).toBe('Email');
             expect(helpers.getDisplaySource('SMS: AD-HDFCBK & Email: HDFC Bank Alert')).toBe('SMS & Email');
+            expect(helpers.getDisplaySource('Email: HDFC Bank Alert & SMS: AD-HDFCBK')).toBe('SMS & Email');
+            expect(helpers.getDisplaySource('Schedule & Email: HDFC Bank Alert')).toBe('Schedule & Email');
+            expect(helpers.getDisplaySource('Email: Alert & Schedule')).toBe('Schedule & Email');
             expect(helpers.getDisplaySource('SMS: AD-HDFCBK & SMS: VP-ICICI')).toBe('SMS');
             expect(helpers.getDisplaySource('Quick Add')).toBe('Quick Add');
             expect(helpers.getDisplaySource('Schedule')).toBe('Schedule');
             expect(helpers.getDisplaySource('')).toBe('');
             expect(helpers.getDisplaySource(null)).toBe('');
+        });
+
+        it('should unify composite sources like Schedule & Email and SMS & Email into a single combined badge item in getDisplaySourceList', () => {
+            expect(helpers.getDisplaySourceList('SMS: AD-HDFCBK & Email: HDFC Bank Alert')).toEqual(['SMS & Email']);
+            expect(helpers.getDisplaySourceList('Email: Alert & SMS: AD-HDFCBK')).toEqual(['SMS & Email']);
+            expect(helpers.getDisplaySourceList('Schedule & Email: HDFC Bank Alert')).toEqual(['Schedule & Email']);
+            expect(helpers.getDisplaySourceList('Email: Alert & Schedule')).toEqual(['Schedule & Email']);
+            expect(helpers.getDisplaySourceList('Schedule & SMS: Bank Alert')).toEqual(['Schedule & SMS']);
+            expect(helpers.getDisplaySourceList('Schedule & SMS: Bank & Email: Alert')).toEqual(['Schedule & SMS & Email']);
+            expect(helpers.getDisplaySourceList('SMS: AD-HDFCBK')).toEqual(['SMS']);
+            expect(helpers.getDisplaySourceList('Email: HDFC Bank Alert')).toEqual(['Email']);
+            expect(helpers.getDisplaySourceList('SMS & Email')).toEqual(['SMS & Email']);
+            expect(helpers.getDisplaySourceList('Schedule & Email')).toEqual(['Schedule & Email']);
+            expect(helpers.getDisplaySourceList('SMS: Bank & Email: Alert & Quick Add')).toEqual(['SMS & Email & Quick Add']);
         });
     });
 

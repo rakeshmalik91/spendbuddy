@@ -169,4 +169,38 @@ describe('Dashboard Quick-Add Concurrency & Failure Rollback', () => {
             consumeSpy.mockRestore();
         }
     });
+
+    it('should render the Action Needed button when older pending SMS exist and trigger showSmsApprovalModal when clicked', () => {
+        const smsApprovalModule = require('../js/ui/sms_approval.js');
+        const showModalSpy = jest.spyOn(smsApprovalModule, 'showSmsApprovalModal').mockImplementation(() => {});
+
+        try {
+            state.scheduledTransactions = [];
+            state.pendingSmsTransactions = [
+                {
+                    date: '2026-05-10',
+                    amount: 450,
+                    merchant: 'Zomato',
+                    transactionMode: 'UPI',
+                    source: 'SMS: Zomato'
+                }
+            ];
+
+            document.body.innerHTML = `
+                <div id="dashboard-quick-add"></div>
+            `;
+
+            const dashboardModule = require('../js/ui/dashboard.js');
+            dashboardModule.renderQuickAdd();
+
+            const reviewBtn = document.querySelector('.sms-review-all');
+            expect(reviewBtn).not.toBeNull();
+            expect(reviewBtn.textContent).toContain('Action Needed');
+
+            reviewBtn.click();
+            expect(showModalSpy).toHaveBeenCalledWith(state.pendingSmsTransactions);
+        } finally {
+            showModalSpy.mockRestore();
+        }
+    });
 });

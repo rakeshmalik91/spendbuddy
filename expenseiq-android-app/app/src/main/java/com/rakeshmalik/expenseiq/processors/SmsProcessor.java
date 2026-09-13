@@ -125,6 +125,12 @@ public class SmsProcessor {
                         }
                         
                         if (isSenderMatch) {
+                            // Early check: skip payment reminders, recharge prompts, bill due notifications, and non-transactions
+                            if (TransactionUtils.isReminderOrNonTransaction(null, body)) {
+                                Log.d("SMS_LOG", "Skipping payment reminder or non-transaction SMS early: " + body);
+                                continue;
+                            }
+
                             EntityExtractionParams params = new EntityExtractionParams.Builder(body).build();
                             Task<List<EntityAnnotation>> task = entityExtractor.annotate(params).addOnSuccessListener(new OnSuccessListener<List<EntityAnnotation>>() {
                                 @Override

@@ -1,12 +1,12 @@
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { getGlobalFilteredExpenses, getPrevGlobalFilteredExpenses, getPrev5GlobalFilteredExpenses } from "./time_filter.js";
 import { saveYearCSV } from "./form.js";
 import { renderAll } from "./render_all.js";
-import { isDuplicateTxn, consumeRawSmsTransaction } from "./sms_approval.js";
+import { isDuplicateTxn, consumeRawSmsTransaction, showSmsApprovalModal } from "./sms_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
@@ -232,7 +232,7 @@ export function renderDashboard() {
 }
 // Old listeners removed
 
-function renderRecentTransactions() {
+export function renderRecentTransactions() {
     // Recent Transactions: should show at least 1 month data.
     // If the active filter mode (state.timeMode) is month, week, or day, we show all transactions for the calendar month containing state.timeDate.
     // If state.timeMode is year, we show all transactions for that year.
@@ -263,15 +263,22 @@ function renderRecentTransactions() {
         recentExpenses = contextExpenses.filter(e => e.date && e.date >= cutoffDateStr && e.date <= latestDateStr);
     }
 
-    recentExpenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    // Group matching refunds using merge refund settings
+    const grouped = mergeRefundTransactions(recentExpenses, state.expenses);
 
-    const isTruncated = recentExpenses.length > state.limitDashboard;
-    const itemsToRender = recentExpenses.slice(0, state.limitDashboard);
+    grouped.sort((a, b) => (b.main.date || '').localeCompare(a.main.date || ''));
+
+    const isTruncated = grouped.length > state.limitDashboard;
+    const itemsToRender = grouped.slice(0, state.limitDashboard);
 
     const tbody = $('#recent-tbody');
     if (!tbody) return;
     let lastDateRecent = null;
-    let htmlContent = itemsToRender.map(e => {
+    let htmlContent = itemsToRender.map(g => {
+        const e = g.main;
+        const realIdx = state.expenses.indexOf(e);
+        const refundRealIdx = g.merged ? state.expenses.indexOf(g.merged) : -1;
+
         let sepHTML = '';
         if (!lastDateRecent || lastDateRecent.slice(0, 7) !== e.date.slice(0, 7)) {
             const currentMonthStr = e.date.slice(0, 7);
@@ -287,29 +294,67 @@ function renderRecentTransactions() {
             const mNetText = `<span class="${mNetClass}"><span class="amount-main"><span class="amount-sign">${sign ? sign : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(mNet).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>`;
 
             if (lastDateRecent) {
-                sepHTML += `<tr class="month-separator"><td colspan="4"></td></tr>`;
+                sepHTML += `<tr class="month-separator"><td colspan="6"></td></tr>`;
             }
-            sepHTML += `<tr class="month-header"><td colspan="2">${mName}</td><td class="month-header-total">${mNetText}</td><td class="month-header-empty"></td></tr>`;
+            sepHTML += `<tr class="month-header"><td colspan="2">${mName}</td><td class="month-header-total">${mNetText}</td><td class="month-header-empty" colspan="3"></td></tr>`;
             sepHTML += getDaySeparatorHTML(e.date, recentExpenses, 6);
         } else if (lastDateRecent && lastDateRecent !== e.date) {
             sepHTML = getDaySeparatorHTML(e.date, recentExpenses, 6);
         }
         lastDateRecent = e.date;
-        const realIdx = state.expenses.indexOf(e);
         
-        let displaySource = getDisplaySource(e.source);
-        let sourceBadge = displaySource ? `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(displaySource)}</span>` : '';
+        const displaySources = getDisplaySourceList(e.source);
+        let sourceBadge = displaySources.map(s => `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = txnModeBadgeHTML(e.txnMode, state.hideSourceTxnId);
-        let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
+        let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
+        let badges = modeBadge + typeBadge + tagBadge + sourceBadge + txnBadge;
+
+        const refunds = g.refunds || (g.merged ? [g.merged] : []);
+        const linkedExpenses = g.linkedExpenses || [];
+        const hasRefunds = refunds.length > 0;
+        const hasLinkedExpenses = linkedExpenses.length > 0;
+        const totalRefunded = g.totalRefunded !== undefined ? g.totalRefunded : (g.merged ? Math.abs(g.merged.amount) : 0);
+        const netAmt = g.netAmount !== undefined ? g.netAmount : (hasRefunds ? Math.max(0, Math.abs(e.amount) - totalRefunded) : Math.abs(e.amount));
+
+        const isSameDaySingleRef = hasRefunds && isSameDaySameAmountSingleRefund(e, refunds);
+        const isSameDaySingleExp = hasLinkedExpenses && isSameDaySameAmountSingleRefund(e, linkedExpenses);
+        const isCollapsedByDefault = isSameDaySingleRef || isSameDaySingleExp;
+
+        if (hasRefunds) {
+            const arrowRotate = isCollapsedByDefault ? '0deg' : '180deg';
+            badges += `
+            <span class="badge-txn type-investment hide-on-mobile badge-refund-toggle" onclick="toggleRefundCollapsible('dash-row-${realIdx}', event)" title="Click to toggle linked refund details" style="cursor: pointer; user-select: none;">
+                Refunded (${refunds.length}) <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s ease; font-size: 0.7rem; margin-left: 2px; transform: rotate(${arrowRotate});">▼</span>
+            </span>
+            <span class="badge-txn type-investment hide-on-desktop" title="${refunds.length} linked refund(s): ₹${totalRefunded}">
+                Refunded (${refunds.length})
+            </span>`;
+        } else if (hasLinkedExpenses) {
+            const arrowRotate = isCollapsedByDefault ? '0deg' : '180deg';
+            badges += `
+            <span class="badge-txn type-income hide-on-mobile badge-refund-toggle" onclick="toggleRefundCollapsible('dash-row-${realIdx}', event)" title="Click to toggle linked original expense details" style="cursor: pointer; user-select: none;">
+                Original Expense <span class="toggle-arrow" style="display: inline-block; transition: transform 0.2s ease; font-size: 0.7rem; margin-left: 2px; transform: rotate(${arrowRotate});">▼</span>
+            </span>`;
+        }
 
         let amountHtml = `
             <td data-label="Amount" class="${amountClass(e)}">
                 ${renderAmountHTML(e)}
             </td>
         `;
+
+        if (hasRefunds) {
+            amountHtml = `
+            <td data-label="Amount" class="${amountClass(e)}">
+                <div class="amount-cell-wrap" style="flex-direction: column; align-items: flex-end; text-align: right;">
+                    <div style="text-decoration: line-through; opacity: 0.6; color: var(--amount-positive);">₹${Math.abs(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div class="${netAmt === 0 ? 'amount-negative net-zero' : 'amount-positive'}"> (Net: ₹${netAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</div>
+                </div>
+            </td>`;
+        }
 
         const isExpense = !isRefundTxn(e);
         let actionsHtml = `
@@ -320,9 +365,10 @@ function renderRecentTransactions() {
                         <button class="action-dropdown-item" onclick="openRefundLinkingModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🔗</span> ${isExpense ? 'Link Refunds' : 'Link Original Expense'}
                         </button>
+                        ${isExpense && !hasRefunds ? `
                         <button class="action-dropdown-item" onclick="generateRefund(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">↩️</span> Create Refund
-                        </button>
+                        </button>` : ''}
                         <button class="action-dropdown-item" onclick="editEntry(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">✏️</span> Edit
                         </button>
@@ -330,11 +376,14 @@ function renderRecentTransactions() {
                             <span class="action-icon">🗑️</span> Delete
                         </button>
                     </div>
+                    <button class="row-btn hide-on-desktop mobile-menu-btn" onclick="openMobileTxnMenu(${realIdx}, 'dash-row')" title="Options">⋮</button>
                 </div>
             </td>`;
 
+        const hasSubrow = hasRefunds || hasLinkedExpenses;
+        const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const mainRowHtml = `
-        <tr id="dash-row-${realIdx}" class="touchable-row" data-real-idx="${realIdx}" data-merged="false" data-row-prefix="dash-row">
+        <tr id="dash-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" data-row-prefix="dash-row">
             <td data-label="Date"><span class="txn-date-text hide-on-mobile">${formatDate(e.date)}</span></td>
             <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
             <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
@@ -348,7 +397,9 @@ function renderRecentTransactions() {
             ${actionsHtml}
         </tr>`;
 
-        return sepHTML + mainRowHtml;
+        const subrowHtml = renderRefundCollapsibleSubrow('dash-row', realIdx, refunds, totalRefunded, netAmt, 6, linkedExpenses);
+
+        return sepHTML + mainRowHtml + subrowHtml;
     }).join('');
 
     if (isTruncated) {
@@ -393,6 +444,7 @@ export function renderSelectedDayTransactions() {
                         amount: st.amount,
                         currency: st.currency,
                         txnMode: st.txnMode,
+                        tag: st.tag,
                     });
                 }
                 return;
@@ -416,6 +468,7 @@ export function renderSelectedDayTransactions() {
                     amount: st.amount,
                     currency: st.currency,
                     txnMode: st.txnMode,
+                    tag: st.tag,
                 });
             }
         });
@@ -441,13 +494,14 @@ export function renderSelectedDayTransactions() {
         }
         lastDate = e.date;
 
-        let displaySource = getDisplaySource(e.source);
-        let sourceBadge = displaySource ? `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(displaySource)}</span>` : '';
+        const displaySources = getDisplaySourceList(e.source);
+        let sourceBadge = displaySources.map(s => `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
         const displayTxnIds = getDisplayTxnIdList(e);
         let txnBadge = displayTxnIds.map(id => `<span class="badge-txn hide-on-mobile">#${escHtml(id)}</span>`).join('');
         let typeBadge = txnTypeBadgeHTML(e.txnType);
         let modeBadge = txnModeBadgeHTML(e.txnMode, state.hideSourceTxnId);
-        let badges = modeBadge + typeBadge + sourceBadge + txnBadge;
+        let tagBadge = e.tag ? `<span class="badge-tag" title="Tag: ${escHtml(e.tag)}">🏷️ ${escHtml(e.tag)}</span>` : '';
+        let badges = modeBadge + typeBadge + tagBadge + sourceBadge + txnBadge;
 
         let actionHTML = '';
         if (e.isScheduledPreview) {
@@ -549,9 +603,7 @@ export function renderQuickAdd() {
     const reviewBtn = $('.sms-review-all');
     if (reviewBtn) {
         reviewBtn.addEventListener('click', () => {
-            if (typeof window.showSmsApprovalModal === 'function') {
-                window.showSmsApprovalModal(state.pendingSmsTransactions);
-            }
+            showSmsApprovalModal(state.pendingSmsTransactions || []);
         });
     }
 

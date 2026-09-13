@@ -60,16 +60,37 @@ export function getDisplaySourceList(source) {
     if (!source) return [];
     const parts = String(source).split(' & ').map(p => {
         const trimmed = p.trim();
-        if (trimmed.toLowerCase().startsWith('email:')) return 'Email';
-        if (trimmed.toLowerCase().startsWith('sms:')) return 'SMS';
+        const lower = trimmed.toLowerCase();
+        if (lower === 'email' || lower.startsWith('email:')) return 'Email';
+        if (lower === 'sms' || lower.startsWith('sms:')) return 'SMS';
         return trimmed;
     }).filter(Boolean);
-    return [...new Set(parts)];
+    const unique = [...new Set(parts)];
+    if (unique.length === 0) return [];
+
+    // Order composite sources: Schedule first, then SMS & Email, then Quick Add, etc.
+    const ordered = [];
+    if (unique.includes('Schedule')) ordered.push('Schedule');
+    if (unique.includes('SMS') && unique.includes('Email')) {
+        ordered.push('SMS & Email');
+    } else {
+        if (unique.includes('SMS')) ordered.push('SMS');
+        if (unique.includes('Email')) ordered.push('Email');
+    }
+    if (unique.includes('Quick Add')) ordered.push('Quick Add');
+    for (const s of unique) {
+        if (!ordered.includes(s) && !ordered.includes('SMS & Email') && s !== 'SMS' && s !== 'Email') {
+            ordered.push(s);
+        }
+    }
+    
+    // Always return a single combined badge across all views (e.g. ['Schedule & Email'], ['SMS & Email'])
+    return [ordered.join(' & ')];
 }
 
 /**
  * Formats and shortens source strings for UI badges (e.g., 'SMS: AD-HDFCBK...' -> 'SMS', 'Email: ...' -> 'Email').
- * Handles composite sources like 'SMS: ... & Email: ...' by deduplicating shortened labels to 'SMS & Email'.
+ * Handles composite sources like 'Schedule & Email: ...' by deduplicating shortened labels to 'Schedule & Email'.
  */
 export function getDisplaySource(source) {
     return getDisplaySourceList(source).join(' & ');

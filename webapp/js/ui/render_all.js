@@ -12,7 +12,7 @@ import { renderKeywordMappings } from "./keyword_mappings.js";
 
 /* ══════════════ RENDER ALL ══════════════ */
 
-export function renderAll() {
+function _doRenderAll() {
     populateFilterOptions();
     if (typeof recomputePendingSmsTransactions === 'function') recomputePendingSmsTransactions();
     renderDashboard();
@@ -29,6 +29,44 @@ export function renderAll() {
     if (typeof renderBalanceTracker === 'function') renderBalanceTracker();
     if (typeof renderKeywordMappings === 'function') renderKeywordMappings();
 }
+
+let renderPending = false;
+let renderRafId = null;
+
+export function renderAllImmediate() {
+    if (renderRafId) {
+        if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(renderRafId);
+        renderRafId = null;
+    }
+    renderPending = false;
+    _doRenderAll();
+}
+
+export function renderAll() {
+    // In Node / Jest testing environment, run synchronously
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+        _doRenderAll();
+        return;
+    }
+
+    if (renderPending) return;
+    renderPending = true;
+
+    if (typeof requestAnimationFrame === 'function') {
+        renderRafId = requestAnimationFrame(() => {
+            renderPending = false;
+            renderRafId = null;
+            _doRenderAll();
+        });
+    } else {
+        setTimeout(() => {
+            renderPending = false;
+            _doRenderAll();
+        }, 0);
+    }
+}
+
 window.renderAll = renderAll;
+window.renderAllImmediate = renderAllImmediate;
 
 

@@ -192,7 +192,7 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
                 txnBadge = itemDisplayTxnIds.map(id => `<span class="badge-txn hide-on-mobile" title="#${escHtml(id)}">#${escHtml(id)}</span>`).join('');
             }
         }
-        let tagBadge = (prefix !== 'dash-row' && item.tag) ? `<span class="badge-tag" title="Tag: ${escHtml(item.tag)}">🏷️ ${escHtml(item.tag)}</span>` : '';
+        let tagBadge = item.tag ? `<span class="badge-tag" title="Tag: ${escHtml(item.tag)}">🏷️ ${escHtml(item.tag)}</span>` : '';
         let itemBadges = typeBadge + modeBadge + tagBadge + sourceBadge + txnBadge;
 
         const isItemRefund = isRefundTxn(item);

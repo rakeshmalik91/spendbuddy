@@ -41,6 +41,8 @@ export function showLoader(text = 'Syncing cloud data...') {
         clearTimeout(hideLoaderTimeout);
         hideLoaderTimeout = null;
     }
+    loader.classList.remove('hidden-loader');
+    loader.style.pointerEvents = 'auto';
     loader.style.display = 'flex';
     // Trigger reflow for transition
     void loader.offsetWidth;
@@ -53,9 +55,13 @@ export function showLoader(text = 'Syncing cloud data...') {
 export function hideLoader() {
     const loader = document.getElementById('global-loader');
     if (!loader) return;
+    loader.style.pointerEvents = 'none';
     loader.style.opacity = '0';
     if (hideLoaderTimeout) clearTimeout(hideLoaderTimeout);
-    hideLoaderTimeout = setTimeout(() => { loader.style.display = 'none'; }, 300);
+    hideLoaderTimeout = setTimeout(() => {
+        loader.style.display = 'none';
+        loader.classList.add('hidden-loader');
+    }, 300);
 };
 
 /**

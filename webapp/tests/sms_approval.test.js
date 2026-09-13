@@ -1,4 +1,4 @@
-import { getRawSmsSuggestionsForDate, recomputePendingSmsTransactions, loadRawSmsCache, receiveSmsTransactions } from '../js/ui/sms_approval.js';
+import { getRawSmsSuggestionsForDate, recomputePendingSmsTransactions, loadRawSmsCache, receiveSmsTransactions, showSmsApprovalModal, setupSmsApproval } from '../js/ui/sms_approval.js';
 import { saveYearCSV } from '../js/ui/form.js';
 import { state } from '../js/core/state.js';
 import * as helpers from '../js/utils/helpers.js';
@@ -637,6 +637,100 @@ describe('SMS Approval Logic', () => {
             expect(state.rawSmsTransactions.length).toBe(2);
             expect(state.rawSmsTransactions[0].transactionMode).toBe('Wallet');
             expect(state.rawSmsTransactions[1].transactionMode).toBe('Wallet');
+        });
+    });
+
+    describe('showSmsApprovalModal & setupSmsApproval', () => {
+        beforeEach(() => {
+            document.body.innerHTML = `
+                <div class="modal-overlay" id="sms-modal-overlay" style="display: none;">
+                    <div class="modal card">
+                        <button type="button" id="sms-modal-close-btn"></button>
+                        <input type="checkbox" id="sms-select-all" checked>
+                        <span id="sms-count">0 transactions</span>
+                        <div id="sms-approval-list"></div>
+                        <button id="sms-modal-discard">Discard All</button>
+                        <button id="sms-modal-approve">Approve Selected</button>
+                    </div>
+                </div>
+            `;
+            state.categories = ['Food', 'Bills', 'Shopping'];
+            state.txnModes = ['UPI', 'Card', 'Cash'];
+            setupSmsApproval();
+        });
+
+        it('should render transaction cards without ReferenceError and display correctly', () => {
+            const txns = [
+                { date: '2026-07-15', amount: 450, merchant: 'Swiggy', source: 'SMS: AD-SWIGGY', transactionMode: 'UPI' },
+                { date: '2026-07-16', amount: 1200, merchant: 'Amazon', source: 'Email: Amazon', transactionMode: 'Card' }
+            ];
+
+            showSmsApprovalModal(txns);
+
+            const overlay = document.getElementById('sms-modal-overlay');
+            expect(overlay.style.display).toBe('flex');
+            expect(document.getElementById('sms-count').textContent).toBe('2 transactions');
+
+            const cards = document.querySelectorAll('.sms-card');
+            expect(cards.length).toBe(2);
+            expect(cards[0].textContent).toContain('Swiggy');
+            expect(cards[0].textContent).toContain('450');
+            expect(cards[1].textContent).toContain('Amazon');
+            expect(cards[1].textContent).toContain('1200');
+        });
+
+        it('should fallback to source or default title when merchant is empty', () => {
+            const txns = [
+                { date: '2026-07-15', amount: 250, merchant: '', source: 'SMS: HDFC-Bank', transactionMode: 'UPI' }
+            ];
+
+            showSmsApprovalModal(txns);
+
+            const cards = document.querySelectorAll('.sms-card');
+            expect(cards.length).toBe(1);
+            expect(cards[0].textContent).toContain('SMS: HDFC-Bank');
+        });
+
+        it('should close the modal overlay when close button is clicked', () => {
+            const txns = [
+                { date: '2026-07-15', amount: 250, merchant: 'Uber', source: 'SMS: Uber' }
+            ];
+            showSmsApprovalModal(txns);
+            const overlay = document.getElementById('sms-modal-overlay');
+            expect(overlay.style.display).toBe('flex');
+
+            document.getElementById('sms-modal-close-btn').click();
+            expect(overlay.style.display).toBe('none');
+        });
+
+        it('should close the modal overlay when backdrop is clicked', () => {
+            const txns = [
+                { date: '2026-07-15', amount: 250, merchant: 'Uber', source: 'SMS: Uber' }
+            ];
+            showSmsApprovalModal(txns);
+            const overlay = document.getElementById('sms-modal-overlay');
+            expect(overlay.style.display).toBe('flex');
+
+            overlay.click();
+            expect(overlay.style.display).toBe('none');
+        });
+
+        it('should toggle all checkboxes when select-all is toggled', () => {
+            const txns = [
+                { date: '2026-07-15', amount: 250, merchant: 'Uber', source: 'SMS: Uber' },
+                { date: '2026-07-16', amount: 350, merchant: 'Ola', source: 'SMS: Ola' }
+            ];
+            showSmsApprovalModal(txns);
+
+            const selectAll = document.getElementById('sms-select-all');
+            const checkboxes = document.querySelectorAll('.sms-checkbox');
+            expect(checkboxes[0].checked).toBe(true);
+            expect(checkboxes[1].checked).toBe(true);
+
+            selectAll.checked = false;
+            selectAll.dispatchEvent(new Event('change'));
+            expect(checkboxes[0].checked).toBe(false);
+            expect(checkboxes[1].checked).toBe(false);
         });
     });
 });

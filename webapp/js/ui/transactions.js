@@ -256,8 +256,12 @@ export function renderTransactions() {
 // --- Mobile Action Menu & Long Press ---
 let longPressTimer;
 const LONG_PRESS_DURATION = 500;
+const LONG_PRESS_SLOP_PX = 10;
 
 let activeTouchRow = null;
+let touchStartX = 0;
+let touchStartY = 0;
+let longPressTriggered = false;
 
 document.addEventListener('touchstart', (e) => {
     const row = e.target.closest('.touchable-row');
@@ -267,9 +271,15 @@ document.addEventListener('touchstart', (e) => {
     if (e.target.closest('.row-btn') || e.target.closest('button')) return;
 
     activeTouchRow = row;
+    longPressTriggered = false;
+    if (e.touches && e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }
     row.classList.add('row-holding');
 
     longPressTimer = setTimeout(() => {
+        longPressTriggered = true;
         const realIdx = parseInt(row.getAttribute('data-real-idx'));
         const schedIdx = parseInt(row.getAttribute('data-sched-idx'));
         
@@ -292,9 +302,30 @@ function clearTouchState() {
     }
 }
 
-document.addEventListener('touchend', clearTouchState);
-document.addEventListener('touchmove', clearTouchState);
-document.addEventListener('touchcancel', clearTouchState);
+document.addEventListener('touchmove', (e) => {
+    if (!activeTouchRow) return;
+    if (e.touches && e.touches.length > 0) {
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (Math.hypot(dx, dy) > LONG_PRESS_SLOP_PX) {
+            clearTouchState();
+        }
+    } else {
+        clearTouchState();
+    }
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+    if (longPressTriggered) {
+        if (e.cancelable) e.preventDefault();
+        longPressTriggered = false;
+    }
+    clearTouchState();
+});
+document.addEventListener('touchcancel', () => {
+    longPressTriggered = false;
+    clearTouchState();
+});
 
 window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
     clearTouchState();

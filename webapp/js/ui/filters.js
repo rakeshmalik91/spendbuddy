@@ -85,6 +85,12 @@ export function setupFilters() {
             const { toast } = await import('../utils/helpers.js');
             toast(isEnabled ? 'Refund merging enabled' : 'Refund merging disabled', 'info');
             renderTransactions();
+            try {
+                const { renderDashboard } = await import('./dashboard.js');
+                if (typeof renderDashboard === 'function') renderDashboard();
+            } catch (err) {
+                // ignore
+            }
         });
     }
 

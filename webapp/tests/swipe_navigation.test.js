@@ -78,4 +78,35 @@ describe('swipe_navigation modal guards', () => {
         const activeView = document.querySelector('.view.active');
         expect(activeView.style.transform).not.toContain('translateX');
     });
+
+    test('touchmove with small downward movement at top of page does not call preventDefault', () => {
+        const view = document.getElementById('view-dashboard');
+        
+        const touchStartEvt = new Event('touchstart', { bubbles: true, cancelable: true });
+        touchStartEvt.changedTouches = [{ clientX: 100, clientY: 100 }];
+        view.dispatchEvent(touchStartEvt);
+
+        const touchMoveEvt = new Event('touchmove', { bubbles: true, cancelable: true });
+        touchMoveEvt.changedTouches = [{ clientX: 100, clientY: 105 }]; // 5px micro-movement
+        const preventDefaultSpy = jest.spyOn(touchMoveEvt, 'preventDefault');
+        view.dispatchEvent(touchMoveEvt);
+
+        // Small downward jitter should NOT cancel clicks
+        expect(preventDefaultSpy).not.toHaveBeenCalled();
+    });
+
+    test('rapid touchend on button within 300ms does not call preventDefault', () => {
+        const btn = document.getElementById('btn-mobile-edit');
+
+        // First tap
+        const touchEnd1 = new Event('touchend', { bubbles: true, cancelable: true });
+        btn.dispatchEvent(touchEnd1);
+
+        // Second tap immediately within 100ms
+        const touchEnd2 = new Event('touchend', { bubbles: true, cancelable: true });
+        const preventDefaultSpy = jest.spyOn(touchEnd2, 'preventDefault');
+        btn.dispatchEvent(touchEnd2);
+
+        expect(preventDefaultSpy).not.toHaveBeenCalled();
+    });
 });

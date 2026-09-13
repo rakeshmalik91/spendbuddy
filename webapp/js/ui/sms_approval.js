@@ -460,9 +460,39 @@ export function initSmsFromCache() {
 }
 
 export function setupSmsApproval() {
+    if (typeof window !== 'undefined') {
+        window.showSmsApprovalModal = showSmsApprovalModal;
+    }
+
+    const closeSmsModal = () => {
+        const overlay = document.getElementById('sms-modal-overlay');
+        if (overlay) overlay.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+        modalSnapshot = null;
+    };
+
+    document.getElementById('sms-modal-close-btn')?.addEventListener('click', closeSmsModal);
+    document.getElementById('sms-modal-overlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'sms-modal-overlay') {
+            closeSmsModal();
+        }
+    });
+
     document.getElementById('sms-select-all')?.addEventListener('change', (e) => {
         const isChecked = e.target.checked;
         document.querySelectorAll('.sms-checkbox').forEach(cb => cb.checked = isChecked);
+    });
+
+    document.getElementById('sms-approval-list')?.addEventListener('change', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('sms-checkbox')) {
+            const all = document.querySelectorAll('.sms-checkbox');
+            const checked = document.querySelectorAll('.sms-checkbox:checked');
+            const selectAll = document.getElementById('sms-select-all');
+            if (selectAll) {
+                selectAll.checked = all.length > 0 && all.length === checked.length;
+            }
+        }
     });
 
     document.getElementById('sms-modal-discard')?.addEventListener('click', () => {
@@ -577,7 +607,9 @@ export function setupSmsApproval() {
 }
 
 export function receiveSmsTransactions(jsonString) {
-    window.showSmsApprovalModal = showSmsApprovalModal;
+    if (typeof window !== 'undefined') {
+        window.showSmsApprovalModal = showSmsApprovalModal;
+    }
     if (localStorage.getItem('expman_disable_sms_sync')) {
         console.log("SMS syncing disabled. Ignoring SMS data.");
         return;
@@ -606,9 +638,16 @@ export function receiveSmsTransactions(jsonString) {
 }
 
 export function showSmsApprovalModal(txns) {
-    window.showSmsApprovalModal = showSmsApprovalModal;
+    if (typeof window !== 'undefined') {
+        window.showSmsApprovalModal = showSmsApprovalModal;
+    }
+    if (!Array.isArray(txns) || txns.length === 0) {
+        toast('No pending SMS or Email transactions to review', 'info');
+        return;
+    }
+    const overlay = document.getElementById('sms-modal-overlay');
     const listContainer = document.getElementById('sms-approval-list');
-    if (!listContainer) return;
+    if (!overlay || !listContainer) return;
     listContainer.innerHTML = '';
 
     // Freeze a snapshot of the transactions being reviewed. The approve/discard
@@ -618,6 +657,9 @@ export function showSmsApprovalModal(txns) {
 
     const countEl = document.getElementById('sms-count');
     if (countEl) countEl.textContent = `${txns.length} transaction${txns.length !== 1 ? 's' : ''}`;
+
+    const selectAllCheckbox = document.getElementById('sms-select-all');
+    if (selectAllCheckbox) selectAllCheckbox.checked = true;
 
     txns.forEach((txn, i) => {
         let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
@@ -634,6 +676,8 @@ export function showSmsApprovalModal(txns) {
         const amountPrefix = isCredit ? '+' : '';
 
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
+        const emoji = isEmail ? '📧' : '💬';
+        const sourceStr = txn.merchant || txn.source || (isEmail ? 'Email' : 'SMS');
 
         const div = document.createElement('div');
         div.className = 'sms-card';
@@ -644,7 +688,7 @@ export function showSmsApprovalModal(txns) {
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${escHtml(sourceStr)}</div>
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${emoji} ${escHtml(sourceStr)}</div>
                             <div style="font-weight: 700; color: ${amountColor}; font-size: 1.1rem; white-space: nowrap; text-align: right;">
                                 ${amountPrefix}₹${amountToStr(Math.abs(txn.amount))}
                             </div>
@@ -675,8 +719,12 @@ export function showSmsApprovalModal(txns) {
             `;
         listContainer.appendChild(div);
     });
-    document.getElementById('sms-modal-overlay').style.display = 'flex';
+    overlay.style.display = 'flex';
     document.body.classList.add('modal-open');
     document.documentElement.classList.add('modal-open');
     hideLoader();
+}
+
+if (typeof window !== 'undefined') {
+    window.showSmsApprovalModal = showSmsApprovalModal;
 }

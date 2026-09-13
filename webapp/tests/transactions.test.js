@@ -210,3 +210,70 @@ describe('getDaySeparatorHTML', () => {
     });
 });
 
+describe('Mobile Long-Press Slop Tolerance', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        document.body.innerHTML = `
+            <table>
+                <tbody>
+                    <tr id="txn-row-0" class="touchable-row" data-real-idx="0" data-row-prefix="txn-row">
+                        <td>Row 0</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="mobile-txn-menu-overlay" class="modal-overlay"></div>
+        `;
+        window.openMobileTxnMenu = jest.fn();
+        // Dynamically require transactions module to bind listeners
+        require('../js/ui/transactions.js');
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('long press triggers menu if finger moves within 10px slop', () => {
+        const row = document.getElementById('txn-row-0');
+
+        const touchStart = new Event('touchstart', { bubbles: true });
+        touchStart.touches = [{ clientX: 100, clientY: 100 }];
+        row.dispatchEvent(touchStart);
+
+        expect(row.classList.contains('row-holding')).toBe(true);
+
+        // Micro-movement (e.g. 5px tremor)
+        const touchMove = new Event('touchmove', { bubbles: true });
+        touchMove.touches = [{ clientX: 103, clientY: 104 }]; // hypot = 5
+        document.dispatchEvent(touchMove);
+
+        expect(row.classList.contains('row-holding')).toBe(true);
+
+        // Advance past 500ms
+        jest.advanceTimersByTime(500);
+
+        expect(window.openMobileTxnMenu).toHaveBeenCalledWith(0, 'txn-row');
+    });
+
+    test('long press aborts if finger moves more than 10px slop', () => {
+        const row = document.getElementById('txn-row-0');
+
+        const touchStart = new Event('touchstart', { bubbles: true });
+        touchStart.touches = [{ clientX: 100, clientY: 100 }];
+        row.dispatchEvent(touchStart);
+
+        expect(row.classList.contains('row-holding')).toBe(true);
+
+        // User actually scrolls (> 10px)
+        const touchMove = new Event('touchmove', { bubbles: true });
+        touchMove.touches = [{ clientX: 100, clientY: 115 }]; // 15px drag
+        document.dispatchEvent(touchMove);
+
+        expect(row.classList.contains('row-holding')).toBe(false);
+
+        // Advance timer
+        jest.advanceTimersByTime(500);
+
+        expect(window.openMobileTxnMenu).not.toHaveBeenCalled();
+    });
+});
+

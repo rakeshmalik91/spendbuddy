@@ -189,6 +189,21 @@ public class ExpenseExtractionTest {
         org.junit.Assert.assertFalse("Completed transaction should not be flagged as reminder",
                 TransactionUtils.isReminderOrNonTransaction(txnSubject, txnBody));
         assertEquals(379.0, TransactionUtils.extractValidAmount(txnBody), 0.01);
+
+        // Test 4: Regional Bengali Jio recharge prompt SMS (non-transaction)
+        String jioBengaliSms = "আপনার Jio নম্বর 6290768237 -এর প্ল্যানটির মেয়াদ শীঘ্রই শেষ হতে চলেছে। 90 দিনের জন্য আনলিমিটেড 5G, ভয়েস, প্রতিদিন 2 GB ডেটা + JioHotstar মোবাইল এবং Pro Google Gemini পেতে 899 টাকার রিচার্জ করুন। শর্তাবলী প্রযোজ্য। www.jio.com/r/EtKlJGCJA";
+        org.junit.Assert.assertTrue("Bengali Jio recharge prompt should be flagged as reminder/non-transaction",
+                TransactionUtils.isReminderOrNonTransaction(null, jioBengaliSms));
+
+        // Test 5: English recharge reminder SMS (non-transaction)
+        String jioEnglishSms = "Your Jio plan validity is expiring soon. Recharge with Rs. 899 to get unlimited 5G. T&C apply.";
+        org.junit.Assert.assertTrue("English recharge reminder should be flagged as reminder/non-transaction",
+                TransactionUtils.isReminderOrNonTransaction(null, jioEnglishSms));
+
+        // Test 6: Completed recharge transaction (valid transaction)
+        String jioCompletedSms = "Your recharge of Rs. 899 for Jio number 6290768237 was successful. Ref No: 1234567890.";
+        org.junit.Assert.assertFalse("Completed recharge transaction should NOT be flagged as reminder",
+                TransactionUtils.isReminderOrNonTransaction(null, jioCompletedSms));
     }
 
     @Test

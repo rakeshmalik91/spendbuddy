@@ -71,10 +71,19 @@ public class TransactionUtils {
         // Check if subject or body matches any reminder keyword
         boolean matchesReminderKeyword = false;
         for (String keyword : AppConfig.REMINDER_KEYWORDS) {
-            java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\b" + java.util.regex.Pattern.quote(keyword) + "\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
-            if (p.matcher(lower).find()) {
-                matchesReminderKeyword = true;
-                break;
+            String kwLower = keyword.toLowerCase();
+            // If keyword contains non-alphanumeric ASCII characters (like &, or non-ASCII Bengali/Hindi scripts), use simple contains
+            if (!kwLower.matches("^[a-z0-9 ]+$")) {
+                if (lower.contains(kwLower)) {
+                    matchesReminderKeyword = true;
+                    break;
+                }
+            } else {
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\b" + java.util.regex.Pattern.quote(kwLower) + "\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+                if (p.matcher(lower).find()) {
+                    matchesReminderKeyword = true;
+                    break;
+                }
             }
         }
 

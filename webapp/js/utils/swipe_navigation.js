@@ -79,15 +79,9 @@ document.addEventListener('touchmove', e => {
     const diffX = currentX - touchStartX;
     const diffY = currentY - touchStartY;
 
-    // Check if we are pulling down at the top of the page. If so, immediately prevent native behavior
+    // Check if we are pulling down at the top of the page.
     const mainContent = document.getElementById('main-content');
     const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || (mainContent ? mainContent.scrollTop : 0);
-
-    if (!isSwiping1to1 && !isPullingDown && scrollTop <= 0 && diffY > 0) {
-        if (window.innerWidth <= 768) {
-            if (e.cancelable) e.preventDefault();
-        }
-    }
 
     // Detect if the gesture is horizontal rather than vertical scroll
     if (!isSwiping1to1 && !isPullingDown) {
@@ -401,9 +395,9 @@ let lastTouchEndTime = 0;
 document.addEventListener('touchend', function (e) {
     const now = Date.now();
     if (now - lastTouchEndTime <= 300) {
-        // Prevent zoom trigger on rapid double taps except inside text input fields
-        if (!e.target.closest('input, textarea, select')) {
-            e.preventDefault();
+        // Prevent zoom trigger on rapid double taps except inside text input fields and clickable elements
+        if (!e.target.closest('input, textarea, select, button, a, [role="button"], .btn, .btn-quick-add, .nav-btn, .touchable-row, .row-btn, .action-dropdown-item')) {
+            if (e.cancelable) e.preventDefault();
         }
     }
     lastTouchEndTime = now;
