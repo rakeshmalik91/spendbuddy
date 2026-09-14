@@ -199,37 +199,83 @@ export function renderRefundCollapsibleSubrow(prefix, realIdx, refunds = [], tot
         const amountClassStr = isItemRefund ? 'amount-negative' : 'amount-positive';
         const showActions = true;
         const subDropdownKey = `sub-${prefix}-${realIdx}-${itemIdx}`;
+        const isItemInlineEdit = (state.inlineEditTxnIdx === itemRealIdx);
+
+        let itemLeftHtml = `
+            <span class="refund-item-date">${formatDate(item.date)}</span>
+            <span class="refund-item-category">${escHtml(item.category)}</span>
+            ${item.note ? `<span class="refund-item-note">${escHtml(item.note)}</span>` : ''}
+            ${itemBadges ? `<div class="badges-wrapper">${itemBadges}</div>` : ''}
+        `;
+
+        let itemRightHtml = `
+            <span class="${amountClassStr}"><span class="amount-main"><span class="amount-sign">${isItemRefund ? '+' : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
+            ${itemRealIdx !== -1 && showActions ? `
+            <div class="row-actions action-dropdown-wrap" style="margin-left: 8px;">
+                <button class="row-btn action-dropdown-btn" onclick="toggleActionDropdown(event, '${subDropdownKey}')" title="Actions">⋮</button>
+                <div class="action-dropdown-menu" id="action-dropdown-${subDropdownKey}">
+                    <button class="action-dropdown-item action-quick-edit show-on-ipad" onclick="startInlineEdit(${itemRealIdx}); closeAllActionDropdowns();">
+                        <span class="action-icon">⚡</span> Quick Edit
+                    </button>
+                    <button class="action-dropdown-item" onclick="openRefundLinkingModal(${itemRealIdx}); closeAllActionDropdowns();">
+                        <span class="action-icon">🔗</span> ${isItemRefund ? 'Link Original Expense' : 'Link Refunds'}
+                    </button>
+                    <button class="action-dropdown-item" onclick="editEntry(${itemRealIdx}); closeAllActionDropdowns();">
+                        <span class="action-icon">✏️</span> Edit
+                    </button>
+                    <button class="action-dropdown-item delete" onclick="openDeleteModal(${itemRealIdx}); closeAllActionDropdowns();">
+                        <span class="action-icon">🗑️</span> Delete
+                    </button>
+                </div>
+            </div>` : ''}
+        `;
+
+        if (isItemInlineEdit) {
+            const distinctCategories = Array.from(new Set([
+                ...(state.categories || []),
+                ...state.expenses.map(ex => ex.category).filter(Boolean)
+            ])).sort();
+            if (item.category && !distinctCategories.includes(item.category)) {
+                distinctCategories.unshift(item.category);
+            }
+            const initialAmtStr = item.amountExpression || (
+                Math.abs(item.amount) % 1 === 0 
+                    ? Math.abs(item.amount).toString() 
+                    : Math.abs(item.amount).toFixed(2)
+            );
+            itemLeftHtml = `
+                <span class="refund-item-date">${formatDate(item.date)}</span>
+                <select id="inline-edit-category-${itemRealIdx}" class="inline-edit-input inline-edit-select" style="max-width: 125px;">
+                    ${distinctCategories.map(c => `<option value="${escHtml(c)}" ${c === item.category ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
+                </select>
+                <input type="text" id="inline-edit-note-${itemRealIdx}" class="inline-edit-input inline-edit-note-input" value="${escHtml(item.note || '')}" placeholder="Note..." autocomplete="off" />
+                ${itemBadges ? `<div class="badges-wrapper">${itemBadges}</div>` : ''}
+            `;
+            itemRightHtml = `
+                <div class="inline-edit-amount-wrap">
+                    <input type="text" id="inline-edit-amount-${itemRealIdx}" class="inline-edit-input inline-edit-amount-input" value="${escHtml(initialAmtStr)}" placeholder="Amount" autocomplete="off" />
+                    <span id="inline-edit-preview-${itemRealIdx}" class="inline-edit-preview-pill" style="display: none;"></span>
+                </div>
+                <div class="row-actions inline-edit-actions" style="margin-left: 8px;">
+                    <button type="button" class="row-btn inline-btn-save" onclick="saveInlineEdit(${itemRealIdx})" title="Save (Enter)">✓</button>
+                    <button type="button" class="row-btn inline-btn-cancel" onclick="cancelInlineEdit()" title="Cancel (Esc)">✕</button>
+                </div>
+            `;
+        }
 
         return `
-        <div class="refund-item-card">
+        <div class="refund-item-card ${isItemInlineEdit ? 'quick-editing' : ''}" data-real-idx="${itemRealIdx}" ondblclick="if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap')) startInlineEdit(${itemRealIdx});">
             <div class="refund-item-left">
-                <span class="refund-item-date">${formatDate(item.date)}</span>
-                <span class="refund-item-category">${escHtml(item.category)}</span>
-                ${item.note ? `<span class="refund-item-note">${escHtml(item.note)}</span>` : ''}
-                ${itemBadges ? `<div class="badges-wrapper">${itemBadges}</div>` : ''}
+                ${itemLeftHtml}
             </div>
             <div class="refund-item-right">
-                <span class="${amountClassStr}"><span class="amount-main"><span class="amount-sign">${isItemRefund ? '+' : '&nbsp;'}</span><span class="amount-symbol">₹</span><span class="amount-val">${Math.abs(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span></span>
-                ${itemRealIdx !== -1 && showActions ? `
-                <div class="row-actions action-dropdown-wrap" style="margin-left: 8px;">
-                    <button class="row-btn action-dropdown-btn" onclick="toggleActionDropdown(event, '${subDropdownKey}')" title="Actions">⋮</button>
-                    <div class="action-dropdown-menu" id="action-dropdown-${subDropdownKey}">
-                        <button class="action-dropdown-item" onclick="openRefundLinkingModal(${itemRealIdx}); closeAllActionDropdowns();">
-                            <span class="action-icon">🔗</span> ${isItemRefund ? 'Link Original Expense' : 'Link Refunds'}
-                        </button>
-                        <button class="action-dropdown-item" onclick="editEntry(${itemRealIdx}); closeAllActionDropdowns();">
-                            <span class="action-icon">✏️</span> Edit
-                        </button>
-                        <button class="action-dropdown-item delete" onclick="openDeleteModal(${itemRealIdx}); closeAllActionDropdowns();">
-                            <span class="action-icon">🗑️</span> Delete
-                        </button>
-                    </div>
-                </div>` : ''}
+                ${itemRightHtml}
             </div>
         </div>`;
     }).join('');
 
-    const collapsedClass = isCollapsedByDefault ? ' hidden' : '';
+    const hasInlineEditingItem = refunds.some(r => state.expenses.indexOf(r) === state.inlineEditTxnIdx) || linkedExpenses.some(l => state.expenses.indexOf(l) === state.inlineEditTxnIdx);
+    const collapsedClass = (isCollapsedByDefault && !hasInlineEditingItem) ? ' hidden' : '';
     return `
     <tr id="${prefix}-${realIdx}-refunds" class="refund-collapsible-row hide-on-mobile${collapsedClass}" data-parent-id="${prefix}-${realIdx}">
         <td colspan="${colspan}">

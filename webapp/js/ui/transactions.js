@@ -1,11 +1,196 @@
 import { getFilteredExpenses } from "./filters.js";
 import { getDaySeparatorHTML } from "./settings.js";
-import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
 import { $ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
+import { evaluateExpression, saveYearCSV, editEntry } from "./form.js";
+import { roundAmount } from "../services/storage.js";
 
 /* ══════════════ TRANSACTIONS TABLE ══════════════ */
+
+export function isInlineEditModified(realIdx) {
+    if (realIdx === null || realIdx === undefined || !state.expenses) return false;
+    const targetTxn = state.expenses[realIdx];
+    if (!targetTxn) return false;
+
+    const amtInput = document.getElementById(`inline-edit-amount-${realIdx}`);
+    const catSelect = document.getElementById(`inline-edit-category-${realIdx}`);
+    const noteInput = document.getElementById(`inline-edit-note-${realIdx}`);
+    if (!amtInput && !catSelect && !noteInput) return false;
+
+    const initialAmtStr = targetTxn.amountExpression || (
+        Math.abs(targetTxn.amount) % 1 === 0 
+            ? Math.abs(targetTxn.amount).toString() 
+            : Math.abs(targetTxn.amount).toFixed(2)
+    );
+    const initialCategory = targetTxn.category || '';
+    const initialNote = targetTxn.note || '';
+
+    const currentAmtStr = amtInput ? amtInput.value.trim() : '';
+    const currentCategory = catSelect ? catSelect.value : '';
+    const currentNote = noteInput ? noteInput.value : '';
+
+    return (currentAmtStr !== initialAmtStr.trim()) ||
+           (currentCategory !== initialCategory) ||
+           (currentNote !== initialNote);
+}
+
+export function startInlineEdit(realIdx) {
+    if (typeof window !== 'undefined' && window.innerWidth <= 860) {
+        if (typeof editEntry === 'function') editEntry(realIdx);
+        return;
+    }
+    state.inlineEditTxnIdx = realIdx;
+    state.inlineEditStartedAt = Date.now();
+    renderTransactions();
+}
+
+export function cancelInlineEdit() {
+    state.inlineEditTxnIdx = null;
+    state.inlineEditStartedAt = null;
+    renderTransactions();
+}
+
+export async function saveInlineEdit(realIdx) {
+    if (state.cloudSyncInProgress) {
+        toast('Please wait for cloud sync to complete...', 'error');
+        return;
+    }
+    const targetTxn = state.expenses[realIdx];
+    if (!targetTxn) return;
+
+    const amtInput = document.getElementById(`inline-edit-amount-${realIdx}`);
+    const catSelect = document.getElementById(`inline-edit-category-${realIdx}`);
+    const noteInput = document.getElementById(`inline-edit-note-${realIdx}`);
+    if (!amtInput) return;
+
+    const rawAmount = (amtInput.value || '').trim();
+    if (!rawAmount) {
+        toast('Please enter an amount', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const sanitized = rawAmount.replace(/\s+/g, '');
+    if (!/^[\d.+\-*]+$/.test(sanitized)) {
+        toast('Invalid characters in amount expression', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const evaluated = evaluateExpression(rawAmount);
+    const parsedAmt = roundAmount(evaluated);
+    if (isNaN(parsedAmt)) {
+        toast('Please enter a valid amount', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const isNegative = targetTxn.txnType === 'Refund' || targetTxn.txnType === 'Income' || (targetTxn.amount < 0 && !targetTxn.txnType);
+    const finalAmount = isNegative ? -Math.abs(parsedAmt) : Math.abs(parsedAmt);
+    const hasOperators = rawAmount.split(/[-+*]/).filter(Boolean).length > 1;
+    const finalExpression = hasOperators ? rawAmount : '';
+    const finalCategory = catSelect ? catSelect.value.trim() : targetTxn.category;
+    const finalNote = noteInput ? noteInput.value.trim() : targetTxn.note;
+
+    targetTxn.category = finalCategory;
+    targetTxn.amount = finalAmount;
+    targetTxn.amountExpression = finalExpression;
+    targetTxn.note = finalNote;
+
+    state.inlineEditTxnIdx = null;
+    state.inlineEditStartedAt = null;
+    toast('Saving changes...', 'info');
+
+    try {
+        const year = (targetTxn.date || '').split('-')[0] || new Date().getFullYear().toString();
+        await saveYearCSV(year);
+        toast('Transaction updated!', 'success');
+        renderTransactions();
+
+        setTimeout(() => {
+            const row = document.getElementById(`txn-row-${realIdx}`);
+            if (row) {
+                row.style.transition = 'background-color 0.5s ease';
+                const oldBg = row.style.backgroundColor;
+                row.style.backgroundColor = 'rgba(99, 138, 255, 0.3)';
+                setTimeout(() => {
+                    row.style.backgroundColor = oldBg;
+                }, 1500);
+            }
+        }, 50);
+    } catch (err) {
+        console.error('Inline edit save failed:', err);
+        toast('Error saving transaction to cloud', 'error');
+        renderTransactions();
+    }
+}
+
+function attachInlineEventListeners(realIdx) {
+    const amtInput = document.getElementById(`inline-edit-amount-${realIdx}`);
+    const noteInput = document.getElementById(`inline-edit-note-${realIdx}`);
+    const catSelect = document.getElementById(`inline-edit-category-${realIdx}`);
+    const previewPill = document.getElementById(`inline-edit-preview-${realIdx}`);
+    if (!amtInput) return;
+
+    const targetTxn = state.expenses[realIdx];
+    const isNegative = targetTxn && (targetTxn.txnType === 'Refund' || targetTxn.txnType === 'Income' || (targetTxn.amount < 0 && !targetTxn.txnType));
+
+    function updatePreview() {
+        const raw = (amtInput.value || '').trim();
+        if (!raw || !previewPill) {
+            if (previewPill) previewPill.style.display = 'none';
+            return;
+        }
+        const sanitized = raw.replace(/\s+/g, '');
+        if (!/^[\d.+\-*]+$/.test(sanitized)) {
+            previewPill.textContent = 'Invalid expression';
+            previewPill.className = 'inline-edit-preview-error';
+            previewPill.style.display = 'inline-block';
+            return;
+        }
+        const evaluated = evaluateExpression(raw);
+        const parsed = roundAmount(evaluated);
+        if (isNaN(parsed)) {
+            previewPill.textContent = 'Invalid expression';
+            previewPill.className = 'inline-edit-preview-error';
+            previewPill.style.display = 'inline-block';
+            return;
+        }
+        const hasOperators = raw.split(/[-+*]/).filter(Boolean).length > 1;
+        if (hasOperators) {
+            const displaySign = isNegative ? '-' : '';
+            previewPill.textContent = `= ${displaySign}₹${Math.abs(parsed).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            previewPill.className = 'inline-edit-preview-pill';
+            previewPill.style.display = 'inline-block';
+        } else {
+            previewPill.style.display = 'none';
+        }
+    }
+
+    amtInput.addEventListener('input', updatePreview);
+    updatePreview();
+
+    function handleKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveInlineEdit(realIdx);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelInlineEdit();
+        }
+    }
+
+    amtInput.addEventListener('keydown', handleKeydown);
+    if (noteInput) noteInput.addEventListener('keydown', handleKeydown);
+    if (catSelect) catSelect.addEventListener('keydown', handleKeydown);
+
+    setTimeout(() => {
+        amtInput.focus();
+        amtInput.select();
+    }, 50);
+}
 
 export function renderTransactions() {
     const toggleMergeRefundsTxn = $('#toggle-merge-refunds-txn');
@@ -178,12 +363,70 @@ export function renderTransactions() {
         }
 
         const isExpense = !e.txnType || e.txnType === 'Expense' || e.amount > 0;
+        const isInlineEditing = (state.inlineEditTxnIdx === realIdx);
 
-        let actionsHtml = `
+        let catHtml = `<td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>`;
+        let noteHtml = `
+            <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
+                <div class="note-content">
+                    <span class="${!e.note ? 'empty-dash' : ''}">${e.note ? escHtml(e.note) : ''}</span>
+                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
+                </div>
+            </td>`;
+        let actionsHtml = '';
+
+        if (isInlineEditing) {
+            const distinctCategories = Array.from(new Set([
+                ...(state.categories || []),
+                ...state.expenses.map(ex => ex.category).filter(Boolean)
+            ])).sort();
+            if (e.category && !distinctCategories.includes(e.category)) {
+                distinctCategories.unshift(e.category);
+            }
+            catHtml = `
+            <td data-label="Category" class="inline-edit-cell">
+                <select id="inline-edit-category-${realIdx}" class="inline-edit-input inline-edit-select">
+                    ${distinctCategories.map(c => `<option value="${escHtml(c)}" ${c === e.category ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
+                </select>
+            </td>`;
+
+            noteHtml = `
+            <td data-label="Note" class="inline-edit-cell">
+                <div class="inline-edit-note-wrap">
+                    <input type="text" id="inline-edit-note-${realIdx}" class="inline-edit-input inline-edit-note-input" value="${escHtml(e.note || '')}" placeholder="Note..." autocomplete="off" />
+                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
+                </div>
+            </td>`;
+
+            const initialAmtVal = e.amountExpression || (
+                Math.abs(e.amount) % 1 === 0 
+                    ? Math.abs(e.amount).toString() 
+                    : Math.abs(e.amount).toFixed(2)
+            );
+            amountHtml = `
+            <td data-label="Amount" class="inline-edit-cell">
+                <div class="inline-edit-amount-wrap">
+                    <input type="text" id="inline-edit-amount-${realIdx}" class="inline-edit-input inline-edit-amount-input" value="${escHtml(initialAmtVal)}" placeholder="Amount / expr" autocomplete="off" />
+                    <span id="inline-edit-preview-${realIdx}" class="inline-edit-preview-pill" style="display: none;"></span>
+                </div>
+            </td>`;
+
+            actionsHtml = `
+            <td data-label="Actions" class="inline-edit-cell">
+                <div class="row-actions inline-edit-actions">
+                    <button type="button" class="row-btn inline-btn-save" onclick="saveInlineEdit(${realIdx})" title="Save (Enter)">✓</button>
+                    <button type="button" class="row-btn inline-btn-cancel" onclick="cancelInlineEdit()" title="Cancel (Esc)">✕</button>
+                </div>
+            </td>`;
+        } else {
+            actionsHtml = `
             <td data-label="Actions">
                 <div class="row-actions action-dropdown-wrap">
                     <button class="row-btn action-dropdown-btn hide-on-mobile" onclick="toggleActionDropdown(event, ${realIdx})" title="Actions">⋮</button>
                     <div class="action-dropdown-menu hide-on-mobile" id="action-dropdown-${realIdx}">
+                        <button class="action-dropdown-item action-quick-edit show-on-ipad" onclick="startInlineEdit(${realIdx}); closeAllActionDropdowns();">
+                            <span class="action-icon">⚡</span> Quick Edit
+                        </button>
                         <button class="action-dropdown-item" onclick="openRefundLinkingModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🔗</span> ${isExpense ? 'Link Refunds' : 'Link Original Expense'}
                         </button>
@@ -201,13 +444,14 @@ export function renderTransactions() {
                     <button class="row-btn hide-on-desktop mobile-menu-btn" onclick="openMobileTxnMenu(${realIdx})" title="Options">⋮</button>
                 </div>
             </td>
-        `;
+            `;
+        }
 
         const hasSubrow = hasRefunds || hasLinkedExpenses;
         const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const isSelected = selectedIndices.has(realIdx);
         const mainRowHtml = `
-        <tr id="txn-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row ${isSelected ? 'row-selected' : ''}" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}">
+        <tr id="txn-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row ${isSelected ? 'row-selected' : ''} ${isInlineEditing ? 'quick-editing' : ''}" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" ondblclick="if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap')) startInlineEdit(${realIdx});">
             <td class="col-batch-select hide-on-mobile" style="text-align: center;">
                 <input type="checkbox" class="batch-select-checkbox" data-real-idx="${realIdx}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleTxnSelection(${realIdx}, this.checked);">
             </td>
@@ -217,13 +461,8 @@ export function renderTransactions() {
                     ${e.location ? `<div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 2px; overflow: hidden; min-width: 0;" title="${escHtml(e.location)}"><span>📍</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escHtml(e.location)}</span></div>` : ''}
                 </div>
             </td>
-            <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
-            <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
-                <div class="note-content">
-                    <span class="${!e.note ? 'empty-dash' : ''}">${e.note ? escHtml(e.note) : ''}</span>
-                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
-                </div>
-            </td>
+            ${catHtml}
+            ${noteHtml}
             ${amountHtml}
             <td data-label="Mode" title="${escHtml(e.txnMode)}"><span class="mode-cell">${escHtml(e.txnMode)}</span></td>
             ${actionsHtml}
@@ -246,6 +485,10 @@ export function renderTransactions() {
 
     if (isTruncated) {
         setupInfiniteScroll('infinite-scroll-txns', 'transactions', renderTransactions);
+    }
+
+    if (state.inlineEditTxnIdx !== null && state.inlineEditTxnIdx !== undefined) {
+        attachInlineEventListeners(state.inlineEditTxnIdx);
     }
 
     updateBatchActionBar();
@@ -655,10 +898,41 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('.action-dropdown-wrap')) {
         window.closeAllActionDropdowns();
     }
+
+    if (state.inlineEditTxnIdx !== null && state.inlineEditTxnIdx !== undefined) {
+        if (state.inlineEditStartedAt && (Date.now() - state.inlineEditStartedAt < 50)) {
+            return;
+        }
+        const editIdx = state.inlineEditTxnIdx;
+        const editContainer = document.getElementById(`txn-row-${editIdx}`)
+            || document.querySelector(`[data-real-idx="${editIdx}"].quick-editing`)
+            || document.querySelector('.refund-item-card.quick-editing');
+
+        if (editContainer && !editContainer.contains(e.target)) {
+            if (!isInlineEditModified(editIdx)) {
+                cancelInlineEdit();
+            }
+        }
+    }
 });
 
 document.addEventListener('scroll', () => window.closeAllActionDropdowns(), true);
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') window.closeAllActionDropdowns();
+    if (e.key === 'Escape') {
+        window.closeAllActionDropdowns();
+        if (state.inlineEditTxnIdx !== null && state.inlineEditTxnIdx !== undefined) {
+            cancelInlineEdit();
+        }
+    }
 });
+
+// Re-attach inline quick edit globals for table markup handlers
+if (typeof window !== 'undefined') {
+    window.startInlineEdit = startInlineEdit;
+    window.saveInlineEdit = saveInlineEdit;
+    window.cancelInlineEdit = cancelInlineEdit;
+    window.openQuickEditModal = startInlineEdit;
+    window.isInlineEditModified = isInlineEditModified;
+}
+
 

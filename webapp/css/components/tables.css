@@ -331,6 +331,116 @@
     border-color: transparent;
 }
 
+/* ══════════════ INLINE QUICK EDIT (DESKTOP) ══════════════ */
+tr.quick-editing {
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+tr.quick-editing td {
+    vertical-align: middle;
+}
+
+.inline-edit-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px 8px;
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--accent, #3b82f6);
+    border-radius: 5px;
+    color: var(--text-primary, #f8fafc);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.inline-edit-input:focus {
+    border-color: var(--accent-hover, #2563eb);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.inline-edit-select {
+    cursor: pointer;
+    text-overflow: ellipsis;
+    max-width: 135px;
+}
+
+.inline-edit-note-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.inline-edit-note-input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.inline-edit-amount-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.inline-edit-amount-input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    max-width: 130px;
+}
+
+.inline-edit-preview-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: var(--font-mono, monospace);
+    color: var(--accent, #3b82f6);
+    background: rgba(59, 130, 246, 0.15);
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.inline-edit-preview-error {
+    font-size: 0.72rem;
+    color: #ef4444;
+    white-space: nowrap;
+}
+
+.inline-edit-actions {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.inline-btn-save {
+    background: var(--accent, #3b82f6) !important;
+    border-color: var(--accent, #3b82f6) !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    padding: 4px 8px;
+    min-width: 26px;
+}
+
+.inline-btn-save:hover {
+    background: var(--accent-hover, #2563eb) !important;
+}
+
+.inline-btn-cancel {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: var(--border-subtle, #334155) !important;
+    color: var(--text-secondary, #94a3b8) !important;
+    padding: 4px 8px;
+    min-width: 26px;
+}
+
+.inline-btn-cancel:hover {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
 
 /* ══════════════ TABLE BADGES ══════════════ */
 .note-content {
@@ -780,6 +890,30 @@
     display: inline-block;
     width: 18px;
     text-align: center;
+}
+
+/* Quick Edit action item in dropdown menu (shown on iPad & touch devices) */
+.action-dropdown-item.action-quick-edit,
+.show-on-ipad {
+    display: none;
+}
+
+html.is-ipad .action-dropdown-item.action-quick-edit,
+html.is-ipad .show-on-ipad,
+body.is-ipad .action-dropdown-item.action-quick-edit,
+body.is-ipad .show-on-ipad,
+@media (hover: none) and (pointer: coarse) {
+    .action-dropdown-item.action-quick-edit,
+    .show-on-ipad {
+        display: flex;
+    }
+}
+
+@media (pointer: coarse) {
+    .action-dropdown-item.action-quick-edit,
+    .show-on-ipad {
+        display: flex;
+    }
 }
 
 /* ══════════════ BATCH SELECTION & ACTION BAR ══════════════ */

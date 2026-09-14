@@ -29,6 +29,13 @@ window.onunhandledrejection = function(event) {
     console.error(`[JS Unhandled Rejection]`, event.reason);
 };
 
+if (typeof navigator !== 'undefined' && typeof document !== 'undefined') {
+    const isIPad = (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) || /iPad/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.location && window.location.search && window.location.search.indexOf('ipad') !== -1);
+    if (isIPad) {
+        document.documentElement.classList.add('is-ipad');
+    }
+}
+
 /* ══════════════ EXPORTS ══════════════ */
 export { receiveSmsTransactions } from "../ui/sms_approval.js";
 

@@ -14,6 +14,7 @@ flowchart TD
     C --> C2["Structured Tabular Numerals: font-variant-numeric: tabular-nums"]
     C --> C3["Badges in Note Column: Left-aligned immediately beside note text"]
     C --> C4["Single Action Button (⋮): Smart Drop-Up if < menuHeight + 12px from bottom"]
+    C --> C5["Desktop Inline Quick Edit: Double-click row to edit Category, Amount/Expr, Note in-place"]
     
     B -- "<= 860px (Mobile & Tablets)" --> D["display: grid (Compact 2-Row Card)"]
     D --> D1["Line 1: grid-area: category amount actions (1fr auto 28px)"]
@@ -86,6 +87,34 @@ flowchart TD
 - **Single Action Button**: Table row actions render a single `⋮` button (`.action-dropdown-wrap`, `.action-dropdown-btn`) that opens a floating popup menu (`.action-dropdown-menu`).
 - **Subrow Unique Keying**: In collapsible refund subrows, dropdown IDs MUST be uniquely keyed with `sub-${prefix}-${realIdx}-${itemIdx}` (`action-dropdown-sub-${prefix}-${realIdx}-${itemIdx}`) to avoid DOM ID collisions when multiple parent rows link to the same original expense/refund.
 - **Smart Drop-Up Overflow Handling**: `window.toggleActionDropdown` measures available space below the button relative to viewport height and scroll container bounds (`.table-wrap`, `.card`, `.refund-collapsible-container`). If space below is insufficient (< menu height + 12px), it dynamically adds `.drop-up` (`bottom: calc(100% + 4px); top: auto;`), opening the menu upwards without container clipping.
+
+### 1.6 Desktop Inline Quick Edit Architecture
+To facilitate rapid inline modifications without the latency and visual disruption of a modal dialog, desktop users can edit transaction rows and linked refund subrow cards directly in-place:
+
+- **Activation Trigger (`ondblclick`)**:
+  - Double-clicking any transaction row (`tr#txn-row-${realIdx}`) or linked refund card (`.refund-item-card`) on desktop viewports (`window.innerWidth > 860`) engages inline edit mode (`state.inlineEditTxnIdx = realIdx`).
+  - **Defensive Target Check**: The `ondblclick` handler contains `!event.target.closest('input, select, button, a, .action-dropdown-wrap')`, preventing accidental triggers when toggling batch checkboxes, opening action menus, or clicking links.
+  - **Action Menu Policy**: On desktop with a mouse, Quick Edit is omitted from the action dropdown menu (`⋮`) to keep the menu compact and reserved for modal/destructive operations, relying on double-click. On iPad and touch devices (`html.is-ipad`, `@media (pointer: coarse)`), double-tapping is awkward on touch screens, so `⚡ Quick Edit` is automatically included in the row and subrow action dropdown menus (`.action-quick-edit.show-on-ipad`).
+  - **Mobile Fallback**: If `startInlineEdit(realIdx)` is invoked when viewport is `<= 860px`, it gracefully falls back to opening the standard edit modal (`editEntry(realIdx)`).
+- **Row Transformation (`tr.quick-editing`)**:
+  - **Category**: Renders an inline `<select class="inline-edit-input inline-edit-select">` prefilled with existing categories from `state.categories` and active dataset categories.
+  - **Note**: Renders an inline `<input type="text" class="inline-edit-input inline-edit-note-input">` prefilled with the current note, keeping location/mode/tag badges intact beneath.
+  - **Amount / Expression**: Renders `<input type="text" class="inline-edit-input inline-edit-amount-input">` prefilled with `amountExpression` or numeric amount. The field is automatically focused with its contents selected for immediate overwrite or revision.
+  - **Live Math Expression Preview**: As the user types arithmetic operations (e.g., `120+45*2`), a floating `<span class="inline-edit-preview-pill">` dynamically evaluates the expression and displays the calculated total (`= ₹210.00` or `-₹150.00` for refunds), displaying an inline warning if invalid syntax is detected.
+  - **Inline Action Controls**: Replaces the `⋮` action button with:
+    - `✓` (`.inline-btn-save`): Saves changes (<kbd>Enter</kbd> or click).
+    - `✕` (`.inline-btn-cancel`): Discards changes (<kbd>Esc</kbd> or click).
+- **Persistence & Invariant Preservation**:
+  - Evaluates mathematical expressions using `evaluateExpression()`.
+  - Strictly enforces negative sign for `Refund` and `Income` transaction types (`-Math.abs(parsedAmt)`).
+  - Preserves all unedited fields (`date`, `currency`, `txnType`, `txnMode`, `location`, `tag`, `source`, `txnId`).
+  - Persists changes to cloud storage via `saveYearCSV(year)`.
+  - Re-renders table and applies a temporary background pulse to highlight the updated row.
+- **Cancellation & Smart Click-Outside Behavior**:
+  - Pressing <kbd>Esc</kbd> anywhere on the page (even when focus is outside the textboxes) or clicking `✕` calls `cancelInlineEdit()`, restoring the row without saving.
+  - **Change Detection via `isInlineEditModified(realIdx)`**: Compares current values of Category, Amount/Expression, and Note against their initial states.
+  - **Unedited Click-Outside**: Clicking anywhere outside the active row or refund card immediately cancels the inline edit and reverts to standard display mode.
+  - **Edited Click-Outside Protection**: If any field was modified, outside clicks are safely ignored so work-in-progress is never lost accidentally.
 
 ---
 
