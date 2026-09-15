@@ -284,7 +284,8 @@ export function renderRecentTransactions() {
             const currentMonthStr = e.date.slice(0, 7);
             const mName = new Date(e.date + 'T00:00:00').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
             
-            const monthItems = recentExpenses.filter(item => item.date.slice(0, 7) === currentMonthStr);
+            // Monthly totals — only Expense & Refund (calculated across all loaded expenses for this month)
+            const monthItems = state.expenses.filter(item => item.date && item.date.slice(0, 7) === currentMonthStr);
             const monthBase = monthItems.filter(item => !item.txnType || item.txnType === 'Expense' || item.txnType === 'Refund');
             const mExpense = monthBase.filter(item => item.txnType === 'Expense' || (!item.txnType && item.amount > 0)).reduce((s, item) => s + Math.abs(item.amount), 0);
             const mRefund = monthBase.filter(item => item.txnType === 'Refund' || (!item.txnType && item.amount < 0)).reduce((s, item) => s + Math.abs(item.amount), 0);
@@ -297,9 +298,9 @@ export function renderRecentTransactions() {
                 sepHTML += `<tr class="month-separator"><td colspan="6"></td></tr>`;
             }
             sepHTML += `<tr class="month-header"><td colspan="2">${mName}</td><td class="month-header-total">${mNetText}</td><td class="month-header-empty" colspan="3"></td></tr>`;
-            sepHTML += getDaySeparatorHTML(e.date, recentExpenses, 6);
+            sepHTML += getDaySeparatorHTML(e.date, state.expenses, 6);
         } else if (lastDateRecent && lastDateRecent !== e.date) {
-            sepHTML = getDaySeparatorHTML(e.date, recentExpenses, 6);
+            sepHTML = getDaySeparatorHTML(e.date, state.expenses, 6);
         }
         lastDateRecent = e.date;
         

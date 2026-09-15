@@ -216,6 +216,50 @@ describe('Dashboard Transaction Tags', () => {
             // Reset state
             state.mergeRefunds = true;
         });
+
+        it('should calculate monthly total from all loaded expenses in that month, not just recent partial slice', () => {
+            // Older expense on Sep 01 not within 7-day cutoff
+            const olderTxn = {
+                date: '2026-09-01',
+                category: 'Rent',
+                amount: 25000,
+                txnType: 'Expense',
+                txnMode: 'Net Banking',
+                note: 'Monthly House Rent'
+            };
+            // Recent expense on Sep 15
+            const recentTxn = {
+                date: '2026-09-15',
+                category: 'Groceries',
+                amount: 1200,
+                txnType: 'Expense',
+                txnMode: 'UPI',
+                note: 'Weekly Grocery'
+            };
+            // Refund on Sep 05
+            const refundTxn = {
+                date: '2026-09-05',
+                category: 'Shopping',
+                amount: -500,
+                txnType: 'Refund',
+                txnMode: 'Credit Card',
+                note: 'Item refund'
+            };
+            const allTxns = [recentTxn, refundTxn, olderTxn];
+            state.expenses = allTxns;
+            timeFilter.getGlobalFilteredExpenses.mockReturnValue(allTxns);
+
+            renderRecentTransactions();
+
+            const tbody = document.getElementById('recent-tbody');
+            const monthHeader = tbody.querySelector('.month-header');
+            expect(monthHeader).not.toBeNull();
+            const monthTotalCell = monthHeader.querySelector('.month-header-total');
+            expect(monthTotalCell).not.toBeNull();
+
+            // Total net expense for September should be 25000 + 1200 - 500 = 25,700.00
+            expect(monthTotalCell.textContent).toContain('25,700.00');
+        });
     });
 
     describe('renderSelectedDayTransactions', () => {
