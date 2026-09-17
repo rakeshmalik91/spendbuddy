@@ -16,6 +16,7 @@ import { setupModal, openModal } from "../ui/modal.js";
 import { setupTimeFilter } from "../ui/time_filter.js";
 import { renderAll } from "../ui/render_all.js";
 import { setupSmsApproval, initSmsFromCache } from "../ui/sms_approval.js";
+import { setupScheduledApproval } from "../ui/scheduled_approval.js";
 import { initBatchUpdate } from "../ui/batch_update.js";
 import { setupChartPopupListeners } from "../ui/chart_popup.js";
 
@@ -745,6 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFullscreenListeners();
     setupChartPopupListeners();
     setupSmsApproval();
+    setupScheduledApproval();
     startAuthFlow();
 
     document.addEventListener('visibilitychange', () => {

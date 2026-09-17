@@ -582,41 +582,45 @@ export function renderSettings() {
     updateGoogleDriveUI();
     // Categories table
     const catTbody = $('#category-tbody');
-    catTbody.innerHTML = state.categories.map((cat, i) => {
-        const locked = isCategoryProtected(cat);
-        return `
+    if (catTbody) {
+        catTbody.innerHTML = state.categories.map((cat, i) => {
+            const locked = isCategoryProtected(cat);
+            return `
         <tr data-type="category" data-index="${i}">
             <td><span class="drag-handle" style="color: var(--text-muted); margin-right: 8px; cursor: grab; padding: 4px;">☰</span> ${escHtml(cat)}</td>
             <td>
                 <div class="row-actions">
                     ${locked
-                ? '<span class="row-btn protected-badge" title="Built-in (cannot edit or delete)">🔒</span>'
-                : `<button class="row-btn" onclick="editCategory(${i})" title="Rename">✏️</button>
-                           <button class="row-btn delete" onclick="deleteCategory(${i})" title="Delete">🗑️</button>`
-            }
+                    ? '<span class="row-btn protected-badge" title="Built-in (cannot edit or delete)">🔒</span>'
+                    : `<button class="row-btn" onclick="editCategory(${i})" title="Rename">✏️</button>
+                               <button class="row-btn delete" onclick="deleteCategory(${i})" title="Delete">🗑️</button>`
+                }
                 </div>
             </td>
         </tr>`;
-    }).join('');
+        }).join('');
+    }
 
     // Txn types table
     const txnTbody = $('#txnmode-tbody');
-    txnTbody.innerHTML = state.txnModes.map((t, i) => {
-        const locked = isTxnModeProtected(t);
-        return `
+    if (txnTbody) {
+        txnTbody.innerHTML = state.txnModes.map((t, i) => {
+            const locked = isTxnModeProtected(t);
+            return `
         <tr data-type="txnmode" data-index="${i}">
             <td><span class="drag-handle" style="color: var(--text-muted); margin-right: 8px; cursor: grab; padding: 4px;">☰</span> ${escHtml(t)}</td>
             <td>
                 <div class="row-actions">
                     ${locked
-                ? '<span class="row-btn protected-badge" title="Built-in (cannot edit or delete)">🔒</span>'
-                : `<button class="row-btn" onclick="editTxnMode(${i})" title="Rename">✏️</button>
-                           <button class="row-btn delete" onclick="deleteTxnMode(${i})" title="Delete">🗑️</button>`
-            }
+                    ? '<span class="row-btn protected-badge" title="Built-in (cannot edit or delete)">🔒</span>'
+                    : `<button class="row-btn" onclick="editTxnMode(${i})" title="Rename">✏️</button>
+                               <button class="row-btn delete" onclick="deleteTxnMode(${i})" title="Delete">🗑️</button>`
+                }
                 </div>
             </td>
         </tr>`;
-    }).join('');
+        }).join('');
+    }
 
     // Locations card list
     const locList = $('#location-list');

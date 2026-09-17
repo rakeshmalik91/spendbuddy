@@ -7,6 +7,7 @@ import { getGlobalFilteredExpenses, getPrevGlobalFilteredExpenses, getPrev5Globa
 import { saveYearCSV } from "./form.js";
 import { renderAll } from "./render_all.js";
 import { isDuplicateTxn, consumeRawSmsTransaction, showSmsApprovalModal } from "./sms_approval.js";
+import { showScheduledApprovalModal } from "./scheduled_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
@@ -551,17 +552,28 @@ export function renderQuickAdd() {
 
     const quickAddTemplates = state.scheduledTransactions.filter(st => st.frequency === 'instant' && !st.disabled);
     const pendingSms = state.pendingSmsTransactions || [];
+    const pendingScheduled = state.pendingScheduledTransactions || [];
     const todayStr = getLocalDateString();
     const todayPendingSms = pendingSms.filter(txn => txn.date === todayStr);
     const olderPendingSms = pendingSms.filter(txn => txn.date !== todayStr);
 
-    if (quickAddTemplates.length === 0 && todayPendingSms.length === 0 && olderPendingSms.length === 0) {
+    if (quickAddTemplates.length === 0 && todayPendingSms.length === 0 && olderPendingSms.length === 0 && pendingScheduled.length === 0) {
         container.style.display = 'none';
         return;
     }
 
     container.style.display = 'flex';
     let html = '';
+
+    if (pendingScheduled.length > 0) {
+        html += `
+        <button class="btn-quick-add scheduled-review-all" title="Review pending scheduled transactions" style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--accent); color: var(--text-primary);">
+            <span class="qa-note">⚡ Scheduled Txns (${pendingScheduled.length})</span>
+            <span class="qa-amount" style="font-size: 0.8rem; opacity: 0.9; color: var(--accent); font-weight: 700;">Action Needed</span>
+        </button>
+        `;
+    }
+
     quickAddTemplates.forEach(st => {
         const amtColor = st.amount < 0 ? 'var(--green)' : 'var(--amount-negative)';
         const displayType = st.amount < 0 ? '+' : '';
@@ -601,6 +613,13 @@ export function renderQuickAdd() {
 
     container.innerHTML = html;
 
+    const schedReviewBtn = $('.scheduled-review-all');
+    if (schedReviewBtn) {
+        schedReviewBtn.addEventListener('click', () => {
+            showScheduledApprovalModal(state.pendingScheduledTransactions || []);
+        });
+    }
+
     const reviewBtn = $('.sms-review-all');
     if (reviewBtn) {
         reviewBtn.addEventListener('click', () => {
@@ -608,7 +627,7 @@ export function renderQuickAdd() {
         });
     }
 
-    $$('.btn-quick-add:not(.sms-quick-add):not(.sms-review-all)').forEach(btn => {
+    $$('.btn-quick-add:not(.sms-quick-add):not(.sms-review-all):not(.scheduled-review-all)').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = btn.dataset.id;
             const template = quickAddTemplates.find(st => st.id === id);

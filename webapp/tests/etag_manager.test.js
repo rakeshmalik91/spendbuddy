@@ -1,5 +1,6 @@
 import { storeFileHash, verifyFileHashBeforeUpload } from '../js/services/etag_manager.js';
 import { state } from '../js/core/state.js';
+import { getLocalDateString } from '../js/utils/date_helpers.js';
 
 const fbStorage = require("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
 
@@ -92,6 +93,7 @@ describe('ETag Manager', () => {
             const spySaveYear = jest.spyOn(formModule, 'saveYearCSV').mockRejectedValue(new Error('CONFLICT_DETECTED'));
             const spySaveSched = jest.spyOn(storageModule, 'saveScheduledCSV').mockResolvedValue();
 
+            const today = getLocalDateString();
             state.expenses = [];
             state.scheduledTransactions = [{
                 id: 'sched_test_conflict',
@@ -101,8 +103,8 @@ describe('ETag Manager', () => {
                 txnType: 'Expense',
                 txnMode: 'UPI',
                 note: 'Wifi',
-                start_date: '2026-01-01',
-                next_run_date: '2026-01-01',
+                start_date: today,
+                next_run_date: today,
                 run_count: 0,
                 disabled: false
             }];
@@ -114,7 +116,7 @@ describe('ETag Manager', () => {
             expect(spySaveSched).not.toHaveBeenCalled();
 
             // Crucial check: next_run_date MUST NOT be advanced so the transaction is not skipped permanently
-            expect(state.scheduledTransactions[0].next_run_date).toBe('2026-01-01');
+            expect(state.scheduledTransactions[0].next_run_date).toBe(today);
             expect(state.scheduledTransactions[0].run_count).toBe(0);
             expect(state.expenses.length).toBe(0);
 
@@ -129,6 +131,7 @@ describe('ETag Manager', () => {
             const spySaveYear = jest.spyOn(formModule, 'saveYearCSV').mockRejectedValue(new Error('CONFLICT_DETECTED'));
             const spySaveSched = jest.spyOn(storageModule, 'saveScheduledCSV').mockResolvedValue();
 
+            const today = getLocalDateString();
             state.expenses = [];
             state.scheduledTransactions = [{
                 id: 'sched_oneoff_conflict',
@@ -138,8 +141,8 @@ describe('ETag Manager', () => {
                 txnType: 'Expense',
                 txnMode: 'Card',
                 note: 'Gift',
-                start_date: '2026-01-01',
-                next_run_date: '2026-01-01',
+                start_date: today,
+                next_run_date: today,
                 disabled: false
             }];
 
@@ -149,7 +152,7 @@ describe('ETag Manager', () => {
             // One-off schedule must still be present and not deleted
             expect(state.scheduledTransactions.length).toBe(1);
             expect(state.scheduledTransactions[0].id).toBe('sched_oneoff_conflict');
-            expect(state.scheduledTransactions[0].next_run_date).toBe('2026-01-01');
+            expect(state.scheduledTransactions[0].next_run_date).toBe(today);
 
             spySaveYear.mockRestore();
             spySaveSched.mockRestore();
@@ -170,6 +173,7 @@ describe('ETag Manager', () => {
                 return Promise.resolve({ md5Hash: 'matching_hash' });
             });
 
+            const today = getLocalDateString();
             state.expenses = [];
             state.scheduledTransactions = [{
                 id: 'sched_save_fail',
@@ -179,8 +183,8 @@ describe('ETag Manager', () => {
                 txnType: 'Expense',
                 txnMode: 'UPI',
                 note: 'Snacks',
-                start_date: '2026-01-01',
-                next_run_date: '2026-01-01',
+                start_date: today,
+                next_run_date: today,
                 run_count: 0,
                 disabled: false
             }];
@@ -188,7 +192,7 @@ describe('ETag Manager', () => {
             const result = await storageModule.processScheduledTransactions();
 
             expect(result).toBe(false);
-            expect(state.scheduledTransactions[0].next_run_date).toBe('2026-01-01');
+            expect(state.scheduledTransactions[0].next_run_date).toBe(today);
 
             spySaveYear.mockRestore();
         });

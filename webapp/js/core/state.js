@@ -22,6 +22,7 @@ export const state = {
     modalCleanup: null,
     rawSmsTransactions: [],
     pendingSmsTransactions: [],
+    pendingScheduledTransactions: [],
     encryptionKey: null,
     encryptionEnabled: false,
     fileHashes: {},

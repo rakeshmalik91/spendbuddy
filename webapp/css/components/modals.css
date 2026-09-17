@@ -466,3 +466,55 @@ body.modal-open .main-content {
     height: 100%;
 }
 
+/* ══════════════ SCHEDULED APPROVAL MODAL ══════════════ */
+#scheduled-modal-overlay .modal {
+    max-width: 520px;
+    width: 92%;
+    padding: 24px;
+}
+
+.scheduled-card {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s, border-color 0.2s;
+    text-align: left;
+}
+
+.scheduled-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border);
+}
+
+.scheduled-card-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+}
+
+.scheduled-checkbox {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.scheduled-category-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-body);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: left;
+}
+
+.scheduled-category-select:focus {
+    border-color: var(--accent);
+}
+

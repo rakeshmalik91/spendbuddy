@@ -2,7 +2,7 @@
 
 ## Critical Rules
 - **Do not execute any Git commands** (e.g., `git commit`, `git push`, `git stash`, etc.) unless explicitly instructed to do so by the user.
-  - If asked to commit, follow the [commit-push](file:///./.agents/skills/commit-push/SKILL.md) skill: keep commit messages small, concise, one-liner with standard prefix (e.g. `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `style:`, `chore:`).
+  - If asked to commit, follow the [commit-push](file:///./.agents/skills/commit-push/SKILL.md) skill: ensure all webapp & Android tests pass (`run_all_tests.ps1`), update existing docs, run `sync.bat` and stage any data changes, and keep commit messages small, concise, one-liner with standard prefix (e.g. `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `style:`, `chore:`).
 - **Frontend Verification**: Any frontend changes must be verified for workability on:
   - Desktop browsers
   - Android app (located in the [expenseiq-android-app](file:///./expenseiq-android-app/) folder)
@@ -29,4 +29,5 @@ Before modifying existing subsystems or troubleshooting regressions, consult the
 | **Custom Keyword Mappings** | [keyword-mappings.md](file:///d:/Projects/expense-manager/docs/architecture/keyword-mappings.md) | Preserve Priority-0 override engine, emoji stripping on save, entity CRUD synchronization, and batch rule execution. |
 | **Login, Auth & Offline Caching** | [login-and-caching.md](file:///d:/Projects/expense-manager/docs/architecture/login-and-caching.md) | Preserve zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag revalidation. |
 | **SMS & Email Inbox Analysis** | [sms-email-analysis.md](file:///d:/Projects/expense-manager/docs/architecture/sms-email-analysis.md) | Preserve ML Kit NLP parsing, promotional discount exclusions, fuzzy deduplication, and cross-source enrichment. |
+| **Scheduled Transactions** | [scheduled-transactions.md](file:///d:/Projects/expense-manager/docs/architecture/scheduled-transactions.md) | Preserve `__SCHEDULER_` prefix, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
 

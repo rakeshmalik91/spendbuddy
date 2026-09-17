@@ -10,6 +10,7 @@ import { saveYearCSV } from "../ui/form.js";
 import { encryptData, decryptData } from "../utils/crypto.js";
 import { storeFileHash, verifyFileHashBeforeUpload } from "./etag_manager.js";
 import { applyUserSettings } from "./user_settings.js";
+import { isWithinLast3Days, showScheduledApprovalModal, executeScheduledCommit, isScheduledModalOpen } from "../ui/scheduled_approval.js";
 
 /* ══════════════ CSV I/O ══════════════ */
 
@@ -320,48 +321,64 @@ export async function reEncryptAllCloudData(enabling, newKey) {
     }
 }
 
-export async function processScheduledTransactions() {
+export async function processScheduledTransactions(options = {}) {
+    if (isScheduledModalOpen()) {
+        return false;
+    }
+
     const today = getLocalDateString();
+    const candidateTxns = [];
+    const simulationData = [];
 
-    // Snapshot state so that if saving encounters an ETag conflict or network failure,
-    // we can revert in-memory mutations. This guarantees next_run_date is never permanently
-    // advanced when the corresponding transactions fail to save.
-    const scheduledSnapshot = JSON.parse(JSON.stringify(state.scheduledTransactions));
-    const expensesSnapshot = [...state.expenses];
+    const detectedLocation = await getCurrentLocationTag();
 
-    let modifiedYears = new Set();
-    let modifiedScheduled = false;
-
-    let processedCount = 0;
-
-    // Use backwards loop to allow safely splicing one-off schedules when processed
-    for (let i = state.scheduledTransactions.length - 1; i >= 0; i--) {
+    // Iterate forward through scheduled transactions to preserve natural order
+    for (let i = 0; i < state.scheduledTransactions.length; i++) {
         let st = state.scheduledTransactions[i];
         if (st.disabled) continue;
         if (!st.next_run_date || st.frequency === 'instant') continue;
 
+        // End condition checks
         if (st.end_condition === 'enabled') {
             if ((st.end_date && st.next_run_date > st.end_date) || (st.max_occurrences && st.run_count >= st.max_occurrences)) {
                 st.disabled = true;
-                modifiedScheduled = true;
+                simulationData.push({
+                    scheduleId: st.id,
+                    isOneOff: false,
+                    finalNextRunDate: st.next_run_date,
+                    finalLastRunDate: st.last_run_date,
+                    finalRunCount: st.run_count || 0,
+                    finalDisabled: true
+                });
                 continue;
             }
         } else if (st.end_condition === 'until_date' && st.end_date && st.next_run_date > st.end_date) {
             st.disabled = true;
-            modifiedScheduled = true;
+            simulationData.push({
+                scheduleId: st.id,
+                isOneOff: false,
+                finalNextRunDate: st.next_run_date,
+                finalLastRunDate: st.last_run_date,
+                finalRunCount: st.run_count || 0,
+                finalDisabled: true
+            });
             continue;
         } else if (st.end_condition === 'after_occurrences' && st.max_occurrences && st.run_count >= st.max_occurrences) {
             st.disabled = true;
-            modifiedScheduled = true;
+            simulationData.push({
+                scheduleId: st.id,
+                isOneOff: false,
+                finalNextRunDate: st.next_run_date,
+                finalLastRunDate: st.last_run_date,
+                finalRunCount: st.run_count || 0,
+                finalDisabled: true
+            });
             continue;
         }
 
         if (st.frequency === 'one-off') {
-            // One-off scheduled transaction
             if (st.next_run_date <= today) {
                 const entryDate = st.next_run_date;
-
-                // Check for duplicate to avoid double-logging
                 const generatedTxnId = `__SCHEDULER_${st.id}_${entryDate}`;
                 const isDup = state.expenses.some(e =>
                     e.txnId === generatedTxnId ||
@@ -372,36 +389,42 @@ export async function processScheduledTransactions() {
                 );
 
                 if (!isDup) {
-                    state.expenses.unshift({
+                    candidateTxns.push({
                         date: entryDate,
                         amount: st.amount,
                         amountExpression: st.amountExpression || '',
-                        currency: st.currency,
+                        currency: st.currency || 'INR',
                         category: st.category,
                         txnType: st.txnType,
                         txnMode: st.txnMode,
                         note: st.note,
                         source: 'Schedule',
                         txnId: generatedTxnId,
-                        location: st.location || await getCurrentLocationTag(),
-                        tag: st.tag || ''
+                        location: st.location || detectedLocation,
+                        tag: st.tag || '',
+                        scheduleId: st.id,
+                        isOneOff: true
                     });
-                    modifiedYears.add(entryDate.slice(0, 4));
-                    processedCount++;
                 }
 
-                // Remove the one-off scheduled transaction after it runs
-                state.scheduledTransactions.splice(i, 1);
-                modifiedScheduled = true;
+                simulationData.push({
+                    scheduleId: st.id,
+                    isOneOff: true
+                });
             }
             continue;
         }
 
         // Standard recurring transactions
-        while (st.next_run_date <= today) {
-            const entryDate = st.next_run_date;
+        let curRunDate = st.next_run_date;
+        let curRunCount = st.run_count || 0;
+        let curLastRunDate = st.last_run_date;
+        let curDisabled = st.disabled;
+        let hadDueRuns = false;
 
-            // Check for duplicate
+        while (curRunDate <= today) {
+            hadDueRuns = true;
+            const entryDate = curRunDate;
             const generatedTxnId = `__SCHEDULER_${st.id}_${entryDate}`;
             const isDup = state.expenses.some(e =>
                 e.txnId === generatedTxnId ||
@@ -412,84 +435,86 @@ export async function processScheduledTransactions() {
             );
 
             if (!isDup) {
-                state.expenses.unshift({
+                candidateTxns.push({
                     date: entryDate,
                     amount: st.amount,
                     amountExpression: st.amountExpression || '',
-                    currency: st.currency,
+                    currency: st.currency || 'INR',
                     category: st.category,
                     txnType: st.txnType,
                     txnMode: st.txnMode,
                     note: st.note,
                     source: 'Schedule',
                     txnId: generatedTxnId,
-                    location: st.location || await getCurrentLocationTag(),
-                    tag: st.tag || ''
+                    location: st.location || detectedLocation,
+                    tag: st.tag || '',
+                    scheduleId: st.id,
+                    isOneOff: false
                 });
-                modifiedYears.add(entryDate.slice(0, 4));
-                processedCount++;
             }
-            
-            st.run_count = (st.run_count || 0) + 1;
 
-            st.last_run_date = today;
-            modifiedScheduled = true;
-
-            st.next_run_date = calculateNextRunDate(st.frequency, st, entryDate);
+            curRunCount++;
+            curLastRunDate = today;
+            curRunDate = calculateNextRunDate(st.frequency, st, entryDate);
 
             if (st.end_condition === 'enabled') {
-                if ((st.end_date && st.next_run_date > st.end_date) || (st.max_occurrences && st.run_count >= st.max_occurrences)) {
-                    st.disabled = true;
+                if ((st.end_date && curRunDate > st.end_date) || (st.max_occurrences && curRunCount >= st.max_occurrences)) {
+                    curDisabled = true;
                     break;
                 }
-            } else if (st.end_condition === 'until_date' && st.end_date && st.next_run_date > st.end_date) {
-                st.disabled = true;
+            } else if (st.end_condition === 'until_date' && st.end_date && curRunDate > st.end_date) {
+                curDisabled = true;
                 break;
-            } else if (st.end_condition === 'after_occurrences' && st.max_occurrences && st.run_count >= st.max_occurrences) {
-                st.disabled = true;
+            } else if (st.end_condition === 'after_occurrences' && st.max_occurrences && curRunCount >= st.max_occurrences) {
+                curDisabled = true;
                 break;
             }
 
-            if (st.next_run_date <= entryDate) break;
+            if (curRunDate <= entryDate) break;
+        }
+
+        if (hadDueRuns) {
+            simulationData.push({
+                scheduleId: st.id,
+                isOneOff: false,
+                finalNextRunDate: curRunDate,
+                finalLastRunDate: curLastRunDate,
+                finalRunCount: curRunCount,
+                finalDisabled: curDisabled
+            });
         }
     }
 
-    if (modifiedYears.size > 0) {
-        state.expenses.sort((a, b) => b.date.localeCompare(a.date));
+    if (candidateTxns.length === 0) {
+        // If schedules had end conditions reached or duplicate runs bypassed, advance schedules
+        if (simulationData.length > 0) {
+            await executeScheduledCommit({ approvedCandidates: [], simulationData });
+        }
+        return false;
+    }
+
+    const isSingle = candidateTxns.length === 1;
+    const isRecent = isSingle && isWithinLast3Days(candidateTxns[0].date, today);
+
+    // If new is just a single txn in last 3 days (or autoApprove flag is set), silently add it
+    if ((isSingle && isRecent) || options.autoApprove) {
         try {
-            for (const year of modifiedYears) {
-                await saveYearCSV(year);
-            }
-            toast(`Processed ${processedCount} scheduled transaction(s)`, 'success');
+            await executeScheduledCommit({ approvedCandidates: candidateTxns, simulationData });
+            toast(`Processed ${candidateTxns.length} scheduled transaction(s)`, 'success');
+            return true;
         } catch (e) {
             if (e.message === "CONFLICT_DETECTED") {
                 console.warn("Conflict processing scheduled transactions. Cloud has newer data. Waiting for background sync.");
             } else {
                 console.error("Failed to upload processed scheduled transactions:", e);
             }
-            // Revert state in memory so next_run_date is NOT updated and schedules are NOT skipped
-            state.scheduledTransactions = scheduledSnapshot;
-            state.expenses = expensesSnapshot;
             return false;
         }
     }
 
-    if (modifiedScheduled) {
-        try {
-            await saveScheduledCSV();
-        } catch (e) {
-            if (e.message === "CONFLICT_DETECTED") {
-                console.warn("Conflict saving scheduled CSV. Cloud has newer data. Waiting for background sync.");
-            } else {
-                console.error("Failed to upload scheduled CSV:", e);
-            }
-            // Revert schedules in memory so next_run_date is NOT updated
-            state.scheduledTransactions = scheduledSnapshot;
-            return false;
-        }
-    }
-
-    return modifiedYears.size > 0 || modifiedScheduled;
+    // Else list them with checkboxes to approve before adding
+    showScheduledApprovalModal(candidateTxns, simulationData);
+    return false;
 }
 
 export async function loadHistoricalData() {

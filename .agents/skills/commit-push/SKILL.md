@@ -7,6 +7,36 @@ description: Commits changes with a concise conventional commit message prefix (
 
 Automated runbook to safely verify, stage, commit with a standard prefix, and push changes to the remote git repository.
 
+## Mandatory Pre-Commit Requirements
+
+Before committing, **ALWAYS** perform the following three steps in order:
+
+1. **Ensure all tests pass for both Webapp and Android**:
+   - Run the full test suite using `run_all_tests.ps1`:
+     ```powershell
+     powershell -ExecutionPolicy Bypass -File .\run_all_tests.ps1
+     ```
+   - Alternatively run both individually:
+     - Webapp (Jest): `npm test` in `webapp/`
+     - Android (Gradle): `.\gradlew.bat test` in `expenseiq-android-app/`
+   - If any test fails, do **not** proceed with commit and push until resolved.
+
+2. **Update existing documentation for anything to be updated**:
+   - Review the diff to identify any changed subsystems, behaviors, UI flows, data formats, or settings.
+   - Update canonical architecture guides in `docs/architecture/` (or create a new guide if introducing a new subsystem).
+   - Update `README.md` or `AGENTS.md` index tables if applicable.
+   - Keep documentation accurate and aligned with the active codebase.
+
+3. **Run `sync.bat` and stage any data changes**:
+   - Run `sync.bat` to synchronize the latest cloud data for all configured accounts:
+     ```powershell
+     cmd /c .\sync.bat
+     ```
+   - Check `git status -s` to inspect any newly synced or modified data files (e.g. CSVs under `data/`).
+   - Stage all data changes along with the code changes.
+
+---
+
 ## Commit Message Prefix Standards
 
 Every commit message **MUST** be a small, concise, one-liner using the appropriate prefix:
@@ -31,51 +61,58 @@ Every commit message **MUST** be a small, concise, one-liner using the appropria
 
 ## Execution Runbook
 
-### Step 1: Inspect Status & Review Diffs
-Check the repository status to see which files are modified, untracked, or deleted:
-```powershell
-git status -s
-```
-Inspect the diff to understand all changes:
-```powershell
-git diff
-```
-
-### Step 2: Validate Tests & Quality
-Run the automated test suite before committing to ensure no regressions:
+### Step 1: Ensure All Tests Pass (Webapp & Android)
+Run both frontend and Android test suites:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_all_tests.ps1
 ```
-*(Or `npm test` within the `webapp/` directory if only frontend changes were made.)*
-If any test fails, do **not** proceed with commit and push until resolved.
+Verify that all test suites pass with zero failures.
 
-### Step 3: Stage Changes
-Stage intended changes:
+### Step 2: Update Existing Documentation
+Check if any documentation needs updating based on the changes:
+- Architecture guides in `docs/architecture/`
+- Root `README.md`
+- Subsystem invariants in `.agents/AGENTS.md`
+
+### Step 3: Run `sync.bat` and Stage Data Changes
+Run the data sync script:
+```powershell
+cmd /c .\sync.bat
+```
+Ensure any updated data files in `data/` or CSVs are staged.
+
+### Step 4: Inspect Status & Stage Changes
+Review all modifications:
+```powershell
+git status -s
+git diff
+```
+Stage all intended changes (including documentation, data files, and code):
 ```powershell
 git add -A
 ```
 Verify staged files with `git status -s`. Ensure no unintended files (temporary scratch files, secrets, local logs) are staged.
 
-### Step 4: Formulate Commit Message
+### Step 5: Formulate Commit Message
 1. Identify the primary category of changes (feature, bugfix, styling, tests, docs, refactor, chore).
-2. Draft a clear, concise one-liner with the corresponding prefix.
-   - Example: `feat: show txn tags on dashboard`
+2. Draft a clear, concise one-liner with the corresponding prefix (e.g. `feat: approve scheduled transactions conditionally`).
 
-### Step 5: Commit Changes
+### Step 6: Commit Changes
 Execute the commit:
 ```powershell
 git commit -m "<type>: <concise description>"
 ```
 
-### Step 6: Push to Remote
+### Step 7: Push to Remote
 Push to the active branch:
 ```powershell
 git push
 ```
 *(If upstream branch is not set, use `git push -u origin HEAD`)*
 
-### Step 7: Confirm & Report
+### Step 8: Confirm & Report
 Verify that the working tree is clean and report the commit hash and one-liner message to the user:
 ```powershell
 git log -1 --oneline
 ```
+

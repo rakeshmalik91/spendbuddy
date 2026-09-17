@@ -59,6 +59,7 @@ flowchart TD
 | **Custom Keyword Mappings** | [keyword-mappings.md](file:///d:/Projects/expense-manager/docs/architecture/keyword-mappings.md) | Priority-0 rule engine overriding default category, type, and payment mode heuristics with batch execution on historical transactions. |
 | **Login, Auth & Offline Caching** | [login-and-caching.md](file:///d:/Projects/expense-manager/docs/architecture/login-and-caching.md) | Zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag asset revalidation. |
 | **SMS & Email Inbox Analysis** | [sms-email-analysis.md](file:///d:/Projects/expense-manager/docs/architecture/sms-email-analysis.md) | Native Android IMAP + SMS reader, ML Kit NLP entity extraction, cross-source deduplication, and approval flows. |
+| **Scheduled Transactions** | [scheduled-transactions.md](file:///d:/Projects/expense-manager/docs/architecture/scheduled-transactions.md) | Recurrence scheduler, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
 
 ---
 
