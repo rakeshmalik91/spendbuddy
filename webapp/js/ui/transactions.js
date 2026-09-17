@@ -764,8 +764,10 @@ window.openScheduledMobileMenu = function (idx) {
         let badgesHtml = typeBadge ? `<div class="badges-wrapper" style="justify-content: flex-start; margin: 0; padding-top: 4px;">${typeBadge}</div>` : '';
 
         let nextRunHtml = st.frequency === 'instant' ? '' : `<span>Next: ${formatDate(st.next_run_date)}</span>`;
+        let modeHtml = st.txnMode ? `<span>💳 ${escHtml(st.txnMode)}</span>` : '';
         let metaHtml = `<div class="mobile-txn-details-meta">
             <span style="text-transform: capitalize;">🔄 ${escHtml(buildFrequencyString(st, formatDate))}</span>
+            ${modeHtml}
             ${nextRunHtml}
         </div>`;
         

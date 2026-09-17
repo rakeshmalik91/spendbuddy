@@ -1,8 +1,9 @@
 import { openModal } from "./modal.js";
 import { getTrendExpenses, getGlobalFilteredExpenses } from "./time_filter.js";
-import { getLocalDateString, toast, formatDate, editScheduledTransaction, formatMonth, parseLocalDate, escHtml, amountClass, txnTypeBadgeHTML, calculateNextRunDate, isRefundTxn, mergeRefundTransactions, renderAmountHTML } from "../utils/helpers.js";
+import { getLocalDateString, toast, formatDate, editScheduledTransaction, formatMonth, parseLocalDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, calculateNextRunDate, isRefundTxn, mergeRefundTransactions, renderAmountHTML } from "../utils/helpers.js";
 import { $$, $ } from "../core/init.js";
-import { saveScheduledCSV } from "../services/storage.js";
+import { saveScheduledCSV, roundAmount } from "../services/storage.js";
+import { evaluateExpression } from "./form.js";
 import { state } from "../core/state.js";
 import { ensureChartFullscreenButton, openChartPopup } from "./chart_popup.js";
 
@@ -1509,6 +1510,198 @@ export function buildTopExpensesChart(ctx) {
         }
     });
 }
+export function startScheduledInlineEdit(idx) {
+    if (typeof window !== 'undefined' && window.innerWidth <= 860) {
+        if (typeof editScheduledTransaction === 'function') editScheduledTransaction(idx);
+        return;
+    }
+    state.inlineEditSchedIdx = idx;
+    renderScheduledTransactions();
+    setTimeout(() => {
+        const amtInput = document.getElementById(`sched-inline-amount-${idx}`);
+        if (amtInput) amtInput.focus();
+    }, 0);
+}
+
+export function cancelScheduledInlineEdit() {
+    state.inlineEditSchedIdx = null;
+    renderScheduledTransactions();
+}
+
+export function isScheduledInlineEditModified(idx) {
+    const st = state.scheduledTransactions[idx];
+    if (!st) return false;
+    const amtInput = document.getElementById(`sched-inline-amount-${idx}`);
+    const catSelect = document.getElementById(`sched-inline-category-${idx}`);
+    const typeSelect = document.getElementById(`sched-inline-type-${idx}`);
+    const modeSelect = document.getElementById(`sched-inline-mode-${idx}`);
+    const noteInput = document.getElementById(`sched-inline-note-${idx}`);
+    if (!amtInput) return false;
+
+    const initialAmtStr = st.amountExpression || (
+        Math.abs(st.amount) % 1 === 0
+            ? Math.abs(st.amount).toString()
+            : Math.abs(st.amount).toFixed(2)
+    );
+    const initialCategory = st.category || '';
+    const initialType = st.txnType || 'Expense';
+    const initialMode = st.txnMode || '';
+    const initialNote = st.note || '';
+
+    const currentAmt = (amtInput.value || '').trim();
+    const currentCategory = catSelect ? catSelect.value : initialCategory;
+    const currentType = typeSelect ? typeSelect.value : initialType;
+    const currentMode = modeSelect ? modeSelect.value : initialMode;
+    const currentNote = noteInput ? noteInput.value.trim() : initialNote;
+
+    return (currentAmt !== initialAmtStr) ||
+           (currentCategory !== initialCategory) ||
+           (currentType !== initialType) ||
+           (currentMode !== initialMode) ||
+           (currentNote !== initialNote);
+}
+
+export async function saveScheduledInlineEdit(idx) {
+    if (state.cloudSyncInProgress) {
+        toast('Please wait for cloud sync to complete...', 'error');
+        return;
+    }
+    const st = state.scheduledTransactions[idx];
+    if (!st) return;
+
+    const amtInput = document.getElementById(`sched-inline-amount-${idx}`);
+    const catSelect = document.getElementById(`sched-inline-category-${idx}`);
+    const typeSelect = document.getElementById(`sched-inline-type-${idx}`);
+    const modeSelect = document.getElementById(`sched-inline-mode-${idx}`);
+    const noteInput = document.getElementById(`sched-inline-note-${idx}`);
+    if (!amtInput) return;
+
+    const rawAmount = (amtInput.value || '').trim();
+    if (!rawAmount) {
+        toast('Please enter an amount', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const sanitized = rawAmount.replace(/\s+/g, '');
+    if (!/^[\d.+\-*]+$/.test(sanitized)) {
+        toast('Invalid characters in amount expression', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const evaluated = evaluateExpression(rawAmount);
+    const parsedAmt = roundAmount(evaluated);
+    if (isNaN(parsedAmt)) {
+        toast('Please enter a valid amount', 'error');
+        amtInput.focus();
+        return;
+    }
+
+    const finalType = typeSelect ? typeSelect.value : (st.txnType || 'Expense');
+    const isNegative = finalType === 'Income' || finalType === 'Refund';
+    const finalAmount = isNegative ? -Math.abs(parsedAmt) : Math.abs(parsedAmt);
+    const hasOperators = rawAmount.split(/[-+*]/).filter(Boolean).length > 1;
+    const finalExpression = hasOperators ? rawAmount : '';
+    const finalCategory = catSelect ? catSelect.value.trim() : st.category;
+    const finalMode = modeSelect ? modeSelect.value.trim() : st.txnMode;
+    const finalNote = noteInput ? noteInput.value.trim() : st.note;
+
+    st.category = finalCategory;
+    st.txnType = finalType;
+    st.txnMode = finalMode;
+    st.note = finalNote;
+    st.amount = finalAmount;
+    st.amountExpression = finalExpression;
+
+    state.inlineEditSchedIdx = null;
+    toast('Saving scheduled transaction...', 'info');
+
+    try {
+        await saveScheduledCSV();
+        toast('Scheduled transaction updated!', 'success');
+        renderScheduledTransactions();
+
+        setTimeout(() => {
+            const row = document.getElementById(`sched-row-${idx}`);
+            if (row) {
+                row.style.transition = 'background-color 0.5s ease';
+                const oldBg = row.style.backgroundColor;
+                row.style.backgroundColor = 'rgba(99, 138, 255, 0.3)';
+                setTimeout(() => {
+                    row.style.backgroundColor = oldBg;
+                }, 1500);
+            }
+        }, 50);
+    } catch (err) {
+        console.error('Scheduled inline edit save failed:', err);
+        toast('Error saving scheduled transaction to cloud', 'error');
+        renderScheduledTransactions();
+    }
+}
+
+function attachScheduledInlineEventListeners(idx) {
+    const amtInput = document.getElementById(`sched-inline-amount-${idx}`);
+    const typeSelect = document.getElementById(`sched-inline-type-${idx}`);
+    const catSelect = document.getElementById(`sched-inline-category-${idx}`);
+    const modeSelect = document.getElementById(`sched-inline-mode-${idx}`);
+    const noteInput = document.getElementById(`sched-inline-note-${idx}`);
+    const previewPill = document.getElementById(`sched-inline-preview-${idx}`);
+    if (!amtInput) return;
+
+    function updatePreview() {
+        const raw = (amtInput.value || '').trim();
+        if (!raw || !previewPill) {
+            if (previewPill) previewPill.style.display = 'none';
+            return;
+        }
+        const sanitized = raw.replace(/\s+/g, '');
+        if (!/^[\d.+\-*]+$/.test(sanitized)) {
+            previewPill.textContent = 'Invalid expression';
+            previewPill.className = 'inline-edit-preview-error';
+            previewPill.style.display = 'inline-block';
+            return;
+        }
+        const evaluated = evaluateExpression(raw);
+        const parsed = roundAmount(evaluated);
+        if (isNaN(parsed)) {
+            previewPill.textContent = 'Invalid expression';
+            previewPill.className = 'inline-edit-preview-error';
+            previewPill.style.display = 'inline-block';
+            return;
+        }
+        const curType = typeSelect ? typeSelect.value : (state.scheduledTransactions[idx]?.txnType || 'Expense');
+        const isNegative = curType === 'Income' || curType === 'Refund';
+        const hasOperators = raw.split(/[-+*]/).filter(Boolean).length > 1;
+        if (hasOperators) {
+            const displaySign = isNegative ? '-' : '';
+            previewPill.textContent = `= ${displaySign}₹${Math.abs(parsed).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            previewPill.className = 'inline-edit-preview-pill';
+            previewPill.style.display = 'inline-block';
+        } else {
+            previewPill.style.display = 'none';
+        }
+    }
+
+    amtInput.addEventListener('input', updatePreview);
+    if (typeSelect) typeSelect.addEventListener('change', updatePreview);
+    updatePreview();
+
+    function handleKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveScheduledInlineEdit(idx);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelScheduledInlineEdit();
+        }
+    }
+
+    [amtInput, noteInput, catSelect, typeSelect, modeSelect].forEach(el => {
+        if (el) el.addEventListener('keydown', handleKeydown);
+    });
+}
+
 export function renderScheduledTransactions() {
     const tbody = $('#scheduled-tbody');
     if (!tbody) return;
@@ -1551,91 +1744,181 @@ export function renderScheduledTransactions() {
             freqStr += `<br><span style="font-size: 0.82rem; color: var(--text-secondary); text-transform: none; white-space: nowrap;">Runs: ${st.run_count || 0}/${st.max_occurrences}</span>`;
         }
 
+        const isInlineEditing = state.inlineEditSchedIdx === idx && (typeof window === 'undefined' || window.innerWidth > 860);
+
         const tr = document.createElement('tr');
-        tr.className = "touchable-row";
+        tr.className = `touchable-row ${isInlineEditing ? 'quick-editing' : ''}`;
         tr.setAttribute("data-sched-idx", idx);
         tr.id = `sched-row-${idx}`;
-        tr.innerHTML = `
-            <td data-label="Category">${escHtml(st.category)}</td>
-            <td data-label="Note" class="${!st.note && !txnTypeBadgeHTML(st.txnType) ? 'empty-note' : ''}">
-                <div class="note-content">
-                    <span class="${!st.note ? 'empty-dash' : ''}">${st.note ? escHtml(st.note) : ''}</span>
-                    ${txnTypeBadgeHTML(st.txnType) ? `<div class="badges-wrapper">${txnTypeBadgeHTML(st.txnType)}</div>` : ''}
-                </div>
-            </td>
-            <td data-label="Amount" style="text-align: right;" class="${amountClass(st)}">
-                ${renderAmountHTML(st)}
-            </td>
-            <td data-label="Freq" style="text-transform: capitalize;">${freqStr}</td>
-            <td data-label="Next Run">${formatDate(st.next_run_date)}</td>
-            <td data-label="Last Run">${st.last_run_date ? formatDate(st.last_run_date) : '—'}</td>
-            <td data-label="Actions" style="text-align: right;">
-                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; ${st.disabled ? 'text-decoration: none;' : ''}">
-                    <button class="btn btn-sm btn-secondary btn-toggle-disable hide-on-mobile" data-idx="${idx}" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" title="${st.disabled ? 'Enable' : 'Disable'}">${st.disabled ? '▶️' : '⏸️'}</button>
-                    <button class="btn btn-sm btn-secondary hide-on-mobile" onclick="editScheduledTransaction(${idx})" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" title="Edit">✏️</button>
-                    <button class="btn btn-sm btn-danger btn-del hide-on-mobile" data-idx="${idx}" title="Delete">🗑️</button>
-                    <button class="row-btn hide-on-desktop mobile-menu-btn" onclick="openScheduledMobileMenu(${idx})" title="Options">⋮</button>
-                </div>
-            </td>
-        `;
+        tr.ondblclick = (event) => {
+            if (typeof window !== 'undefined' && window.innerWidth > 860 && !event.target.closest('input, select, button, a')) {
+                startScheduledInlineEdit(idx);
+            }
+        };
 
-        if (st.disabled) {
-            tr.style.opacity = '0.5';
-            Array.from(tr.querySelectorAll('td:not(:last-child)')).forEach(td => {
-                td.style.textDecoration = 'line-through';
-            });
-        }
+        if (isInlineEditing) {
+            const initialAmtVal = st.amountExpression || (
+                Math.abs(st.amount) % 1 === 0
+                    ? Math.abs(st.amount).toString()
+                    : Math.abs(st.amount).toFixed(2)
+            );
 
-        const toggleBtn = tr.querySelector('.btn-toggle-disable');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', async () => {
-                toggleBtn.disabled = true;
-                const wasDisabled = st.disabled;
-                st.disabled = !st.disabled;
+            const curCat = st.category || '';
+            const allCats = Array.from(new Set([curCat, ...(state.categories || [])])).filter(Boolean);
+            const catOptions = allCats.map(c => `<option value="${escHtml(c)}" ${c === curCat ? 'selected' : ''}>${escHtml(c)}</option>`).join('');
 
-                if (wasDisabled && !st.disabled) {
-                    const today = getLocalDateString();
-                    if (st.next_run_date && st.next_run_date < today && st.frequency !== 'instant' && st.frequency !== 'one-off') {
-                        while (st.next_run_date < today) {
-                            st.next_run_date = calculateNextRunDate(st.frequency, st, st.next_run_date);
+            const curType = st.txnType || 'Expense';
+            const defaultTypes = ['Expense', 'Refund', 'Income', 'Investment', 'Transfer'];
+            const allTypes = Array.from(new Set([curType, ...(state.txnTypes && state.txnTypes.length > 0 ? state.txnTypes : defaultTypes)])).filter(Boolean);
+            const typeOptions = allTypes.map(t => `<option value="${escHtml(t)}" ${t === curType ? 'selected' : ''}>${escHtml(t)}</option>`).join('');
+
+            const curMode = st.txnMode || '';
+            const allModes = Array.from(new Set([curMode, ...(state.txnModes || [])])).filter(Boolean);
+            const modeOptions = allModes.map(m => `<option value="${escHtml(m)}" ${m === curMode ? 'selected' : ''}>${escHtml(m)}</option>`).join('');
+
+            tr.innerHTML = `
+                <td data-label="Category" class="inline-edit-cell">
+                    <select id="sched-inline-category-${idx}" class="inline-edit-input inline-edit-select">
+                        ${catOptions}
+                    </select>
+                </td>
+                <td data-label="Type" class="inline-edit-cell">
+                    <select id="sched-inline-type-${idx}" class="inline-edit-input inline-edit-select">
+                        ${typeOptions}
+                    </select>
+                </td>
+                <td data-label="Mode" class="inline-edit-cell">
+                    <select id="sched-inline-mode-${idx}" class="inline-edit-input inline-edit-select">
+                        ${modeOptions}
+                    </select>
+                </td>
+                <td data-label="Note" class="inline-edit-cell">
+                    <div class="inline-edit-note-wrap">
+                        <input type="text" id="sched-inline-note-${idx}" class="inline-edit-input inline-edit-note-input" value="${escHtml(st.note || '')}" placeholder="Note..." autocomplete="off" />
+                    </div>
+                </td>
+                <td data-label="Amount" class="inline-edit-cell">
+                    <div class="inline-edit-amount-wrap">
+                        <input type="text" id="sched-inline-amount-${idx}" class="inline-edit-input inline-edit-amount-input" value="${escHtml(initialAmtVal)}" placeholder="Amount / expr" autocomplete="off" />
+                        <span id="sched-inline-preview-${idx}" class="inline-edit-preview-pill" style="display: none;"></span>
+                    </div>
+                </td>
+                <td data-label="Freq" style="text-transform: capitalize;">${freqStr}</td>
+                <td data-label="Next Run">${formatDate(st.next_run_date)}</td>
+                <td data-label="Last Run">${st.last_run_date ? formatDate(st.last_run_date) : '—'}</td>
+                <td data-label="Actions" class="inline-edit-cell" style="text-align: right;">
+                    <div class="row-actions inline-edit-actions" style="justify-content: flex-end;">
+                        <button type="button" class="row-btn inline-btn-save" onclick="saveScheduledInlineEdit(${idx})" title="Save (Enter)">✓</button>
+                        <button type="button" class="row-btn inline-btn-cancel" onclick="cancelScheduledInlineEdit()" title="Cancel (Esc)">✕</button>
+                    </div>
+                </td>
+            `;
+        } else {
+            let typeBadge = txnTypeBadgeHTML(st.txnType);
+            let modeBadge = txnModeBadgeHTML(st.txnMode, state.hideSourceTxnId);
+            let mobileBadgesHtml = (typeBadge || modeBadge) ? `<div class="badges-wrapper hide-on-desktop">${modeBadge}${typeBadge}</div>` : '';
+            let typeName = st.txnType || 'Expense';
+            let typeCls = typeName.toLowerCase();
+
+            tr.innerHTML = `
+                <td data-label="Category">${escHtml(st.category)}</td>
+                <td data-label="Type"><span class="badge-txn-type type-${typeCls}">${escHtml(typeName)}</span></td>
+                <td data-label="Mode" title="${escHtml(st.txnMode || '')}"><span class="mode-cell">${escHtml(st.txnMode || '—')}</span></td>
+                <td data-label="Note" class="${!st.note && !typeBadge && !modeBadge ? 'empty-note' : ''}">
+                    <div class="note-content">
+                        <span class="${!st.note ? 'empty-dash' : ''}">${st.note ? escHtml(st.note) : ''}</span>
+                        ${mobileBadgesHtml}
+                    </div>
+                </td>
+                <td data-label="Amount" style="text-align: right;" class="${amountClass(st)}">
+                    ${renderAmountHTML(st)}
+                </td>
+                <td data-label="Freq" style="text-transform: capitalize;">${freqStr}</td>
+                <td data-label="Next Run">${formatDate(st.next_run_date)}</td>
+                <td data-label="Last Run">${st.last_run_date ? formatDate(st.last_run_date) : '—'}</td>
+                <td data-label="Actions" style="text-align: right;">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; ${st.disabled ? 'text-decoration: none;' : ''}">
+                        <button class="btn btn-sm btn-secondary btn-toggle-disable hide-on-mobile" data-idx="${idx}" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" title="${st.disabled ? 'Enable' : 'Disable'}">${st.disabled ? '▶️' : '⏸️'}</button>
+                        <button class="btn btn-sm btn-secondary hide-on-mobile btn-quick-edit" onclick="startScheduledInlineEdit(${idx})" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" title="Quick Edit">⚡</button>
+                        <button class="btn btn-sm btn-secondary hide-on-mobile" onclick="editScheduledTransaction(${idx})" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" title="Edit">✏️</button>
+                        <button class="btn btn-sm btn-danger btn-del hide-on-mobile" data-idx="${idx}" title="Delete">🗑️</button>
+                        <button class="row-btn hide-on-desktop mobile-menu-btn" onclick="openScheduledMobileMenu(${idx})" title="Options">⋮</button>
+                    </div>
+                </td>
+            `;
+
+            if (st.disabled) {
+                tr.style.opacity = '0.5';
+                Array.from(tr.querySelectorAll('td:not(:last-child)')).forEach(td => {
+                    td.style.textDecoration = 'line-through';
+                });
+            }
+
+            const toggleBtn = tr.querySelector('.btn-toggle-disable');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', async () => {
+                    toggleBtn.disabled = true;
+                    const wasDisabled = st.disabled;
+                    st.disabled = !st.disabled;
+
+                    if (wasDisabled && !st.disabled) {
+                        const today = getLocalDateString();
+                        if (st.next_run_date && st.next_run_date < today && st.frequency !== 'instant' && st.frequency !== 'one-off') {
+                            while (st.next_run_date < today) {
+                                st.next_run_date = calculateNextRunDate(st.frequency, st, st.next_run_date);
+                            }
                         }
                     }
-                }
 
-                const syncInd = document.getElementById('sync-indicator');
-                if (syncInd) syncInd.classList.remove('hidden');
+                    const syncInd = document.getElementById('sync-indicator');
+                    if (syncInd) syncInd.classList.remove('hidden');
 
-                try {
-                    await saveScheduledCSV();
-                    renderScheduledTransactions();
-                    toast(st.disabled ? 'Scheduled transaction disabled' : 'Scheduled transaction enabled', 'success');
-                } catch (e) {
-                    console.error('Failed to toggle disabled state:', e);
-                    st.disabled = !st.disabled;
-                    toggleBtn.disabled = false;
-                    toast('Failed to update scheduled transaction', 'error');
-                } finally {
-                    if (syncInd) syncInd.classList.add('hidden');
-                }
-            });
+                    try {
+                        await saveScheduledCSV();
+                        renderScheduledTransactions();
+                        toast(st.disabled ? 'Scheduled transaction disabled' : 'Scheduled transaction enabled', 'success');
+                    } catch (e) {
+                        console.error('Failed to toggle disabled state:', e);
+                        st.disabled = !st.disabled;
+                        toggleBtn.disabled = false;
+                        toast('Failed to update scheduled transaction', 'error');
+                    } finally {
+                        if (syncInd) syncInd.classList.add('hidden');
+                    }
+                });
+            }
+
+            const delBtn = tr.querySelector('.btn-del');
+            if (delBtn) {
+                delBtn.addEventListener('click', () => {
+                    openModal({
+                        title: 'Delete Scheduled Transaction',
+                        message: `Are you sure you want to delete this scheduled transaction?`,
+                        confirmLabel: 'Delete',
+                        onConfirm: async () => {
+                            state.scheduledTransactions.splice(idx, 1);
+                            await saveScheduledCSV();
+                            renderScheduledTransactions();
+                            toast('Scheduled transaction deleted', 'success');
+                        }
+                    });
+                });
+            }
         }
 
-        tr.querySelector('.btn-del').addEventListener('click', () => {
-            openModal({
-                title: 'Delete Scheduled Transaction',
-                message: `Are you sure you want to delete this scheduled transaction?`,
-                confirmLabel: 'Delete',
-                onConfirm: async () => {
-                    state.scheduledTransactions.splice(idx, 1);
-                    await saveScheduledCSV();
-                    renderScheduledTransactions();
-                    toast('Scheduled transaction deleted', 'success');
-                }
-            });
-        });
-
         tbody.appendChild(tr);
+
+        if (isInlineEditing) {
+            attachScheduledInlineEventListeners(idx);
+        }
     });
+}
+
+if (typeof window !== 'undefined') {
+    window.startScheduledInlineEdit = startScheduledInlineEdit;
+    window.saveScheduledInlineEdit = saveScheduledInlineEdit;
+    window.cancelScheduledInlineEdit = cancelScheduledInlineEdit;
+    window.renderScheduledTransactions = renderScheduledTransactions;
 }
 
 export function buildDailyBalanceChart(ctx) {

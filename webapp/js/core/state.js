@@ -23,6 +23,7 @@ export const state = {
     rawSmsTransactions: [],
     pendingSmsTransactions: [],
     pendingScheduledTransactions: [],
+    inlineEditSchedIdx: null,
     encryptionKey: null,
     encryptionEnabled: false,
     fileHashes: {},

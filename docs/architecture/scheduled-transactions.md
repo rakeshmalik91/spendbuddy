@@ -189,7 +189,38 @@ ID,Disabled,Amount,Amount Expression,Currency,Category,Transaction Mode,Note,Fre
 
 ---
 
-## 6. Key Invariants to Maintain
+## 6. Settings UI & Desktop Inline Editing
+
+In **Settings > Scheduled Transactions** (`#scheduled-table`), schedules are presented in a responsive data table (`> 860px`) and collapsible card grid (`<= 860px`):
+
+### 6.1 Column Layout & Type/Mode Representation
+- **Desktop Columns (`> 860px`)**:
+  `Category | Type | Mode | Note | Amount | Freq | Next Run | Last Run | Actions`
+  - `Type`: Displayed using standard badges (`.badge-txn-type.type-{expense|income|investment|transfer|refund}`).
+  - `Mode`: Displayed inside a styled pill (`.mode-cell`).
+  - `Actions`: Includes Enable/Disable toggle (`▶️`/`⏸️`), Quick Edit (`⚡`), Full Edit (`✏️`), and Delete (`🗑️`).
+- **Mobile Responsive Layout (`<= 860px`)**:
+  - In [`responsive.css`](file:///d:/Projects/expense-manager/webapp/css/layout/responsive.css), table cells for `Type`, `Mode`, and `Last Run` are hidden (`display: none !important`).
+  - `Type` and `Mode` badges are rendered inside the `Note` card area (`.badges-wrapper.hide-on-desktop`) to keep the mobile 3-row grid geometry intact.
+  - The mobile action sheet modal (`openScheduledMobileMenu`) explicitly includes `st.txnMode` in the summary header.
+
+### 6.2 Desktop-Only Inline Editing
+- **Triggers**: Double-clicking any scheduled transaction row (`ondblclick`) or clicking the `⚡` Quick Edit action button.
+- **Device Guard**: On mobile viewports (`window.innerWidth <= 860`), inline edit is bypassed and redirects immediately to the full edit form (`editScheduledTransaction(idx)`).
+- **Inline Controls**:
+  - **Category**: Dropdown `<select>` pre-populated with `state.categories`.
+  - **Type**: Dropdown `<select>` pre-populated with `state.txnTypes` (`Expense`, `Refund`, `Income`, `Investment`, `Transfer`).
+  - **Mode**: Dropdown `<select>` pre-populated with `state.txnModes`.
+  - **Note**: Text `<input>` for inline description edits.
+  - **Amount**: Arithmetic text `<input>` with live evaluation preview pill showing calculated amount and sign adaptation (e.g. negative for `Income`/`Refund`).
+- **Keyboard Shortcuts**:
+  - `Enter`: Validates and saves inline changes (`saveScheduledInlineEdit(idx)`).
+  - `Escape`: Cancels inline editing without modifying state (`cancelScheduledInlineEdit()`).
+- **Persistence**: Upon saving, updates `state.scheduledTransactions[idx]`, uploads `scheduled_transaction.csv` to cloud storage, re-renders the table, and flashes the saved row with a blue transition animation.
+
+---
+
+## 7. Key Invariants to Maintain
 
 When modifying or extending the scheduled transactions subsystem, preserve these invariants:
 

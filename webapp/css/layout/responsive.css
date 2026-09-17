@@ -767,6 +767,8 @@
         display: block !important;
     }
 
+    #scheduled-table td[data-label="Type"],
+    #scheduled-table td[data-label="Mode"],
     #scheduled-table td[data-label="Last Run"] {
         display: none !important;
     }

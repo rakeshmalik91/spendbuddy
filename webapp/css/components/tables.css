@@ -163,6 +163,20 @@
         white-space: nowrap;
     }
 
+    #scheduled-table th[data-col="actions"],
+    #scheduled-table th.col-actions,
+    #scheduled-table td[data-label="Actions"] {
+        width: 145px !important;
+        min-width: 145px;
+    }
+
+    #scheduled-table th[data-col="type"],
+    #scheduled-table td[data-label="Type"] {
+        width: 100px;
+        box-sizing: border-box;
+        white-space: nowrap;
+    }
+
     .data-table th[data-col="note"],
     .data-table th.col-note,
     .data-table td[data-label="Note"] {
@@ -608,14 +622,14 @@ tr.quick-editing td {
 }
 
 @media (min-width: 861px) {
-    .data-table:not(#keyword-mapping-table) th.col-date,
-    .data-table:not(#keyword-mapping-table) th[data-col="date"],
-    .data-table:not(#keyword-mapping-table) td[data-label="Date"],
-    .data-table:not(#keyword-mapping-table) td[data-label="Date & Location"],
-    .data-table:not(#keyword-mapping-table) th.col-mode,
-    .data-table:not(#keyword-mapping-table) th[data-col="mode"],
-    .data-table:not(#keyword-mapping-table) td[data-label="Mode"],
-    .data-table:not(#keyword-mapping-table) td[data-label="Txn Mode"] {
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) th.col-date,
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) th[data-col="date"],
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) td[data-label="Date"],
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) td[data-label="Date & Location"],
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) th.col-mode,
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) th[data-col="mode"],
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) td[data-label="Mode"],
+    .data-table:not(#keyword-mapping-table):not(#scheduled-table) td[data-label="Txn Mode"] {
         display: none !important;
     }
 

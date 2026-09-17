@@ -176,12 +176,12 @@
     <link rel="stylesheet" href="css/layout/main.css?v=13">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
-    <link rel="stylesheet" href="css/components/tables.css?v=57">
+    <link rel="stylesheet" href="css/components/tables.css?v=60">
     <link rel="stylesheet" href="css/components/forms.css?v=15">
     <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=14">
     <link rel="stylesheet" href="css/views/settings.css?v=4">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=48">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=49">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -1028,12 +1028,14 @@
                         <table class="data-table" id="scheduled-table">
                             <thead>
                                 <tr>
-                                    <th>Category</th>
-                                    <th>Note</th>
-                                    <th style="text-align: right;">Amount</th>
-                                    <th>Freq</th>
-                                    <th>Next Run</th>
-                                    <th>Last Run</th>
+                                    <th data-col="category">Category</th>
+                                    <th data-col="type">Type</th>
+                                    <th data-col="mode">Mode</th>
+                                    <th data-col="note">Note</th>
+                                    <th data-col="amount" style="text-align: right;">Amount</th>
+                                    <th data-col="freq">Freq</th>
+                                    <th data-col="next-run">Next Run</th>
+                                    <th data-col="last-run">Last Run</th>
                                     <th class="col-actions" data-col="actions" style="text-align: right;"></th>
                                 </tr>
                             </thead>
@@ -2305,7 +2307,7 @@
             }, { passive: true });
         })();
     </script>
-    <script type="module" src="app.js?v=416"></script>
+    <script type="module" src="app.js?v=418"></script>
 </body>
 
 </html>

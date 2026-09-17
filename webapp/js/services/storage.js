@@ -330,7 +330,7 @@ export async function processScheduledTransactions(options = {}) {
     const candidateTxns = [];
     const simulationData = [];
 
-    const detectedLocation = await getCurrentLocationTag();
+    const detectedLocation = typeof getCurrentLocationTag === 'function' ? await getCurrentLocationTag() : '';
 
     // Iterate forward through scheduled transactions to preserve natural order
     for (let i = 0; i < state.scheduledTransactions.length; i++) {
