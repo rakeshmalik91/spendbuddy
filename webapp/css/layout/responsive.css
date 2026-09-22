@@ -177,6 +177,11 @@
         box-shadow: 0 4px 12px rgba(99, 138, 255, 0.3);
     }
 
+    .bottom-nav .nav-btn.fab-btn.active {
+        background: var(--bg-card-hover) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
     .chart-grid,
     .chart-grid-full {
         grid-template-columns: 1fr;
