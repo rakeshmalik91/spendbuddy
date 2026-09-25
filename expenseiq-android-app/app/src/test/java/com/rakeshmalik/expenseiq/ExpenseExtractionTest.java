@@ -233,5 +233,24 @@ public class ExpenseExtractionTest {
         org.junit.Assert.assertTrue("SMS Merchant should contain Amazon", smsResult.first.contains("Amazon"));
         assertEquals("Shopping", smsResult.second);
     }
+
+    @Test
+    public void testFoodKeywordsCategoryExtraction() {
+        String sms1 = "Sent Rs.350.00 to Karachi Bakery on 12-09-26. UPI Ref: 123456789012.";
+        Pair<String, String> result1 = CategoryMapper.extractCategoryAndMerchant("AD-HDFCBK", sms1);
+        assertEquals("Food", result1.second);
+
+        String sms2 = "Paid Rs.500.00 at Haldiram Sweets on 14-09-26. Avl bal Rs.5000.";
+        Pair<String, String> result2 = CategoryMapper.extractCategoryAndMerchant("AD-HDFCBK", sms2);
+        assertEquals("Food", result2.second);
+
+        String sms3 = "Sent Rs.250.00 to Mithai Junction on 15-09-26.";
+        Pair<String, String> result3 = CategoryMapper.extractCategoryAndMerchant("AD-HDFCBK", sms3);
+        assertEquals("Food", result3.second);
+
+        String sms4 = "Paid Rs.450.00 at The Cake Shop on 16-09-26.";
+        Pair<String, String> result4 = CategoryMapper.extractCategoryAndMerchant("AD-HDFCBK", sms4);
+        assertEquals("Food", result4.second);
+    }
 }
 

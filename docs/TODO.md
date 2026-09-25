@@ -9,3 +9,5 @@ commit after each features or set of fixes/enhancements
 
 ### Fixes / Enhancements
 - [x] for mobile, when in add txn page, + button background is transparent, make it opaque
+- [x] map keywords like sweet, cake, bakery etc to food
+- [x] handle uncommitted email test data

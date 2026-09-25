@@ -81,7 +81,10 @@ public class CategoryMapper {
         addKeywords("Food", 
             "swiggy", "zomato", "mcdonalds", "dominos", "kfc", "pizzahut", 
             "starbucks", "pluxee", "sodexo", "eatfit", "faasos", "behrouz", 
-            "freshmenu", "ccd", "cafe coffee day");
+            "freshmenu", "ccd", "cafe coffee day",
+            "sweet", "sweets", "cake", "cakes", "bakery", "baker", "bakers", "bakehouse",
+            "mithai", "pastry", "pastries", "dessert", "desserts", "confectionery", "confectioners",
+            "bakes", "ice cream", "icecream", "waffle", "waffles");
             
         addKeywords("Groceries", 
             "blinkit", "zepto", "bigbasket", "dmart", "reliance smart", 

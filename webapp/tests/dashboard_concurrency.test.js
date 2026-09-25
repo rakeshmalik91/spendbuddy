@@ -170,6 +170,66 @@ describe('Dashboard Quick-Add Concurrency & Failure Rollback', () => {
         }
     });
 
+    it('should respect custom keyword mapping on dashboard quick-add for negative income salary SMS', async () => {
+        const { getLocalDateString } = require('../js/utils/date_helpers.js');
+        const todayStr = getLocalDateString();
+
+        const salaryNote = 'Neft Cr-scbl0036001-nab Global Innovation Centre India-rakesh Malik-scblh26800601816';
+        state.pendingSmsTransactions = [
+            {
+                date: todayStr,
+                amount: -221070,
+                merchant: salaryNote,
+                transactionMode: 'Bank Transfer',
+                currency: 'INR',
+                source: 'SMS: BP-HDFCBK-S'
+            }
+        ];
+        state.keywordMappings = [
+            {
+                id: 'kw_1788851812753',
+                keyword: 'NAB, Global Innovation Centre',
+                category: 'Salary',
+                txnType: 'Income',
+                txnMode: 'Bank Transfer'
+            }
+        ];
+        state.categories = ['💰 Salary', 'Others'];
+        state.txnModes = ['🏦 Bank Transfer', 'UPI'];
+
+        document.body.innerHTML = `
+            <div id="dashboard-quick-add"></div>
+        `;
+
+        const formModule = require('../js/ui/form.js');
+        const originalSaveYearCSV = formModule.saveYearCSV;
+        formModule.saveYearCSV = jest.fn().mockResolvedValue();
+
+        const smsApprovalModule = require('../js/ui/sms_approval.js');
+        const consumeSpy = jest.spyOn(smsApprovalModule, 'consumeRawSmsTransaction').mockImplementation(() => {});
+
+        try {
+            const dashboardModule = require('../js/ui/dashboard.js');
+            dashboardModule.renderQuickAdd();
+
+            const btn = document.querySelector('.sms-quick-add');
+            expect(btn).not.toBeNull();
+
+            btn.click();
+            await new Promise(r => setTimeout(r, 30));
+
+            expect(state.expenses.length).toBe(1);
+            expect(state.expenses[0].note).toBe(salaryNote);
+            expect(state.expenses[0].category).toBe('💰 Salary');
+            expect(state.expenses[0].txnType).toBe('Income');
+            expect(state.expenses[0].txnMode).toBe('🏦 Bank Transfer');
+            expect(state.expenses[0].amount).toBe(-221070);
+        } finally {
+            formModule.saveYearCSV = originalSaveYearCSV;
+            consumeSpy.mockRestore();
+        }
+    });
+
     it('should render the Action Needed button when older pending SMS exist and trigger showSmsApprovalModal when clicked', () => {
         const smsApprovalModule = require('../js/ui/sms_approval.js');
         const showModalSpy = jest.spyOn(smsApprovalModule, 'showSmsApprovalModal').mockImplementation(() => {});

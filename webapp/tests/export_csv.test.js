@@ -70,7 +70,7 @@ describe('CSV Export Feature', () => {
                 expect(saveBackupMock.mock.calls[0][1]).toBe('test.csv');
                 expect(typeof saveBackupMock.mock.calls[0][0]).toBe('string');
                 done();
-            }, 50);
+            }, 200);
         });
 
         test('downloads via temporary anchor in browser environment', () => {

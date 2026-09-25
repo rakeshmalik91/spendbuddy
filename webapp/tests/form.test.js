@@ -478,6 +478,81 @@ describe('Add Page Form UI', () => {
             expect(document.getElementById('input-amount').value).toBe('-250');
             expect(document.querySelector('#txntype-chips .chip.active')?.dataset.value).toBe('Refund');
         });
+
+        it('should prioritize custom keyword mapping txnType (e.g. Income) when suggestion card has negative credit amount', () => {
+            const { setTxnTypeManuallyChanged, setFormSubmittingState, renderSmsSuggestions } = require('../js/ui/form.js');
+            const smsApproval = require('../js/ui/sms_approval.js');
+
+            let container = document.getElementById('sms-suggestions-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'sms-suggestions-container';
+                container.innerHTML = '<div id="sms-suggestions-list"></div>';
+                document.body.appendChild(container);
+            }
+
+            setFormSubmittingState(false);
+            setTxnTypeManuallyChanged(false);
+            document.getElementById('input-date').value = '2026-09-25';
+
+            const salaryTxn = {
+                merchant: 'Neft Cr-scbl0036001-nab Global Innovation Centre India-rakesh Malik-scblh26800601816',
+                transactionMode: 'Bank Transfer',
+                amount: -221070,
+                date: '2026-09-25',
+                source: 'SMS: BP-HDFCBK-S'
+            };
+            smsApproval.getRawSmsSuggestionsForDate = jest.fn(() => [salaryTxn]);
+            helpers.findMatchingKeywordRule.mockReturnValue({
+                id: 'kw_1788851812753',
+                keyword: 'NAB, Global Innovation Centre',
+                category: 'Salary',
+                txnType: 'Income',
+                txnMode: 'Bank Transfer'
+            });
+            helpers.getCategoryForMerchant.mockReturnValue('Salary');
+
+            renderSmsSuggestions();
+
+            const card = document.querySelector('.sms-suggestion-card');
+            expect(card).not.toBeNull();
+            card.click();
+
+            expect(document.getElementById('input-transaction-type').value).toBe('Income');
+            expect(document.getElementById('input-amount').value).toBe('-221070');
+            expect(document.querySelector('#txntype-chips .chip.active')?.dataset.value).toBe('Income');
+
+            // Reset mock
+            helpers.findMatchingKeywordRule.mockReturnValue(null);
+        });
+
+        it('preserves Income transaction type in updateTxnTypeAuto when amount is edited manually for note matching keyword rule', () => {
+            const { updateTxnTypeAuto } = require('../js/ui/form.js');
+            const salaryNote = 'Neft Cr-scbl0036001-nab Global Innovation Centre India-rakesh Malik-scblh26800601816';
+            document.getElementById('input-note').value = salaryNote;
+            document.getElementById('input-category').value = '💰 Salary';
+            document.getElementById('input-transaction-type').value = 'Income';
+
+            helpers.findMatchingKeywordRule.mockReturnValue({
+                id: 'kw_1788851812753',
+                keyword: 'NAB, Global Innovation Centre',
+                category: 'Salary',
+                txnType: 'Income',
+                txnMode: 'Bank Transfer'
+            });
+
+            // User types positive amount
+            document.getElementById('input-amount').value = '221070';
+            updateTxnTypeAuto();
+            expect(document.getElementById('input-transaction-type').value).toBe('Income');
+
+            // User types negative amount
+            document.getElementById('input-amount').value = '-221070';
+            updateTxnTypeAuto();
+            expect(document.getElementById('input-transaction-type').value).toBe('Income');
+
+            helpers.findMatchingKeywordRule.mockReturnValue(null);
+        });
     });
 
     describe('Hide Transfer Filter on Add Page Selected Day Transactions', () => {

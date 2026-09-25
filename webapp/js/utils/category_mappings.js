@@ -4,8 +4,13 @@ export { TXN_TYPE_MAPPINGS };
 
 export const KEYWORD_MAPPINGS = [
     {
-        keywords: ['swiggy', 'zomato', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cafe'],
-        synonyms: ['food', 'dining', 'restaurant', 'meal', 'cafe', 'coffee']
+        keywords: [
+            'swiggy', 'zomato', 'lunch', 'dinner', 'breakfast', 'restaurant', 'cafe',
+            'sweet', 'sweets', 'cake', 'cakes', 'bakery', 'baker', 'bakers', 'bakehouse',
+            'mithai', 'pastry', 'pastries', 'dessert', 'desserts', 'confectionery', 'confectioners',
+            'bakes', 'ice cream', 'icecream', 'waffle', 'waffles'
+        ],
+        synonyms: ['food', 'dining', 'restaurant', 'meal', 'cafe', 'coffee', 'bakery', 'sweet', 'sweets', 'dessert']
     },
     {
         keywords: ['cab', 'bus', 'auto', 'uber', 'ola', 'rapido', 'flight', 'train', 'irctc'],

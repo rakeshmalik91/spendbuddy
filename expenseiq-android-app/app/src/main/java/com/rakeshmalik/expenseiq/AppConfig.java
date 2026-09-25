@@ -93,7 +93,7 @@ public class AppConfig {
             "offer", "offers", "discount", "discounts", "sale", "promo", "promotional",
             "deal", "deals", "win", "won", "free", "reasons to", "act now", "don't miss", "off!", "exclusive", "save",
             "savings",
-            "credit score", "credit report", "credit health", "credit habits", "cibil", "pocket friendly",
+            "credit score", "credit report", "credit health", "credit habits", "credit monitoring", "cibil", "pocket friendly",
             "cover every", "cover your", "secure your", "travel insurance", "insurance cover", "every risk");
 
     public static final List<String> CREDIT_KEYWORDS = Arrays.asList(

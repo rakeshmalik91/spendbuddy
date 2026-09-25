@@ -10,6 +10,7 @@ import {
     resolveCategoryName,
     resolveTxnModeName
 } from '../js/utils/category_helpers.js';
+import { isRefundTxn } from '../js/utils/txn_id_helpers.js';
 
 import { applyUserSettings, updateUserSettings } from '../js/services/user_settings.js';
 import { executeRulesOnExpenses, syncKeywordMappingsOnEntityChange } from '../js/ui/keyword_mappings.js';
@@ -546,5 +547,105 @@ describe('Keyword Mappings & Inference Overrides', () => {
             expect(changed).toBe(false);
         });
     });
+
+    describe('User settings verification for NEFT salary transaction', () => {
+        const userKeywordMappings = [
+            {
+                id: 'kw_1788851812753',
+                keyword: 'NAB, Global Innovation Centre',
+                category: 'Salary',
+                txnType: 'Income',
+                txnMode: 'Bank Transfer'
+            },
+            {
+                id: 'kw_1788853082716',
+                keyword: 'NPS, Protean',
+                category: 'Pension',
+                txnType: 'Investment',
+                txnMode: null
+            },
+            {
+                id: 'kw_1788853107126',
+                keyword: 'HDFCLife, HDFC Life, LIC',
+                category: 'Insurance',
+                txnType: 'Investment',
+                txnMode: null
+            }
+        ];
+        const txnNote = 'Neft Cr-scbl0036001-nab Global Innovation Centre India-rakesh Malik-scblh26800601816';
+
+        beforeEach(() => {
+            state.keywordMappings = [...userKeywordMappings];
+            state.categories = ['🍜 Food', '💰 Salary', '🪬 Insurance', '🐷 Pension', 'Others'];
+            state.txnModes = ['📱 UPI', '🏦 Bank Transfer', '💳 Card', '👛 Wallet'];
+            state.expenses = [];
+        });
+
+        it('correctly matches NAB Global Innovation Centre rule for NEFT salary note', () => {
+            const rule = findMatchingKeywordRule(txnNote);
+            expect(rule).toBeDefined();
+            expect(rule.id).toBe('kw_1788851812753');
+            expect(rule.keyword).toBe('NAB, Global Innovation Centre');
+            expect(rule.category).toBe('Salary');
+            expect(rule.txnType).toBe('Income');
+            expect(rule.txnMode).toBe('Bank Transfer');
+        });
+
+        it('maps merchant/note to Category: 💰 Salary, TxnType: Income, and TxnMode: 🏦 Bank Transfer (with emoji resolution)', () => {
+            expect(getCategoryForMerchant(txnNote)).toBe('💰 Salary');
+            expect(getTxnTypeForMerchant(txnNote, 'Expense')).toBe('Income');
+            expect(getTxnModeForMerchant(txnNote, 'UPI', state.txnModes)).toBe('🏦 Bank Transfer');
+        });
+
+        it('maps correctly even when categories and txn modes do not use emoji prefixes', () => {
+            const plainCategories = ['Food', 'Salary', 'Insurance', 'Pension', 'Others'];
+            const plainTxnModes = ['UPI', 'Bank Transfer', 'Card', 'Wallet'];
+            state.categories = plainCategories;
+            state.txnModes = plainTxnModes;
+
+            expect(getCategoryForMerchant(txnNote)).toBe('Salary');
+            expect(getTxnTypeForMerchant(txnNote, 'Expense')).toBe('Income');
+            expect(getTxnModeForMerchant(txnNote, 'UPI', plainTxnModes)).toBe('Bank Transfer');
+        });
+
+        it('applies the mapping to transactions during executeRulesOnExpenses and sets amount sign to negative', async () => {
+            state.expenses = [
+                {
+                    id: 'txn-salary-1',
+                    date: '2026-09-25',
+                    amount: 221070,
+                    note: txnNote,
+                    category: 'Others',
+                    txnType: 'Expense',
+                    txnMode: 'UPI'
+                }
+            ];
+
+            await executeRulesOnExpenses(state.keywordMappings);
+
+            expect(state.expenses[0].category).toBe('💰 Salary');
+            expect(state.expenses[0].txnType).toBe('Income');
+            expect(state.expenses[0].txnMode).toBe('🏦 Bank Transfer');
+            expect(state.expenses[0].amount).toBe(-221070);
+            expect(saveYearCSV).toHaveBeenCalledWith('2026');
+        });
+
+        it('isRefundTxn respects Priority-0 custom keyword mapping and does not classify negative income as Refund', () => {
+            const pendingTxnWithoutType = {
+                merchant: txnNote,
+                amount: -221070,
+                source: 'SMS: BP-HDFCBK-S'
+            };
+
+            // Without custom mapping, a negative amount with no type would default to Refund in isRefundTxn
+            state.keywordMappings = [];
+            expect(isRefundTxn(pendingTxnWithoutType)).toBe(true);
+
+            // With the custom rule providing txnType: 'Income', isRefundTxn MUST return false
+            state.keywordMappings = [...userKeywordMappings];
+            expect(isRefundTxn(pendingTxnWithoutType)).toBe(false);
+        });
+    });
 });
+
 

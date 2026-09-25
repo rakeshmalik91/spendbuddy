@@ -518,6 +518,7 @@ public class MainActivity extends AppCompatActivity {
                     obj.put("source", txn.source);
                     obj.put("transactionId", txn.transactionId != null ? txn.transactionId : "");
                     obj.put("timestamp", txn.timestamp);
+                    obj.put("txnType", txn.txnType != null ? txn.txnType : "Expense");
                     jsonArray.put(obj);
                 }
                 final String jsonStr = jsonArray.toString().replace("'", "\\'");

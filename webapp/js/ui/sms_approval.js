@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, findMatchingKeywordRule, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
 import { amountToStr } from "../services/storage.js";
 import { renderAll } from "./render_all.js";
@@ -559,15 +559,22 @@ export function setupSmsApproval() {
                 const txn = snapshot[idx];
                 const selectEl = document.querySelector(`.sms-category-select[data-index="${idx}"]`);
                 const chosenCategory = selectEl ? selectEl.value : (txn.masterCategory || 'Others');
-                const isRefund = isRefundTxn(txn);
-                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
-                let computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
-                if (!computedType) {
+                const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
+                const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
+                const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
+                const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
+                let computedType = null;
+                if (ruleTxnType) {
+                    computedType = ruleTxnType;
+                } else if (isRefund) {
+                    computedType = 'Refund';
+                } else if (isIncome) {
+                    computedType = 'Income';
+                } else if (txn.txnType) {
+                    computedType = normalizeTxnType(txn.txnType);
+                } else {
                     const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
                     computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
-                if (isRefund) {
-                    computedType = 'Refund';
                 }
                 const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
 
@@ -668,10 +675,12 @@ export function showSmsApprovalModal(txns) {
             catOptions = `<option value="Others" selected>Others</option>` + catOptions;
         }
 
+        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
+        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
         const isEmail = (txn.source || '').toLowerCase().includes('email');
-        const isRefund = isRefundTxn(txn);
-        const isIncome = normalizeTxnType(txn.txnType) === 'Income';
-        const isCredit = isRefund || isIncome || txn.amount < 0;
+        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
+        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
+        const isCredit = ruleTxnType ? (ruleTxnType === 'Refund' || ruleTxnType === 'Income') : (isRefund || isIncome || txn.amount < 0);
         const amountColor = isCredit ? 'var(--green)' : 'var(--red)';
         const amountPrefix = isCredit ? '+' : '';
 

@@ -14,6 +14,7 @@ jest.mock('../js/utils/helpers.js', () => ({
     parseLocalDate: jest.fn((d) => new Date(d)),
     getCategoryForMerchant: jest.fn(),
     getTxnTypeForMerchant: jest.fn(),
+    findMatchingKeywordRule: jest.fn(() => null),
     syncChips: jest.fn()
 }));
 

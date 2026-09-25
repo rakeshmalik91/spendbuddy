@@ -40,6 +40,18 @@ describe('Category Prediction', () => {
         expect(getCategoryForMerchant('lunch with team', null)).toBe('🍔 Food & Dining');
     });
 
+    test('Keyword match: sweet/sweets -> Food & Dining', () => {
+        expect(getCategoryForMerchant('haldiram sweets', null)).toBe('🍔 Food & Dining');
+        expect(getCategoryForMerchant('bengal sweet corner', null)).toBe('🍔 Food & Dining');
+    });
+
+    test('Keyword match: cake/bakery -> Food & Dining', () => {
+        expect(getCategoryForMerchant('the cake shop', null)).toBe('🍔 Food & Dining');
+        expect(getCategoryForMerchant('karachi bakery', null)).toBe('🍔 Food & Dining');
+        expect(getCategoryForMerchant('mithai junction', null)).toBe('🍔 Food & Dining');
+        expect(getCategoryForMerchant('pastry palace', null)).toBe('🍔 Food & Dining');
+    });
+
     test('Keyword match: uber -> Travel', () => {
         expect(getCategoryForMerchant('uber ride', null)).toBe('✈️ Travel');
     });
