@@ -630,20 +630,21 @@ describe('Keyword Mappings & Inference Overrides', () => {
             expect(saveYearCSV).toHaveBeenCalledWith('2026');
         });
 
-        it('isRefundTxn respects Priority-0 custom keyword mapping and does not classify negative income as Refund', () => {
-            const pendingTxnWithoutType = {
-                merchant: txnNote,
-                amount: -221070,
-                source: 'SMS: BP-HDFCBK-S'
-            };
+        it('isRefundTxn uses txnType field only (no keyword scanning)', () => {
+            // txnType = 'refund' -> true
+            expect(isRefundTxn({ txnType: 'refund', amount: 100 })).toBe(true);
+            expect(isRefundTxn({ txnType: 'Refund', amount: -100 })).toBe(true);
 
-            // Without custom mapping, a negative amount with no type would default to Refund in isRefundTxn
-            state.keywordMappings = [];
-            expect(isRefundTxn(pendingTxnWithoutType)).toBe(true);
+            // txnType = income/investment/transfer/expense -> false
+            expect(isRefundTxn({ txnType: 'income', amount: -100 })).toBe(false);
+            expect(isRefundTxn({ txnType: 'investment', amount: -100 })).toBe(false);
+            expect(isRefundTxn({ txnType: 'transfer', amount: -100 })).toBe(false);
+            expect(isRefundTxn({ txnType: 'expense', amount: -100 })).toBe(false);
 
-            // With the custom rule providing txnType: 'Income', isRefundTxn MUST return false
-            state.keywordMappings = [...userKeywordMappings];
-            expect(isRefundTxn(pendingTxnWithoutType)).toBe(false);
+            // No txnType -> falls back to amount < 0
+            expect(isRefundTxn({ amount: -100 })).toBe(true);
+            expect(isRefundTxn({ amount: 100 })).toBe(false);
+            expect(isRefundTxn({ amount: 0 })).toBe(false);
         });
     });
 });

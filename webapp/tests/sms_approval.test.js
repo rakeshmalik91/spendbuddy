@@ -428,16 +428,20 @@ describe('SMS Approval Logic', () => {
             expect(computedType).toBe('Refund');
         });
 
-        it('should recognize refund from body or source text keywords even if amount was positive', () => {
-            state.expenses = [];
-            state.rawSmsTransactions = [
-                { date: '2026-07-19', amount: 250, merchant: 'Swiggy', body: 'Refund of Rs 250 completed', source: 'SMS: Bank' }
-            ];
+        it('isRefundTxn uses txnType field only (no keyword scanning)', () => {
+            // Uses txnType from the transaction, not keywords in body/source
+            const txnWithRefundType = { date: '2026-07-19', amount: 250, merchant: 'Swiggy', body: 'Refund of Rs 250 completed', source: 'SMS: Bank', txnType: 'Refund' };
+            expect(helpers.isRefundTxn(txnWithRefundType)).toBe(true);
 
-            recomputePendingSmsTransactions();
+            const txnWithIncomeType = { date: '2026-07-19', amount: -1500, merchant: 'Meal Wallet', source: 'SMS: Pluxee', txnType: 'Income' };
+            expect(helpers.isRefundTxn(txnWithIncomeType)).toBe(false);
 
-            const txn = state.pendingSmsTransactions[0];
-            expect(helpers.isRefundTxn(txn)).toBe(true);
+            // Without txnType, falls back to amount < 0
+            const txnNegativeNoType = { date: '2026-07-19', amount: -100, merchant: 'Test', source: 'SMS: Bank' };
+            expect(helpers.isRefundTxn(txnNegativeNoType)).toBe(true);
+
+            const txnPositiveNoType = { date: '2026-07-19', amount: 100, merchant: 'Test', source: 'SMS: Bank' };
+            expect(helpers.isRefundTxn(txnPositiveNoType)).toBe(false);
         });
 
         it('should resolve to Income when Android app specifies txnType as Income', () => {

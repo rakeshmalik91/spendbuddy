@@ -104,34 +104,13 @@ export function hasMatchingTxnId(t1, t2) {
     return ids1.some(id1 => ids2.includes(id1));
 }
 
-import { findMatchingKeywordRule } from "./category_helpers.js";
+
 
 export function isRefundTxn(t) {
     if (!t) return false;
     const type = (t.txnType || '').trim().toLowerCase();
     if (type === 'refund') return true;
-    if (type === 'income' || type === 'investment' || type === 'transfer') return false;
-
-    // Priority 0: Custom keyword mapping override on merchant, note, or source
-    if (typeof findMatchingKeywordRule === 'function') {
-        const customRule = findMatchingKeywordRule(t.merchant)
-            || findMatchingKeywordRule(t.note)
-            || (t.source ? findMatchingKeywordRule(t.source) : null);
-        if (customRule && customRule.txnType) {
-            const ruleType = customRule.txnType.trim().toLowerCase();
-            if (ruleType === 'refund') return true;
-            if (ruleType === 'income' || ruleType === 'investment' || ruleType === 'transfer' || ruleType === 'expense') return false;
-        }
-    }
-
-    // Check keywords across all text fields (merchant, note, source, body, originalMessage)
-    const text = `${t.merchant || ''} ${t.source || ''} ${t.note || ''} ${t.body || ''} ${t.originalMessage || ''}`.toLowerCase();
-    if (/\b(refund|refunded|refunding|reversal|reversed|cashback|returned)\b/i.test(text)) {
-        return true;
-    }
-
-    if (type === 'expense') return false;
-
+    if (type === 'income' || type === 'investment' || type === 'transfer' || type === 'expense') return false;
     return Number(t.amount) < 0;
 }
 

@@ -12,6 +12,7 @@ expenseiq-android-app/app/.cxx
 brain
 .kiro
 .vscode
+.idea
 
 # Node
 node_modules/
