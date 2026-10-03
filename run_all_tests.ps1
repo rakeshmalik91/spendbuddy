@@ -18,7 +18,7 @@ Write-Host "`n==========================================" -ForegroundColor Cyan
 Write-Host "2/2 Running Android App (Gradle) Unit Tests..." -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
-Push-Location expenseiq-android-app
+Push-Location spendbuddy-android-app
 try {
     if ($IsWindows -or $env:OS -like "*Windows*") {
         .\gradlew.bat test

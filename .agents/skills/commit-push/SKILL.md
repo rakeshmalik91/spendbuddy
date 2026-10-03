@@ -18,7 +18,7 @@ Before committing, **ALWAYS** perform the following three steps in order:
      ```
    - Alternatively run both individually:
      - Webapp (Jest): `npm test` in `webapp/`
-     - Android (Gradle): `.\gradlew.bat test` in `expenseiq-android-app/`
+     - Android (Gradle): `.\gradlew.bat test` in `spendbuddy-android-app/`
    - If any test fails, do **not** proceed with commit and push until resolved.
 
 2. **Update existing documentation for anything to be updated**:

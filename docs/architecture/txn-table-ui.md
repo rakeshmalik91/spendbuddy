@@ -179,7 +179,7 @@ Any changes to table styles (`webapp/css/components/tables.css`, `webapp/css/lay
 
 1. **Desktop Browsers**:
    - Verify table column alignment, no horizontal scrollbars on standard displays, left-aligned badges, and proper `Mode` cell ellipsis.
-2. **Android App (`expenseiq-android-app`)**:
+2. **Android App (`spendbuddy-android-app`)**:
    - Verify mobile card grid layout in WebView, tap responsiveness for action buttons, left-aligned inline badges, and mode display.
 3. **Mobile Browsers (iOS Safari / Android Chrome)**:
    - Verify touch scrolling, card gaps, and zero overflow on narrow screens (320px–420px).

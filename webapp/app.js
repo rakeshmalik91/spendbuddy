@@ -18,5 +18,5 @@ window.openQuickEditModal = openQuickEditModal;
 window.showSmsApprovalModal = showSmsApprovalModal;
 window.showScheduledApprovalModal = showScheduledApprovalModal;
 
-console.log("ExpenseIQ Modular App Loaded");
+console.log("SpendBuddy Modular App Loaded");
 

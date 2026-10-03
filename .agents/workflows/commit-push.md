@@ -1,4 +1,4 @@
-# ExpenseIQ - Commit and Push Workflow
+# SpendBuddy - Commit and Push Workflow
 
 Use this workflow to safely run tests, stage changes, commit with a concise conventional commit prefix, and push to the remote git repository.
 

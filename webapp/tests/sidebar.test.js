@@ -10,7 +10,7 @@ describe('Collapsible Sidebar UI', () => {
                 <div class="sidebar-header">
                     <div class="sidebar-brand">
                         <span class="brand-icon"><img src="logo.svg" alt="logo"></span>
-                        <span class="brand-text">ExpenseIQ</span>
+                        <span class="brand-text">SpendBuddy</span>
                     </div>
                     <button type="button" class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Collapse sidebar" aria-label="Collapse sidebar" aria-expanded="true">
                         <svg class="icon-collapse"></svg>

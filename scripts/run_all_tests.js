@@ -3,7 +3,7 @@ const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
 const webappDir = path.resolve(rootDir, 'webapp');
-const androidDir = path.resolve(rootDir, 'expenseiq-android-app');
+const androidDir = path.resolve(rootDir, 'spendbuddy-android-app');
 
 console.log('\x1b[36m%s\x1b[0m', '==========================================');
 console.log('\x1b[36m%s\x1b[0m', '1/2 Running Frontend (Jest) Unit Tests...');

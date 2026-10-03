@@ -1,4 +1,4 @@
-# ExpenseIQ - AI Agent Sanity Test Cases
+# SpendBuddy - AI Agent Sanity Test Cases
 
 This file contains natural language End-to-End (E2E) testing instructions designed for LLM-based coding assistants (like Antigravity, Cursor, or general browser agents).
 

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="SpendBuddy">
+  <defs>
+    <linearGradient id="sb-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <linearGradient id="sb-ruffle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <linearGradient id="sb-coin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+  </defs>
+  <!-- Feet -->
+  <rect x="13" y="40" width="6" height="4" rx="2" fill="#3730a3" />
+  <rect x="29" y="40" width="6" height="4" rx="2" fill="#3730a3" />
+  <!-- Gold coin peeking out behind top ruffle -->
+  <circle cx="24" cy="9" r="4.5" fill="url(#sb-coin)" stroke="#ca8a04" stroke-width="0.7" />
+  <circle cx="24" cy="9" r="3" fill="#fef9c3" opacity="0.6" />
+  <!-- Ruffled top crown (symmetric 3 lobes) -->
+  <path d="M16.5 15 C14.5 11, 15.5 8, 18 8 C20 8, 21.2 10.5, 22 12.5 C22.8 10, 23.2 7.5, 24 7.5 C24.8 7.5, 25.2 10, 26 12.5 C26.8 10.5, 28 8, 30 8 C32.5 8, 33.5 11, 31.5 15 Z" fill="url(#sb-ruffle)" />
+  <!-- Main pouch body -->
+  <path d="M18 15 C11 16.5, 7 23, 7 31 C7 37.5, 11.5 41, 18 41 L30 41 C36.5 41, 41 37.5, 41 31 C41 23, 37 16.5, 30 15 Z" fill="url(#sb-body)" />
+  <!-- Neck cinch band -->
+  <rect x="15.5" y="13.5" width="17" height="3.5" rx="1.75" fill="#3730a3" />
+  <!-- Ribbon tie knot & tails -->
+  <circle cx="24" cy="15.2" r="1.5" fill="#4338ca" />
+  <path d="M22.5 16 L20.5 19.5 M25.5 16 L27.5 19.5" stroke="#3730a3" stroke-width="2" stroke-linecap="round" />
+  <!-- Face: Eyes -->
+  <circle cx="18.5" cy="29" r="2.1" fill="#ffffff" />
+  <circle cx="29.5" cy="29" r="2.1" fill="#ffffff" />
+  <!-- Face: Smile -->
+  <path d="M20 35 c2 2.2 6 2.2 8 0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" />
+</svg>

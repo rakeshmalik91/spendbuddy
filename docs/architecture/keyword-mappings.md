@@ -1,7 +1,7 @@
 # Custom Keyword Mappings & Inference Override Engine
 
 ## Overview
-The **Custom Keyword Mappings** feature empowers users to define explicit, priority-0 rules that override the default categorization, transaction type, and payment mode inference across ExpenseIQ. When a transaction's merchant, note, or raw payment text matches a user-defined keyword, ExpenseIQ enforces the user's custom settings ahead of historical transaction frequency heuristics and hardcoded keyword dictionaries.
+The **Custom Keyword Mappings** feature empowers users to define explicit, priority-0 rules that override the default categorization, transaction type, and payment mode inference across SpendBuddy. When a transaction's merchant, note, or raw payment text matches a user-defined keyword, SpendBuddy enforces the user's custom settings ahead of historical transaction frequency heuristics and hardcoded keyword dictionaries.
 
 ```mermaid
 flowchart TD
@@ -48,7 +48,7 @@ flowchart TD
 ## 1. Architectural Model & Persistence
 
 ### 1.1 In-Memory State & Cloud Schema
-- **State Property**: [`state.keywordMappings`](file:///d:/Projects/expense-manager/webapp/js/core/state.js) is initialized as an Array from `localStorage.getItem('expman_keyword_mappings')`.
+- **State Property**: [`state.keywordMappings`](../../webapp/js/core/state.js) is initialized as an Array from `localStorage.getItem('expman_keyword_mappings')`.
 - **Cloud Settings**: Persisted in Firebase Cloud Storage under `user_settings.json` within the user's directory (`<userEmail>/user_settings.json`).
 - **Normalized Schema (No Emojis)**:
   ```json
@@ -65,13 +65,13 @@ flowchart TD
 
 ### 1.2 Normalization Principle
 - **No Emojis in Settings**: `category` and `txnMode` must be stored clean without emoji prefixes (e.g. `"Salary"` instead of `"💰 Salary"`, `"Bank Transfer"` instead of `"🏦 Bank Transfer"`).
-- **`stripEmojiPrefix(str)`** in [`category_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/category_helpers.js): Strips leading pictographic and emoji characters, variation selectors (`\uFE0F`), and joiners (`\u200D`).
+- **`stripEmojiPrefix(str)`** in [`category_helpers.js`](../../webapp/js/utils/category_helpers.js): Strips leading pictographic and emoji characters, variation selectors (`\uFE0F`), and joiners (`\u200D`).
 - **`normalizeTxnType(str)`**: Enforces standard title casing (`'Income'`, `'Expense'`, `'Investment'`, `'Transfer'`, `'Refund'`).
-- **`normalizeKeywordMappings(rules)`** in [`user_settings.js`](file:///d:/Projects/expense-manager/webapp/js/services/user_settings.js): Enforces normalization on `applyUserSettings` and `updateUserSettings`.
+- **`normalizeKeywordMappings(rules)`** in [`user_settings.js`](../../webapp/js/services/user_settings.js): Enforces normalization on `applyUserSettings` and `updateUserSettings`.
 
 ---
 
-## 2. Priority-0 Inference Engine ([`category_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/category_helpers.js))
+## 2. Priority-0 Inference Engine ([`category_helpers.js`](../../webapp/js/utils/category_helpers.js))
 
 ### 2.1 Comma-Separated Keyword Matching & Token Specificity
 - `findMatchingKeywordRule(text, customRulesList)`:
@@ -112,15 +112,15 @@ flowchart TD
 ## 3. Transaction Entry Sources & Autofill Process
 
 ### 3.1 Overview of All Transaction Sources
-The keyword mapping and inference engine is invoked across all 5 avenues through which transactions enter or are modified in ExpenseIQ:
+The keyword mapping and inference engine is invoked across all 5 avenues through which transactions enter or are modified in SpendBuddy:
 
 | Source | File & Handler | Target Fields Inferred | Fallback Inputs Checked |
 | :--- | :--- | :--- | :--- |
-| **1. Manual Form Typing** | [`form.js`](file:///d:/Projects/expense-manager/webapp/js/ui/form.js) (`#input-note` event) | Category, Txn Type, Txn Mode | `note` text |
-| **2. Suggestion Cards** | [`form.js`](file:///d:/Projects/expense-manager/webapp/js/ui/form.js) (`.sms-suggestion-card` click) | Note, Category, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
-| **3. SMS/Email Approval Modal** | [`sms_approval.js`](file:///d:/Projects/expense-manager/webapp/js/ui/sms_approval.js) (`showSmsApprovalModal` / `#btn-approve-sms`) | Category `<select>`, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
-| **4. Dashboard Quick Add** | [`dashboard.js`](file:///d:/Projects/expense-manager/webapp/js/ui/dashboard.js) (`.sms-quick-add` click) | Category, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
-| **5. Batch Rule Runner** | [`keyword_mappings.js`](file:///d:/Projects/expense-manager/webapp/js/ui/keyword_mappings.js) (`executeRulesOnExpenses`) | Category, Txn Type, Txn Mode, Amount Sign | `e.note`, `e.merchant`, `e.source` |
+| **1. Manual Form Typing** | [`form.js`](../../webapp/js/ui/form.js) (`#input-note` event) | Category, Txn Type, Txn Mode | `note` text |
+| **2. Suggestion Cards** | [`form.js`](../../webapp/js/ui/form.js) (`.sms-suggestion-card` click) | Note, Category, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
+| **3. SMS/Email Approval Modal** | [`sms_approval.js`](../../webapp/js/ui/sms_approval.js) (`showSmsApprovalModal` / `#btn-approve-sms`) | Category `<select>`, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
+| **4. Dashboard Quick Add** | [`dashboard.js`](../../webapp/js/ui/dashboard.js) (`.sms-quick-add` click) | Category, Txn Type, Txn Mode | `txn.merchant`, `txn.masterCategory`, `txn.transactionMode`, `txn.source` |
+| **5. Batch Rule Runner** | [`keyword_mappings.js`](../../webapp/js/ui/keyword_mappings.js) (`executeRulesOnExpenses`) | Category, Txn Type, Txn Mode, Amount Sign | `e.note`, `e.merchant`, `e.source` |
 
 ---
 
@@ -137,7 +137,7 @@ The keyword mapping and inference engine is invoked across all 5 avenues through
 ### 4.2 Desktop Table View (`@media (min-width: 861px)`)
 - Enforces fixed table column layout on `#keyword-mapping-table`:
   - `KEYWORD` (22%), `CATEGORY` (24%), `TXN TYPE` (18%), `TXN MODE` (22%), `ACTIONS` (14%).
-- `Txn Mode` explicitly uses `display: table-cell !important;` scoped strictly within `@media (min-width: 861px)` in [`settings.css`](file:///d:/Projects/expense-manager/webapp/css/views/settings.css) to avoid desktop hiding rules from generic transaction tables.
+- `Txn Mode` explicitly uses `display: table-cell !important;` scoped strictly within `@media (min-width: 861px)` in [`settings.css`](../../webapp/css/views/settings.css) to avoid desktop hiding rules from generic transaction tables.
 
 ### 4.3 Mobile & iPad Card View (`@media (max-width: 860px)`)
 - Rows render as clean, distinct cards:
@@ -166,7 +166,7 @@ The keyword mapping and inference engine is invoked across all 5 avenues through
 
 ---
 
-## 6. Entity CRUD Synchronization ([`settings.js`](file:///d:/Projects/expense-manager/webapp/js/ui/settings.js))
+## 6. Entity CRUD Synchronization ([`settings.js`](../../webapp/js/ui/settings.js))
 
 Whenever a Category or Transaction Mode is renamed or deleted in Settings, `syncKeywordMappingsOnEntityChange(entityType, action, oldName, newNameOrFallback)` synchronizes `state.keywordMappings`:
 
@@ -184,7 +184,7 @@ Whenever a Category or Transaction Mode is renamed or deleted in Settings, `sync
 
 When modifying keyword mappings or inference logic, verify the following:
 1. **Automated Unit Tests**:
-   - Run `npm test` and ensure all suites in [`keyword_mappings.test.js`](file:///d:/Projects/expense-manager/webapp/tests/keyword_mappings.test.js) pass.
+   - Run `npm test` and ensure all suites in [`keyword_mappings.test.js`](../../webapp/tests/keyword_mappings.test.js) pass.
    - Test keyword specificity, overrides precedence, emoji stripping, entity CRUD synchronization, and batch execution.
 2. **Android App Verification**:
    - Run `npm run test:android` to verify Android build compatibility.
@@ -192,4 +192,4 @@ When modifying keyword mappings or inference logic, verify the following:
    - Verify 5-column desktop table layout.
    - Verify mobile card layout: label on left, value/badge on right without text wrapping.
 4. **Cache Bursting**:
-   - Bump `app.js?v=XXX` in [`index.html`](file:///d:/Projects/expense-manager/webapp/index.html).
+   - Bump `app.js?v=XXX` in [`index.html`](../../webapp/index.html).

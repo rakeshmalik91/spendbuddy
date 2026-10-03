@@ -35,7 +35,7 @@ flowchart TD
   ```
   605761060095|__TXN_ms8x6880vxej
   ```
-- Functions in [`txn_id_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/txn_id_helpers.js):
+- Functions in [`txn_id_helpers.js`](../../webapp/js/utils/txn_id_helpers.js):
   - `getTxnIdList(t)`: Returns array of trimmed IDs from `t.txnId` or `t.transactionId`.
   - `hasMatchingTxnId(t1, t2)`: Returns `true` if any ID in `t1` matches any ID in `t2`.
   - `isSystemTxnId(id)`: Returns `true` if ID starts with `__TXN_`, `__SCHEDULER_`, or `__QUICKADD_`.

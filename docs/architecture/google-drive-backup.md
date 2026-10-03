@@ -1,7 +1,7 @@
 # Google Drive Periodic Backup & Retention Management
 
 ## Overview
-The Google Drive Periodic Backup feature provides automated, client-side backup of ExpenseIQ data into a dedicated `ExpenseIQ Backups` folder in the user's personal Google Drive. It operates without requiring any background servers or cron infrastructure by performing timestamp evaluations on application launch, and offers configurable retention policies to automatically prune outdated backup archives.
+The Google Drive Periodic Backup feature provides automated, client-side backup of SpendBuddy data into a dedicated `SpendBuddy Backups` folder in the user's personal Google Drive. It operates without requiring any background servers or cron infrastructure by performing timestamp evaluations on application launch, and offers configurable retention policies to automatically prune outdated backup archives.
 
 ---
 
@@ -15,7 +15,7 @@ flowchart TD
     D -- No --> C
     D -- Yes --> E[Silent Token Refresh / Acquire Access Token]
     E --> F[generateBackupZip: Export all CSVs, metadata, settings]
-    F --> G[ensureBackupFolder: Find or create 'ExpenseIQ Backups' in Drive]
+    F --> G[ensureBackupFolder: Find or create 'SpendBuddy Backups' in Drive]
     G --> H[uploadBackupToDrive: Multipart ZIP upload]
     H --> I[cleanupOldBackups: Prune archives older than retention threshold]
     I --> J[Update lastBackup timestamp locally & sync to user_settings.json]
@@ -23,7 +23,7 @@ flowchart TD
 ```
 
 ### 1.1 Zero-Server, Client-Driven Periodic Trigger
-- **Execution Mechanism**: Backups are evaluated on application initialization (`initApp` in [init.js](file:///d:/Projects/expense-manager/webapp/js/core/init.js)) inside a non-blocking background promise.
+- **Execution Mechanism**: Backups are evaluated on application initialization (`initApp` in [init.js](../../webapp/js/core/init.js)) inside a non-blocking background promise.
 - **Interval Checking** (`isBackupDue`): Compares the current timestamp against `expman_gdrive_last_backup`.
   - **Daily**: Interval >= 24 hours (`24 * 60 * 60 * 1000` ms)
   - **Weekly**: Interval >= 7 days (`7 * 24 * 60 * 60 * 1000` ms)
@@ -36,7 +36,7 @@ flowchart TD
 ### 1.2 Google Identity Services (GIS) & Scopes
 - **Library**: Google Identity Services (GIS) Web SDK (`https://accounts.google.com/gsi/client`) loaded dynamically on-demand.
 - **Scopes**:
-  - `https://www.googleapis.com/auth/drive.file`: Grants access only to files and folders created or opened by ExpenseIQ. Does not access the user's personal Google Drive files.
+  - `https://www.googleapis.com/auth/drive.file`: Grants access only to files and folders created or opened by SpendBuddy. Does not access the user's personal Google Drive files.
   - `https://www.googleapis.com/auth/userinfo.email`: Resolves the authorized Google user's email address.
   - `openid`: Standard OpenID Connect token resolution.
 - **Token Management & Persistence**:
@@ -48,9 +48,9 @@ flowchart TD
 ---
 
 ### 1.3 Backup Destination & Upload Engine
-- **Dedicated Folder**: Creates or reuses a root folder named `ExpenseIQ Backups` via the Google Drive REST API v3 (`mimeType = 'application/vnd.google-apps.folder'`).
-- **Archive Format**: Standard `.zip` archive containing all user transaction CSVs, metadata, and settings (generated via `generateBackupZip()` in [export.js](file:///d:/Projects/expense-manager/webapp/js/services/export.js)).
-- **Naming Pattern**: `ExpenseIQ_Backup_YYYYMMDD_HHMMSS.zip`.
+- **Dedicated Folder**: Creates or reuses a root folder named `SpendBuddy Backups` via the Google Drive REST API v3 (`mimeType = 'application/vnd.google-apps.folder'`).
+- **Archive Format**: Standard `.zip` archive containing all user transaction CSVs, metadata, and settings (generated via `generateBackupZip()` in [export.js](../../webapp/js/services/export.js)).
+- **Naming Pattern**: `SpendBuddy_Backup_YYYYMMDD_HHMMSS.zip`. Retention pruning matches this prefix (`GOOGLE_DRIVE_BACKUP_PREFIX` in [config.js](../../webapp/config.js)).
 - **Upload Protocol**: Google Drive v3 Multipart upload (`/upload/drive/v3/files?uploadType=multipart`) sending metadata JSON + binary ZIP stream in a single request.
 
 ---
@@ -63,18 +63,18 @@ flowchart TD
         CSV["Fetch all expenses_YYYY.csv, balance.csv, metadata"]
         Decrypt["Decrypt with state.encryptionKey (Promise.all)"]
         Zip["JSZip: Bundle plain CSVs + user_settings.json"]
-        Blob["Generate Binary Zip Stream (ExpenseIQ_Backup_YYYYMMDD_HHMMSS.zip)"]
+        Blob["Generate Binary Zip Stream (SpendBuddy_Backup_YYYYMMDD_HHMMSS.zip)"]
     end
 
     subgraph Upload["2. Google Drive Multipart Upload (google_drive.js)"]
         Token["Ensure valid GIS OAuth Token (drive.file scope)"]
-        Folder["ensureBackupFolder: Find/create 'ExpenseIQ Backups' in Drive root"]
+        Folder["ensureBackupFolder: Find/create 'SpendBuddy Backups' in Drive root"]
         Multipart["POST /upload/drive/v3/files?uploadType=multipart<br/>Boundary: metadata JSON + binary Zip"]
         Success["Backup Complete! Update expman_gdrive_last_backup"]
     end
 
     subgraph Pruning["3. Concurrent Retention Pruning (cleanupOldBackups)"]
-        List["GET /drive/v3/files in 'ExpenseIQ Backups'<br/>Sorted by createdTime desc"]
+        List["GET /drive/v3/files in 'SpendBuddy Backups'<br/>Sorted by createdTime desc"]
         Safety["Preserve at least 3 newest backups<br/>(Indices 0, 1, 2 NEVER deleted)"]
         Filter["Evaluate files index >= 3 against retention threshold<br/>(e.g. 90 days cutoff)"]
         Delete["Promise.allSettled(DELETE /drive/v3/files/{id})<br/>Asynchronous & Non-blocking"]
@@ -84,9 +84,9 @@ flowchart TD
     Success -.->|Dispatched in background| List --> Safety --> Filter --> Delete
 ```
 
-- **Non-Blocking Background Pruning**: Immediately following a successful upload in [google_drive.js](file:///d:/Projects/expense-manager/webapp/js/services/google_drive.js), retention cleanup is dispatched asynchronously in the background. The backup operation resolves and notifies the user immediately without waiting for Drive deletion calls.
+- **Non-Blocking Background Pruning**: Immediately following a successful upload in [google_drive.js](../../webapp/js/services/google_drive.js), retention cleanup is dispatched asynchronously in the background. The backup operation resolves and notifies the user immediately without waiting for Drive deletion calls.
 - **Concurrent Deletions**: `cleanupOldBackups()` deletes outdated files concurrently via `Promise.allSettled()` rather than sequential round trips.
-- **Parallel Backup ZIP Packaging**: [export.js](file:///d:/Projects/expense-manager/webapp/js/services/export.js) fetches and decrypts user files concurrently via `Promise.all()` to minimize packaging latency.
+- **Parallel Backup ZIP Packaging**: [export.js](../../webapp/js/services/export.js) fetches and decrypts user files concurrently via `Promise.all()` to minimize packaging latency.
 - **Configurable Retention Policies** (`expman_gdrive_retention`):
   - `keep_all`: Keep all backup files indefinitely (No auto-delete).
   - `7_days`: Delete backups older than 7 days.
@@ -119,7 +119,7 @@ Located in the **Settings** view under Data Backup:
 - **OAuth Popup Cancellation & Timeout**: Configured `error_callback` on `initTokenClient` and a 60-second safety timeout in `connectGoogleDrive()` so closing or dismissing the consent popup immediately settles the promise and restores the "Backup Now" / "Connect" buttons.
 - **Always Reset Button in `finally`**: The "Backup Now" button event listener resets button text, state, and calls `updateGoogleDriveUI()` in a `finally` block to prevent hanging states.
 - **Inline Failure Status**: If a backup fails, the error message and timestamp are stored in `expman_gdrive_last_error` and `expman_gdrive_last_error_time`, rendered in the Backup UI error banner, and automatically cleared upon the next successful backup.
-- **403 Forbidden Modal**: If Google Drive API is not enabled in the user's Google Cloud project (`403 accessNotConfigured`), ExpenseIQ extracts the project activation link and displays `showEnableDriveApiModal` with a one-click button to open Google Cloud Console and retry.
+- **403 Forbidden Modal**: If Google Drive API is not enabled in the user's Google Cloud project (`403 accessNotConfigured`), SpendBuddy extracts the project activation link and displays `showEnableDriveApiModal` with a one-click button to open Google Cloud Console and retry.
 
 ---
 
@@ -145,11 +145,11 @@ Located in the **Settings** view under Data Backup:
 
 ### 4.1 Multi-Window Popup & GIS Support
 - **Multi-Window Support**: `setSupportMultipleWindows(true)` and `setJavaScriptCanOpenWindowsAutomatically(true)` enabled on the WebView.
-- **`onCreateWindow` Popup Dialog**: Implemented in [MainActivity.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/MainActivity.java) to render Google OAuth consent popups in a fullscreen dialog window and maintain the `window.opener` bridge for token delivery.
+- **`onCreateWindow` Popup Dialog**: Implemented in [MainActivity.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/MainActivity.java) to render Google OAuth consent popups in a fullscreen dialog window and maintain the `window.opener` bridge for token delivery.
 - **User-Agent Sanitization**: Strips `Version/4.0` and `; wv` from the WebView User-Agent to prevent Google's `403 disallowed_useragent` restriction.
-- **Google Domains In-App**: [CachedWebViewClient.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/CachedWebViewClient.java) allows `accounts.google.com`, `googleapis.com`, and `gstatic.com` directly in the WebView rather than dispatching external browser intents.
+- **Google Domains In-App**: [CachedWebViewClient.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/CachedWebViewClient.java) allows `accounts.google.com`, `googleapis.com`, and `gstatic.com` directly in the WebView rather than dispatching external browser intents.
 
-### 4.2 Automated Web Cache Invalidation ([SiteCache.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java))
+### 4.2 Automated Web Cache Invalidation ([SiteCache.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java))
 - **Conditional ETag Revalidation**: On app launch / pull-to-refresh, `SiteCache` sends `If-None-Match` for `index.html`.
 - **Fast 304 Not Modified**: If no changes were deployed, server returns `304` and app loads instantly from cache (~40ms).
 - **Deployment Detection**: If `index.html` content changes on the server (e.g. new `app.js?v=...`), `SiteCache` automatically flushes stale `.js` and `.css` sub-modules from `site_cache/` so the new build is downloaded and cached cleanly.
@@ -170,6 +170,6 @@ When updating Google Drive backup or export services:
    ```
 6. Run Android debug build:
    ```powershell
-   cd expenseiq-android-app; ./gradlew assembleDebug
+   cd spendbuddy-android-app; ./gradlew assembleDebug
    ```
 7. Apply cache bursting bump to `index.html` after making frontend changes.

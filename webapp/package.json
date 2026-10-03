@@ -1,7 +1,7 @@
 {
-  "name": "expenseiq-webapp",
+  "name": "spendbuddy-webapp",
   "version": "1.0.0",
-  "description": "ExpenseIQ Web Application frontend",
+  "description": "SpendBuddy Web Application frontend",
   "main": "app.js",
   "scripts": {
     "test": "jest"

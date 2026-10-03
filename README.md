@@ -1,10 +1,10 @@
-# 💰 ExpenseIQ — Personal Finance Tracker
+# 💰 SpendBuddy — Personal Finance Tracker
 
 A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and JavaScript, powered by a **Serverless Firebase Architecture**. Track expenses, visualize spending patterns with interactive analytics, manage recurring transactions, link refunds, track account balances, and securely sync your data across devices with client-side encryption.
 
 ![Hosting](https://img.shields.io/badge/Hosting-Netlify-00C7B7?style=flat-square) ![Database](https://img.shields.io/badge/Storage-Firebase-FFCA28?style=flat-square)
 
-🌐 **Live:** [https://expense-manager-iq.netlify.app/](https://expense-manager-iq.netlify.app/)
+🌐 **Live:** [https://spend-buddy.netlify.app/](https://spend-buddy.netlify.app/)
 
 📱 **Android App (Testing):** [Google Play Store](https://play.google.com/store/apps/details?id=com.rakeshmalik.expenseiq&hl=en-US&ah=PWeYC0blBt-9ARFtnYGBJPYcB-4)
 
@@ -43,8 +43,8 @@ A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and J
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/rakeshmalik91/expense-manager.git
-cd expense-manager
+git clone https://github.com/rakeshmalik91/spendbuddy.git
+cd spendbuddy
 ```
 
 ### 2. Unlock Encrypted Data (git-crypt)
@@ -103,23 +103,23 @@ cd webapp && npm test
 ```
 
 #### Run Android Companion App Tests Individually
-The companion Android app (`expenseiq-android-app`) includes JUnit tests for ML Kit entity extraction, transaction mapping, and SMS regex parsing:
+The companion Android app (`spendbuddy-android-app`) includes JUnit tests for ML Kit entity extraction, transaction mapping, and SMS regex parsing:
 ```bash
-cd expenseiq-android-app
+cd spendbuddy-android-app
 ./gradlew test
 ```
 To view detailed test output:
 ```bash
 ./gradlew test --info
 ```
-Test reports are generated in `expenseiq-android-app/app/build/reports/tests/testDebugUnitTest/index.html`.
+Test reports are generated in `spendbuddy-android-app/app/build/reports/tests/testDebugUnitTest/index.html`.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-expense-manager/
+spendbuddy/
 ├── webapp/                # Web application frontend (modular single-page app)
 │   ├── index.html         # Single-page application markup & modals
 │   ├── app.js             # Frontend application bootstrap entry
@@ -132,7 +132,7 @@ expense-manager/
 │   ├── tests/             # Jest unit test suite (18+ test suites)
 │   ├── package.json       # Web application package definition & Jest dependencies
 │   └── package-lock.json  # Web application locked dependency tree
-├── expenseiq-android-app/ # Android companion app (Kotlin, ML Kit entity extraction, SMS processing)
+├── spendbuddy-android-app/ # Android companion app (Kotlin, ML Kit entity extraction, SMS processing)
 ├── data/                  # Shared data folder: synced user CSV data (git-crypt) & test-data
 ├── media/                 # Screenshots, icons, and graphic assets
 ├── utils/                 # Development and helper tools (sync.py, download_emails.py)

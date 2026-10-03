@@ -1,27 +1,27 @@
 {
-  "name": "expense-manager",
+  "name": "spendbuddy",
   "version": "1.0.0",
-  "description": "ExpenseIQ — Personal Finance Tracker (Web & Android)",
+  "description": "SpendBuddy — Personal Finance Tracker (Web & Android)",
   "scripts": {
     "test": "npm test --prefix webapp",
     "test:webapp": "npm test --prefix webapp",
-    "test:android": "cd expenseiq-android-app && gradlew test",
+    "test:android": "cd spendbuddy-android-app && gradlew test",
     "test:all": "node scripts/run_all_tests.js",
     "dev": "npx -y http-server webapp -p 8080 -c-1",
     "start": "npx -y http-server webapp -p 8080 -c-1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rakeshmalik91/expense-manager.git"
+    "url": "git+https://github.com/rakeshmalik91/spendbuddy.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/rakeshmalik91/expense-manager/issues"
+    "url": "https://github.com/rakeshmalik91/spendbuddy/issues"
   },
-  "homepage": "https://github.com/rakeshmalik91/expense-manager#readme"
+  "homepage": "https://github.com/rakeshmalik91/spendbuddy#readme"
 }
 
 

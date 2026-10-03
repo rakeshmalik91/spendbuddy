@@ -56,7 +56,7 @@ export function exportFilteredTransactionsToCSV(transactions = null) {
 
     const csvContent = expensesToCSV(sorted, true);
     const dateStr = getLocalDateString(new Date()).replace(/-/g, '');
-    const filename = `ExpenseIQ_Transactions_${dateStr}.csv`;
+    const filename = `SpendBuddy_Transactions_${dateStr}.csv`;
 
     // Prepend UTF-8 BOM so Excel and spreadsheet tools decode special characters correctly
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -115,7 +115,7 @@ export async function generateBackupZip() {
         throw new Error('No data found to export.');
     }
 
-    const filename = `ExpenseIQ_Backup_${getLocalDateString(new Date()).replace(/-/g, '')}.zip`;
+    const filename = `SpendBuddy_Backup_${getLocalDateString(new Date()).replace(/-/g, '')}.zip`;
     const blob = await zip.generateAsync({ type: "blob" });
 
     return { blob, filename, fileCount };
@@ -192,7 +192,7 @@ export async function restoreDataFromZip(file) {
         }
 
         if (!hasValidFile || filesToUpload.length === 0) {
-            toast('Invalid backup file. No ExpenseIQ data found.', 'error');
+            toast('Invalid backup file. No SpendBuddy data found.', 'error');
             hideLoader();
             return;
         }

@@ -47,26 +47,26 @@ sequenceDiagram
 - **Problem**: Lower form inputs (such as the *Tag* field or scheduled options) are located near the bottom of `#view-add`. When tapped, `.main-content` could not scroll them sufficiently high above the virtual keyboard because the content container hit `maxScroll`. Seeing the input clipped by the keyboard, WebKit panned the entire window.
 - **Solution**: A dedicated spacer element `<div class="form-bottom-spacer" aria-hidden="true"></div>` is placed at the end of the form view before `</section>`.
 - **CSS Definition**:
-  - Desktop / iPad (`> 860px`): `height: 380px; pointer-events: none; visibility: hidden;` in [`main.css`](file:///d:/Projects/expense-manager/webapp/css/layout/main.css).
-  - Mobile (`<= 860px`): `height: 120px;` in [`responsive.css`](file:///d:/Projects/expense-manager/webapp/css/layout/responsive.css).
+  - Desktop / iPad (`> 860px`): `height: 380px; pointer-events: none; visibility: hidden;` in [`main.css`](../../webapp/css/layout/main.css).
+  - Mobile (`<= 860px`): `height: 120px;` in [`responsive.css`](../../webapp/css/layout/responsive.css).
 - **Why this works**: Providing 380px of scrollable headroom allows `.main-content` to position even the very last field in the form well into the upper half of the screen, completely clearing the virtual keyboard so WebKit never initiates a window pan.
 
 ### 1.2 Architectural Pillar 2: CSS Scroll Padding & Scroll Margin
 - **Problem**: Browser native `scrollIntoView()` and tab navigation do not intrinsically account for `position: sticky` headers. The engine treats `scrollTop = 0` as visible, happily scrolling inputs directly under `.sticky-header-wrapper`.
 - **Solution**:
-  1. **Container Scroll Padding**: In [`main.css`](file:///d:/Projects/expense-manager/webapp/css/layout/main.css), `.main-content` has `scroll-padding-top: 130px;` (and `scroll-padding-top: 100px;` in [`responsive.css`](file:///d:/Projects/expense-manager/webapp/css/layout/responsive.css)).
-  2. **Form Group Scroll Margin**: In [`forms.css`](file:///d:/Projects/expense-manager/webapp/css/components/forms.css), `.form-group` has `scroll-margin-top: 130px;`.
+  1. **Container Scroll Padding**: In [`main.css`](../../webapp/css/layout/main.css), `.main-content` has `scroll-padding-top: 130px;` (and `scroll-padding-top: 100px;` in [`responsive.css`](../../webapp/css/layout/responsive.css)).
+  2. **Form Group Scroll Margin**: In [`forms.css`](../../webapp/css/components/forms.css), `.form-group` has `scroll-margin-top: 130px;`.
 - **Why this works**: This instructs the browser's native scroll engine to treat the top 130px of `.main-content` as occluded, ensuring all native and keyboard-tab scrolling maintains clean clearance below the sticky header.
 
 ### 1.3 Architectural Pillar 3: Enabling Window Un-Scroll in WebKit
 - **Problem**: When `html` and `body` have `overflow: hidden;`, WebKit's internal CSSOM disables programmatic `window.scrollTo({ top: 0 })` calls. If WebKit panned the window, scripts could not reset `window.scrollY` back to 0.
-- **Solution**: In [`reset.css`](file:///d:/Projects/expense-manager/webapp/css/base/reset.css):
+- **Solution**: In [`reset.css`](../../webapp/css/base/reset.css):
   - Changed `html` and `body` from `overflow: hidden` to `overflow-x: hidden; overflow-y: clip;` (or `overflow-y: visible;`).
   - Allows programmatic `window.scrollTo({ top: 0, left: 0, behavior: 'instant' })` while preventing horizontal overflow.
 
 ### 1.4 Architectural Pillar 4: Visual Viewport Resize & Un-Blur Guardian
 - **Problem**: On iPad, tapping the down-chevron "Hide Keyboard" button does not blur the input or fire `focusout`. The input remains focused, so blur handlers never fire, and the window remains panned.
-- **Solution**: Listen to `window.visualViewport.addEventListener('resize')` in [`index.html`](file:///d:/Projects/expense-manager/webapp/index.html):
+- **Solution**: Listen to `window.visualViewport.addEventListener('resize')` in [`index.html`](../../webapp/index.html):
   ```javascript
   if (window.visualViewport) {
       var lastVPHeight = window.visualViewport.height;
@@ -177,11 +177,11 @@ flowchart TD
 
 | File | Purpose | Key Rules & Locations |
 | :--- | :--- | :--- |
-| [`webapp/index.html`](file:///d:/Projects/expense-manager/webapp/index.html) | Viewport handlers & spacer | Form bottom spacer (`#view-add`, L831); `positionFocusedInput`, `resetWindowScroll`, and viewport resize guardian (L2130–L2220). |
-| [`webapp/css/layout/main.css`](file:///d:/Projects/expense-manager/webapp/css/layout/main.css) | Main layout & spacer CSS | `.main-content` (`scroll-padding-top: 130px;`); `.form-bottom-spacer` (`height: 380px;`). |
-| [`webapp/css/layout/responsive.css`](file:///d:/Projects/expense-manager/webapp/css/layout/responsive.css) | Responsive & mobile layout | `@media (max-width: 860px)`: `.main-content` (`scroll-padding-top: 100px;`); `.form-bottom-spacer` (`height: 120px;`). |
-| [`webapp/css/components/forms.css`](file:///d:/Projects/expense-manager/webapp/css/components/forms.css) | Form component styling | `.form-group` (`scroll-margin-top: 130px;`). |
-| [`webapp/css/base/reset.css`](file:///d:/Projects/expense-manager/webapp/css/base/reset.css) | Root scroll permissions | `html, body` (`overflow-x: hidden;`, unblocking programmatic CSSOM window scrolling). |
+| [`webapp/index.html`](../../webapp/index.html) | Viewport handlers & spacer | Form bottom spacer (`#view-add`, L831); `positionFocusedInput`, `resetWindowScroll`, and viewport resize guardian (L2130–L2220). |
+| [`webapp/css/layout/main.css`](../../webapp/css/layout/main.css) | Main layout & spacer CSS | `.main-content` (`scroll-padding-top: 130px;`); `.form-bottom-spacer` (`height: 380px;`). |
+| [`webapp/css/layout/responsive.css`](../../webapp/css/layout/responsive.css) | Responsive & mobile layout | `@media (max-width: 860px)`: `.main-content` (`scroll-padding-top: 100px;`); `.form-bottom-spacer` (`height: 120px;`). |
+| [`webapp/css/components/forms.css`](../../webapp/css/components/forms.css) | Form component styling | `.form-group` (`scroll-margin-top: 130px;`). |
+| [`webapp/css/base/reset.css`](../../webapp/css/base/reset.css) | Root scroll permissions | `html, body` (`overflow-x: hidden;`, unblocking programmatic CSSOM window scrolling). |
 
 ---
 
@@ -211,7 +211,7 @@ When making changes to form layouts, headers, or scrolling logic, verify on:
   - Tap iPad "Hide Keyboard" button: Verify keyboard closes cleanly with **zero blank gap** at the bottom of the screen.
 - [ ] **iPad Portrait / Split-Screen (`<= 860px`)**:
   - Verify fields remain visible and window resets cleanly on dismiss.
-- [ ] **Android App WebView (`expenseiq-android-app`)**:
+- [ ] **Android App WebView (`spendbuddy-android-app`)**:
   - Verify soft keyboard resize mode does not glitch header positions.
 - [ ] **Desktop Browser**:
   - Verify mouse clicks into fields do not cause unnecessary scrolling if the field is already in view.

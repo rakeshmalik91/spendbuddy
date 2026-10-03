@@ -5,7 +5,7 @@
   - If asked to commit, follow the [commit-push](file:///./.agents/skills/commit-push/SKILL.md) skill: ensure all webapp & Android tests pass (`run_all_tests.ps1`), update existing docs, run `sync.bat` and stage any data changes, and keep commit messages small, concise, one-liner with standard prefix (e.g. `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `style:`, `chore:`).
 - **Frontend Verification**: Any frontend changes must be verified for workability on:
   - Desktop browsers
-  - Android app (located in the [expenseiq-android-app](file:///./expenseiq-android-app/) folder)
+  - Android app (located in the [spendbuddy-android-app](../spendbuddy-android-app/) folder)
   - Mobile browsers
   - Collapsible/split-screen browsers for iPad
 - **Cache Bursting**: Perform cache bursting after making any frontend changes to ensure clients load the updated assets.
@@ -20,14 +20,14 @@
 Before modifying existing subsystems or troubleshooting regressions, consult the canonical guides in `docs/architecture/`:
 | Subsystem / Topic | Canonical Guide | Key Invariants to Maintain |
 | :--- | :--- | :--- |
-| **Touch Viewports & Forms** | [virtual-keyboard-viewport.md](file:///d:/Projects/expense-manager/docs/architecture/virtual-keyboard-viewport.md) | Maintain `.form-bottom-spacer`, `scroll-margin-top: 130px`, `positionFocusedInput()` safe-top placement, and `visualViewport` resize blur guardian. |
-| **Transaction Table & Cards** | [txn-table-ui.md](file:///d:/Projects/expense-manager/docs/architecture/txn-table-ui.md) | Maintain dual-layout (table `> 860px`, grid card `<= 860px`), structured tabular amounts, and subrow unique keying. |
-| **Refund Merging & Linking** | [refund-linking.md](file:///d:/Projects/expense-manager/docs/architecture/refund-linking.md) | Preserve pipe-separated `txnId`, 7-day candidate heuristic, individual vs bulk deletion semantics, and multi-year CSV saving. |
-| **Balance & Net Worth** | [balance-tracker.md](file:///d:/Projects/expense-manager/docs/architecture/balance-tracker.md) | Preserve frozen column widths/offsets, carry-forward logic, and dual-stack (`stack: pos/neg`) area chart. |
-| **Amount Math Expressions** | [expression-as-amount.md](file:///d:/Projects/expense-manager/docs/architecture/expression-as-amount.md) | Preserve `evaluateExpression()` syntax, regex validation, and CSV `expression` column persistence. |
-| **Google Drive Periodic Backup** | [google-drive-backup.md](file:///d:/Projects/expense-manager/docs/architecture/google-drive-backup.md) | Preserve launch-time non-blocking trigger, GIS Web OAuth, retention cleanup preserving 3 latest backups. |
-| **Custom Keyword Mappings** | [keyword-mappings.md](file:///d:/Projects/expense-manager/docs/architecture/keyword-mappings.md) | Preserve Priority-0 override engine, emoji stripping on save, entity CRUD synchronization, and batch rule execution. |
-| **Login, Auth & Offline Caching** | [login-and-caching.md](file:///d:/Projects/expense-manager/docs/architecture/login-and-caching.md) | Preserve zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag revalidation. |
-| **SMS & Email Inbox Analysis** | [sms-email-analysis.md](file:///d:/Projects/expense-manager/docs/architecture/sms-email-analysis.md) | Preserve ML Kit NLP parsing, promotional discount exclusions, fuzzy deduplication, and cross-source enrichment. |
-| **Scheduled Transactions** | [scheduled-transactions.md](file:///d:/Projects/expense-manager/docs/architecture/scheduled-transactions.md) | Preserve `__SCHEDULER_` prefix, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
+| **Touch Viewports & Forms** | [virtual-keyboard-viewport.md](../docs/architecture/virtual-keyboard-viewport.md) | Maintain `.form-bottom-spacer`, `scroll-margin-top: 130px`, `positionFocusedInput()` safe-top placement, and `visualViewport` resize blur guardian. |
+| **Transaction Table & Cards** | [txn-table-ui.md](../docs/architecture/txn-table-ui.md) | Maintain dual-layout (table `> 860px`, grid card `<= 860px`), structured tabular amounts, and subrow unique keying. |
+| **Refund Merging & Linking** | [refund-linking.md](../docs/architecture/refund-linking.md) | Preserve pipe-separated `txnId`, 7-day candidate heuristic, individual vs bulk deletion semantics, and multi-year CSV saving. |
+| **Balance & Net Worth** | [balance-tracker.md](../docs/architecture/balance-tracker.md) | Preserve frozen column widths/offsets, carry-forward logic, and dual-stack (`stack: pos/neg`) area chart. |
+| **Amount Math Expressions** | [expression-as-amount.md](../docs/architecture/expression-as-amount.md) | Preserve `evaluateExpression()` syntax, regex validation, and CSV `expression` column persistence. |
+| **Google Drive Periodic Backup** | [google-drive-backup.md](../docs/architecture/google-drive-backup.md) | Preserve launch-time non-blocking trigger, GIS Web OAuth, retention cleanup preserving 3 latest backups. |
+| **Custom Keyword Mappings** | [keyword-mappings.md](../docs/architecture/keyword-mappings.md) | Preserve Priority-0 override engine, emoji stripping on save, entity CRUD synchronization, and batch rule execution. |
+| **Login, Auth & Offline Caching** | [login-and-caching.md](../docs/architecture/login-and-caching.md) | Preserve zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag revalidation. |
+| **SMS & Email Inbox Analysis** | [sms-email-analysis.md](../docs/architecture/sms-email-analysis.md) | Preserve ML Kit NLP parsing, promotional discount exclusions, fuzzy deduplication, and cross-source enrichment. |
+| **Scheduled Transactions** | [scheduled-transactions.md](../docs/architecture/scheduled-transactions.md) | Preserve `__SCHEDULER_` prefix, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
 

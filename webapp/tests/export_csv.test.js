@@ -135,7 +135,7 @@ describe('CSV Export Feature', () => {
 
             const result = exportFilteredTransactionsToCSV(transactions);
             expect(result).toBe(true);
-            expect(downloadedName).toMatch(/^ExpenseIQ_Transactions_\d{8}\.csv$/);
+            expect(downloadedName).toMatch(/^SpendBuddy_Transactions_\d{8}\.csv$/);
             expect(toastSpy).toHaveBeenCalledWith('Exported 2 transactions to CSV', 'success');
 
             document.createElement.mockRestore();

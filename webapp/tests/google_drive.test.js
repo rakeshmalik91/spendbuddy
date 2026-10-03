@@ -26,7 +26,7 @@ jest.mock('../js/services/user_settings.js', () => ({
 jest.mock('../js/services/export.js', () => ({
     generateBackupZip: jest.fn().mockResolvedValue({
         blob: new Blob(['mock zip']),
-        filename: 'ExpenseIQ_Backup_20260827.zip'
+        filename: 'SpendBuddy_Backup_20260827.zip'
     })
 }));
 
@@ -145,7 +145,7 @@ describe('Google Drive Backup Service', () => {
         it('should return existing folder ID if folder is found in Drive', async () => {
             global.fetch.mockResolvedValueOnce({
                 ok: true,
-                json: async () => ({ files: [{ id: 'folder_123', name: 'ExpenseIQ Backups' }] })
+                json: async () => ({ files: [{ id: 'folder_123', name: 'SpendBuddy Backups' }] })
             });
 
             const folderId = await ensureBackupFolder('mock_token');
@@ -167,7 +167,7 @@ describe('Google Drive Backup Service', () => {
             // 2nd call: Create returns new folder
             global.fetch.mockResolvedValueOnce({
                 ok: true,
-                json: async () => ({ id: 'new_folder_456', name: 'ExpenseIQ Backups' })
+                json: async () => ({ id: 'new_folder_456', name: 'SpendBuddy Backups' })
             });
 
             const folderId = await ensureBackupFolder('mock_token');
@@ -186,14 +186,14 @@ describe('Google Drive Backup Service', () => {
             // 2nd call: Multipart upload
             global.fetch.mockResolvedValueOnce({
                 ok: true,
-                json: async () => ({ id: 'file_789', name: 'ExpenseIQ_Backup_20260827.zip' })
+                json: async () => ({ id: 'file_789', name: 'SpendBuddy_Backup_20260827.zip' })
             });
 
             const dummyBlob = new Blob(['mock zip content'], { type: 'application/zip' });
             // Mock arrayBuffer for Node/jsdom Blob
             dummyBlob.arrayBuffer = async () => new ArrayBuffer(8);
 
-            const result = await uploadBackupToDrive(dummyBlob, 'ExpenseIQ_Backup_20260827.zip', 'mock_token');
+            const result = await uploadBackupToDrive(dummyBlob, 'SpendBuddy_Backup_20260827.zip', 'mock_token');
             expect(result.id).toBe('file_789');
             expect(global.fetch).toHaveBeenCalledWith(
                 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
@@ -230,9 +230,9 @@ describe('Google Drive Backup Service', () => {
                 ok: true,
                 json: async () => ({
                     files: [
-                        { id: 'backup_1', name: 'ExpenseIQ_Backup_1.zip', createdTime: new Date(NOW - 40 * ONE_DAY).toISOString() },
-                        { id: 'backup_2', name: 'ExpenseIQ_Backup_2.zip', createdTime: new Date(NOW - 50 * ONE_DAY).toISOString() },
-                        { id: 'backup_3', name: 'ExpenseIQ_Backup_3.zip', createdTime: new Date(NOW - 60 * ONE_DAY).toISOString() }
+                        { id: 'backup_1', name: 'SpendBuddy_Backup_1.zip', createdTime: new Date(NOW - 40 * ONE_DAY).toISOString() },
+                        { id: 'backup_2', name: 'SpendBuddy_Backup_2.zip', createdTime: new Date(NOW - 50 * ONE_DAY).toISOString() },
+                        { id: 'backup_3', name: 'SpendBuddy_Backup_3.zip', createdTime: new Date(NOW - 60 * ONE_DAY).toISOString() }
                     ]
                 })
             });
@@ -253,11 +253,11 @@ describe('Google Drive Backup Service', () => {
                 ok: true,
                 json: async () => ({
                     files: [
-                        { id: 'backup_1', name: 'ExpenseIQ_Backup_1.zip', createdTime: new Date(NOW - 10 * ONE_DAY).toISOString() },
-                        { id: 'backup_2', name: 'ExpenseIQ_Backup_2.zip', createdTime: new Date(NOW - 20 * ONE_DAY).toISOString() },
-                        { id: 'backup_3', name: 'ExpenseIQ_Backup_3.zip', createdTime: new Date(NOW - 35 * ONE_DAY).toISOString() },
-                        { id: 'backup_4', name: 'ExpenseIQ_Backup_4.zip', createdTime: new Date(NOW - 40 * ONE_DAY).toISOString() },
-                        { id: 'backup_5', name: 'ExpenseIQ_Backup_5.zip', createdTime: new Date(NOW - 50 * ONE_DAY).toISOString() }
+                        { id: 'backup_1', name: 'SpendBuddy_Backup_1.zip', createdTime: new Date(NOW - 10 * ONE_DAY).toISOString() },
+                        { id: 'backup_2', name: 'SpendBuddy_Backup_2.zip', createdTime: new Date(NOW - 20 * ONE_DAY).toISOString() },
+                        { id: 'backup_3', name: 'SpendBuddy_Backup_3.zip', createdTime: new Date(NOW - 35 * ONE_DAY).toISOString() },
+                        { id: 'backup_4', name: 'SpendBuddy_Backup_4.zip', createdTime: new Date(NOW - 40 * ONE_DAY).toISOString() },
+                        { id: 'backup_5', name: 'SpendBuddy_Backup_5.zip', createdTime: new Date(NOW - 50 * ONE_DAY).toISOString() }
                     ]
                 })
             });
@@ -300,10 +300,10 @@ describe('Google Drive Backup Service', () => {
                 ok: true,
                 json: async () => ({
                     files: [
-                        { id: 'backup_1', name: 'ExpenseIQ_Backup_1.zip', createdTime: new Date(NOW - 2 * ONE_DAY).toISOString() },
-                        { id: 'backup_2', name: 'ExpenseIQ_Backup_2.zip', createdTime: new Date(NOW - 4 * ONE_DAY).toISOString() },
-                        { id: 'backup_3', name: 'ExpenseIQ_Backup_3.zip', createdTime: new Date(NOW - 6 * ONE_DAY).toISOString() },
-                        { id: 'backup_4', name: 'ExpenseIQ_Backup_4.zip', createdTime: new Date(NOW - 10 * ONE_DAY).toISOString() }
+                        { id: 'backup_1', name: 'SpendBuddy_Backup_1.zip', createdTime: new Date(NOW - 2 * ONE_DAY).toISOString() },
+                        { id: 'backup_2', name: 'SpendBuddy_Backup_2.zip', createdTime: new Date(NOW - 4 * ONE_DAY).toISOString() },
+                        { id: 'backup_3', name: 'SpendBuddy_Backup_3.zip', createdTime: new Date(NOW - 6 * ONE_DAY).toISOString() },
+                        { id: 'backup_4', name: 'SpendBuddy_Backup_4.zip', createdTime: new Date(NOW - 10 * ONE_DAY).toISOString() }
                     ]
                 })
             });

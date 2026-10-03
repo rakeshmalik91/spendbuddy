@@ -344,6 +344,7 @@ describe('openRefundLinkingModal UI behavior', () => {
         `;
 
         state.txnModes = ['📱 UPI', '💳 Credit Card'];
+        state.timeDate = new Date('2026-09-01T00:00:00');
         state.expenses = [
             { date: '2026-09-01', amount: 1000, category: 'Food', txnType: 'Expense', txnMode: 'UPI', note: 'Lunch', txnId: 'TXN12345', source: 'SMS: HDFC Bank' }
         ];

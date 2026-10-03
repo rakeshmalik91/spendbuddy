@@ -79,7 +79,7 @@ flowchart TD
     end
 ```
 
-### 2.1 Evaluation Engine ([`amount_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/amount_helpers.js))
+### 2.1 Evaluation Engine ([`amount_helpers.js`](../../webapp/js/utils/amount_helpers.js))
 The core evaluator is implemented in `evaluateExpression(expr)`:
 - **No `eval()` or `Function()`**: To guarantee security and prevent arbitrary code injection, the parser uses custom tokenization.
 - **Regex Guard**: Enforces strict character whitelisting:
@@ -89,13 +89,13 @@ The core evaluator is implemented in `evaluateExpression(expr)`:
   ```
 - **Tokenization & Accumulation**: Parses consecutive digits and decimal points into floating-point numbers, applying binary `+` and `-` operations sequentially with floating-point roundoff mitigation (`Math.round(val * 100) / 100`).
 
-### 2.2 Transaction Type Dynamic Sign Inversion ([`form_dropdowns.js`](file:///d:/Projects/expense-manager/webapp/js/ui/form_dropdowns.js))
+### 2.2 Transaction Type Dynamic Sign Inversion ([`form_dropdowns.js`](../../webapp/js/ui/form_dropdowns.js))
 - When switching between transaction types (`Expense` vs `Income`/`Refund`):
   - In Expense/Investment mode, amounts must be positive.
   - In Income/Refund mode, amounts must be negative.
 - If the amount field contains an active expression, the type switcher dynamically inverts all mathematical signs across the expression (e.g. `100+200` converts to `-100-200`, and `-50+10` converts to `50-10`) so the evaluated total respects the selected transaction type.
 
-### 2.3 Storage & CSV Serialization ([`storage.js`](file:///d:/Projects/expense-manager/webapp/js/services/storage.js))
+### 2.3 Storage & CSV Serialization ([`storage.js`](../../webapp/js/services/storage.js))
 - **CSV Column Schema**: Stored under the dedicated column `Amount Expression`:
   ```csv
   Date,Amount,Amount Expression,Currency,Category,Note,TxnType,TxnMode,Location,Tag
@@ -114,5 +114,5 @@ The core evaluator is implemented in `evaluateExpression(expr)`:
 ## 3. Verification & Testing
 
 - **Automated Tests**:
-  - [`evaluate_expression.test.js`](file:///d:/Projects/expense-manager/webapp/tests/evaluate_expression.test.js): Verifies arithmetic edge cases, whitespace handling, leading negative signs, and invalid character rejections.
-  - [`add_page_expression.test.js`](file:///d:/Projects/expense-manager/webapp/tests/add_page_expression.test.js): Verifies form submission, editing pre-fill, and type-switching sign inversion.
+  - [`evaluate_expression.test.js`](../../webapp/tests/evaluate_expression.test.js): Verifies arithmetic edge cases, whitespace handling, leading negative signs, and invalid character rejections.
+  - [`add_page_expression.test.js`](../../webapp/tests/add_page_expression.test.js): Verifies form submission, editing pre-fill, and type-switching sign inversion.

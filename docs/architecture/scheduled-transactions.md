@@ -1,7 +1,7 @@
 # Scheduled Transactions Architecture & Specification
 
 ## Overview
-Scheduled transactions in ExpenseIQ automate recurring income, expenses, and investment entries, support future one-off dated entries, and power 1-tap "Quick Add" dashboard templates. The subsystem handles recurrence calculations, end-condition lifecycles, duplicate prevention, background execution, and conditional user approval before committing entries to actual expenses.
+Scheduled transactions in SpendBuddy automate recurring income, expenses, and investment entries, support future one-off dated entries, and power 1-tap "Quick Add" dashboard templates. The subsystem handles recurrence calculations, end-condition lifecycles, duplicate prevention, background execution, and conditional user approval before committing entries to actual expenses.
 
 ```mermaid
 flowchart TD
@@ -35,7 +35,7 @@ flowchart TD
 
 ## 1. Frequency Types & Recurrence Engine
 
-Recurrence calculations are encapsulated in [`scheduling_helpers.js`](file:///d:/Projects/expense-manager/webapp/js/utils/scheduling_helpers.js) using pure date arithmetic without UI coupling:
+Recurrence calculations are encapsulated in [`scheduling_helpers.js`](../../webapp/js/utils/scheduling_helpers.js) using pure date arithmetic without UI coupling:
 
 | Frequency | Description | Recurrence Logic | Example |
 | :--- | :--- | :--- | :--- |
@@ -120,7 +120,7 @@ flowchart LR
 - **Condition**: 2 or more candidate transactions are due, OR a single transaction is older than 3 days (e.g., user opened app after weeks of inactivity).
 - **Action**: Opens `#scheduled-modal-overlay` without modifying `state.expenses`.
 
-### 3.3 Modal Interactions & Controls ([`scheduled_approval.js`](file:///d:/Projects/expense-manager/webapp/js/ui/scheduled_approval.js))
+### 3.3 Modal Interactions & Controls ([`scheduled_approval.js`](../../webapp/js/ui/scheduled_approval.js))
 - **Card Display**: Each due transaction displays:
   - Checkbox (`.scheduled-checkbox`), checked by default.
   - Date formatted with calendar icon (plus an `Overdue` badge if `> 3` days old).
@@ -200,7 +200,7 @@ In **Settings > Scheduled Transactions** (`#scheduled-table`), schedules are pre
   - `Mode`: Displayed inside a styled pill (`.mode-cell`).
   - `Actions`: Includes Enable/Disable toggle (`▶️`/`⏸️`), Quick Edit (`⚡`), Full Edit (`✏️`), and Delete (`🗑️`).
 - **Mobile Responsive Layout (`<= 860px`)**:
-  - In [`responsive.css`](file:///d:/Projects/expense-manager/webapp/css/layout/responsive.css), table cells for `Type`, `Mode`, and `Last Run` are hidden (`display: none !important`).
+  - In [`responsive.css`](../../webapp/css/layout/responsive.css), table cells for `Type`, `Mode`, and `Last Run` are hidden (`display: none !important`).
   - `Type` and `Mode` badges are rendered inside the `Note` card area (`.badges-wrapper.hide-on-desktop`) to keep the mobile 3-row grid geometry intact.
   - The mobile action sheet modal (`openScheduledMobileMenu`) explicitly includes `st.txnMode` in the summary header.
 

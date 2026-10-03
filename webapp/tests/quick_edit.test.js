@@ -36,6 +36,7 @@ describe('Desktop Inline Quick Edit', () => {
         state.txnPageSize = 50;
         state.sortCol = 'date';
         state.sortAsc = false;
+        state.timeDate = new Date('2026-09-12T00:00:00');
         state.inlineEditTxnIdx = null;
 
         state.expenses = [

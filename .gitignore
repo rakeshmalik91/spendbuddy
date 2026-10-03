@@ -1,9 +1,9 @@
 *.aab
 *.apk
-expenseiq-android-app/app/release
-expenseiq-android-app/app/debug
-expenseiq-android-app/app/build
-expenseiq-android-app/app/.cxx
+spendbuddy-android-app/app/release
+spendbuddy-android-app/app/debug
+spendbuddy-android-app/app/build
+spendbuddy-android-app/app/.cxx
 
 # git-crypt keys (Never commit encryption keys)
 *.key

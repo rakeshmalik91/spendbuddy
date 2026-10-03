@@ -61,7 +61,7 @@ def download_emails():
         print(f"Searching for emails since {date_120_days_ago} across all folders...")
         
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        log_path = os.path.abspath(os.path.join(script_dir, "..", "expenseiq-android-app", "app", "src", "test", "data", "email_log.txt"))
+        log_path = os.path.abspath(os.path.join(script_dir, "..", "spendbuddy-android-app", "app", "src", "test", "data", "email_log.txt"))
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
         count = 0

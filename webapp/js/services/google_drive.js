@@ -1,4 +1,4 @@
-import { GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_BACKUP_FOLDER } from "../../config.js";
+import { GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_BACKUP_FOLDER, GOOGLE_DRIVE_BACKUP_PREFIX } from "../../config.js";
 import { generateBackupZip } from "./export.js";
 import { toast, getLocalDateString } from "../utils/helpers.js";
 import { updateUserSettings, loadUserSettings } from "./user_settings.js";
@@ -320,7 +320,7 @@ export async function getValidAccessToken(interactive = false) {
 }
 
 /**
- * Ensures the 'ExpenseIQ Backups' folder exists in Google Drive and returns its ID.
+ * Ensures the 'SpendBuddy Backups' folder exists in Google Drive and returns its ID.
  * @param {string} accessToken
  * @returns {Promise<string>} Folder ID
  */
@@ -445,7 +445,7 @@ export async function cleanupOldBackups(accessToken, retentionPolicy, currentTim
 
     try {
         const folderId = await ensureBackupFolder(accessToken);
-        const query = `'${folderId}' in parents and trashed = false and name contains 'ExpenseIQ_Backup_'`;
+        const query = `'${folderId}' in parents and trashed = false and name contains '${GOOGLE_DRIVE_BACKUP_PREFIX}'`;
         const listUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,createdTime)&orderBy=createdTime desc`;
 
         const res = await fetch(listUrl, {
@@ -643,7 +643,7 @@ export function showEnableDriveApiModal(enableUrl) {
         message: 'The Google Drive API is not yet enabled for your project in Google Cloud Console.',
         customHtml: `
             <div style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main); margin-bottom: 16px;">
-                Before ExpenseIQ can create backups in your Google Drive, the <strong>Google Drive API</strong> must be enabled in your Google Cloud project.
+                Before SpendBuddy can create backups in your Google Drive, the <strong>Google Drive API</strong> must be enabled in your Google Cloud project.
             </div>
             <div style="background: var(--bg-alt); padding: 14px; border-radius: 8px; border: 1px solid var(--border-subtle); margin-bottom: 16px;">
                 <ol style="padding-left: 18px; margin: 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-main);">

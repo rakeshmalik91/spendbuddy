@@ -29,7 +29,7 @@ flowchart TD
 
 ## 1. App Boot & Optimistic Loading (`startAuthFlow`)
 
-When the application loads, `startAuthFlow()` in [init.js](file:///d:/Projects/expense-manager/webapp/js/core/init.js) is triggered.
+When the application loads, `startAuthFlow()` in [init.js](../../webapp/js/core/init.js) is triggered.
 - If `USE_LOCAL_DATA` is enabled in `webapp/config.js`, Firebase is skipped completely and the app boots directly.
 - Otherwise, it initializes Firebase Auth and Storage.
 - **Optimistic UI:** Before waiting for Firebase Auth to initialize (which requires a network round-trip), the app checks `localStorage` for the `expman_is_logged_in` flag. 
@@ -40,9 +40,9 @@ When the application loads, `startAuthFlow()` in [init.js](file:///d:/Projects/e
 ## 2. Signup & End-to-End Encryption Setup
 
 New users can opt into **End-to-End (E2E) Encryption** directly on the signup screen via the `#signup-toggle-encryption` option:
-- **Zero-Knowledge Key Derivation**: When checked, `deriveKey(pwd)` in [crypto.js](file:///d:/Projects/expense-manager/webapp/js/utils/crypto.js) derives an AES-GCM 256-bit encryption key from the user's password using PBKDF2 (SHA-256, 100,000 iterations).
-- **Cloud Settings Initialization**: `updateUserSettings({ encryptionEnabled: true })` in [user_settings.js](file:///d:/Projects/expense-manager/webapp/js/services/user_settings.js) writes `{ encryptionEnabled: true }` to `{email}/user_settings.json` in Firebase Storage while the new user is authenticated.
-- **Race-Condition Protection (`isSigningUp`)**: A module flag `isSigningUp` in [init.js](file:///d:/Projects/expense-manager/webapp/js/core/init.js) prevents `onAuthStateChanged` from prematurely calling `logoutUser()` on the unverified user before `user_settings.json` is committed to cloud storage.
+- **Zero-Knowledge Key Derivation**: When checked, `deriveKey(pwd)` in [crypto.js](../../webapp/js/utils/crypto.js) derives an AES-GCM 256-bit encryption key from the user's password using PBKDF2 (SHA-256, 100,000 iterations).
+- **Cloud Settings Initialization**: `updateUserSettings({ encryptionEnabled: true })` in [user_settings.js](../../webapp/js/services/user_settings.js) writes `{ encryptionEnabled: true }` to `{email}/user_settings.json` in Firebase Storage while the new user is authenticated.
+- **Race-Condition Protection (`isSigningUp`)**: A module flag `isSigningUp` in [init.js](../../webapp/js/core/init.js) prevents `onAuthStateChanged` from prematurely calling `logoutUser()` on the unverified user before `user_settings.json` is committed to cloud storage.
 - **Local Resilience & Pending Sync**: `expman_encryption_enabled` is set in `localStorage`. If cloud write is interrupted, `expman_encryption_pending_${email}` acts as a fallback that automatically syncs on the user's first post-verification login.
 - **Opt-out Default**: If unchecked, `{ encryptionEnabled: false }` is persisted, and the user can optionally toggle encryption later in Account Settings.
 
@@ -75,7 +75,7 @@ flowchart TD
     end
 ```
 
-The optimistic load or login flow triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](file:///d:/Projects/expense-manager/webapp/js/services/encryption_manager.js):
+The optimistic load or login flow triggers `checkEncryptionAndUnlock()` from [encryption_manager.js](../../webapp/js/services/encryption_manager.js):
 - **Immediate Login**: When logging in with email and password, the login handler derives `state.encryptionKey = await deriveKey(pwd)` immediately. Thus, when `checkEncryptionAndUnlock()` checks `!state.encryptionKey`, it passes without prompting and unlocks instantly.
 - **Cached / Optimistic Boot**: If returning via cached session without typing password, it checks if a valid encryption key is present. If not, the user is prompted with `#unlock-overlay` to enter their password to derive the key.
 - Upon successful unlock, the core `initApp()` routine is fired.
@@ -137,13 +137,13 @@ flowchart TD
 ### 7.1 Key Asset Caching Principles:
 1. **Entry Point Revalidation (`index.html`)**:
    - `index.html` is the root shell containing script tags like `<script type="module" src="app.js?v=XXX">`.
-   - On launch / refresh, [SiteCache.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java) sends a conditional `If-None-Match` request.
+   - On launch / refresh, [SiteCache.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java) sends a conditional `If-None-Match` request.
    - If no update was deployed, the server responds with `304 Not Modified` in ~40ms, loading instantly from disk.
    - If a new build was deployed (`200 OK`), `SiteCache` detects the content change and flushes stale `.js`/`.css` modules from `site_cache/`, ensuring the fresh build and sub-modules are loaded.
 2. **Offline Fallback**:
    - If the device is offline, `SiteCache` catches network exceptions and immediately serves the cached `index.html` and assets from disk.
 3. **`WIPE_CACHE_ON_STARTUP` Flag**:
-   - Located in [AppConfig.java](file:///d:/Projects/expense-manager/expenseiq-android-app/app/src/main/java/com/rakeshmalik/expenseiq/AppConfig.java).
+   - Located in [AppConfig.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/AppConfig.java).
    - **Must remain `false` in production**.
    - It is strictly a developer troubleshooting tool to force a one-time wipe of `site_cache`, `sms_cache_json`, and `expman_sms_*` approval keys. Keeping it `true` permanently will cause approved/discarded transactions to reset on every launch.
 

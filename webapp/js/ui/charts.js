@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', (e) => {
         if (e.target.closest('.btn-trend-cum')) {
             state.trendChartCumulative = !state.trendChartCumulative;
-            localStorage.setItem('expenseiq_chart_cumulative', state.trendChartCumulative);
+            localStorage.setItem('spendbuddy_chart_cumulative', state.trendChartCumulative);
             updateTrendButtons();
             
             if ($('#view-dashboard').classList.contains('active')) {
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (e.target.closest('.btn-trend-type')) {
             state.trendChartType = state.trendChartType === 'line' ? 'bar' : 'line';
-            localStorage.setItem('expenseiq_chart_type', state.trendChartType);
+            localStorage.setItem('spendbuddy_chart_type', state.trendChartType);
             updateTrendButtons();
             
             if ($('#view-dashboard').classList.contains('active')) {
