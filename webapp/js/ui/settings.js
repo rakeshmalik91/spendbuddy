@@ -949,9 +949,12 @@ export function editLocation(tag) {
     setTimeout(() => {
         _mapInstance = L.map('map-picker-container').setView([defaultLat, defaultLon], hasCoords ? 14 : 12);
 
-        // Dark-themed tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
+        // Base tiles. OpenStreetMap's standard layer needs no API key (CARTO's
+        // basemaps endpoint now serves an "API KEY REQUIRED" watermark tile).
+        // It is light-themed; the dark look comes from the .leaflet-tile-pane
+        // filter in css/views/settings.css.
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(_mapInstance);
 

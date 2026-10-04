@@ -183,3 +183,16 @@
     }
 }
 
+
+/* == MAP PICKER (LEAFLET) == */
+/* OpenStreetMap standard tiles are light-themed and need no API key, so the
+   tile pane is recoloured to match the dark UI. Only .leaflet-tile-pane is
+   filtered; the marker, overlay (radius circle) and popup panes are sibling
+   panes and stay untouched. */
+.leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.85) saturate(0.7);
+}
+
+#map-picker-container .leaflet-container {
+    background: var(--bg-body);
+}
