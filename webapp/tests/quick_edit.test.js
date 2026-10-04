@@ -227,7 +227,7 @@ describe('Desktop Inline Quick Edit', () => {
         // Must be bound to ondblclick on the table row for desktop
         const row = document.getElementById('txn-row-0');
         expect(row).not.toBeNull();
-        expect(row.getAttribute('ondblclick')).toBe("if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap')) startInlineEdit(0);");
+        expect(row.getAttribute('ondblclick')).toBe("if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap, .badge-schedule-link')) startInlineEdit(0);");
 
         // Test calling startInlineEdit(0)
         expect(state.inlineEditTxnIdx).toBeNull();

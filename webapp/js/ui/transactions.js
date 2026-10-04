@@ -1,6 +1,6 @@
 import { getFilteredExpenses } from "./filters.js";
 import { getDaySeparatorHTML } from "./settings.js";
-import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
+import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, getScheduleIdFromTxnId, TXN_SOURCE_SCHEDULE, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
 import { $ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
@@ -292,11 +292,26 @@ export function renderTransactions() {
         const displaySources = getDisplaySourceList(e.source);
         let sourceBadge = '';
         if (displaySources.length > 0) {
+            // Desktop-only jump target, decided per badge LABEL: a badge reading exactly
+            // 'Schedule' is clickable. A composite source is split into separate
+            // badges on desktop, so its standalone 'Schedule' badge still links;
+            // only the combined label ('Schedule & Email') is excluded.
+            // The schedule is resolved at click time from the transaction itself, so
+            // rows generated before the __SCHEDULER_ id scheme still work.
+            // Original visibility classes are preserved; the click handler itself is
+            // desktop-guarded, and the pointer/hover affordance is media-scoped in CSS.
+            const schedLinkId = getScheduleIdFromTxnId(e.txnId || e.transactionId);
+            const linkAttrs = (baseClass, label) => label === TXN_SOURCE_SCHEDULE
+                ? ` class="${baseClass} badge-schedule-link" data-txn-idx="${realIdx}"${schedLinkId ? ` data-sched-id="${escHtml(schedLinkId)}"` : ''} onclick="openScheduleFromBadge(${realIdx}, event)"`
+                : ` class="${baseClass}"`;
+            const linkTitle = (baseTitle, label) => label === TXN_SOURCE_SCHEDULE
+                ? `${escHtml(baseTitle)} — click to open this schedule`
+                : escHtml(baseTitle);
             if (state.hideSourceTxnId) {
                 // In compact view, shorten sources similar to dashboard
-                sourceBadge = displaySources.map(s => `<span class="badge-source" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
+                sourceBadge = displaySources.map(s => `<span${linkAttrs('badge-source', s)} title="${linkTitle(e.source, s)}">${escHtml(s)}</span>`).join('');
             } else {
-                const fullBadges = rawSources.map(s => `<span class="badge-source hide-on-mobile" title="${escHtml(s)}">${escHtml(s)}</span>`).join('');
+                const fullBadges = rawSources.map(s => `<span${linkAttrs('badge-source hide-on-mobile', s)} title="${linkTitle(s, s)}">${escHtml(s)}</span>`).join('');
                 const shortBadges = displaySources.map(s => `<span class="badge-source hide-on-desktop" title="${escHtml(e.source)}">${escHtml(s)}</span>`).join('');
                 sourceBadge = fullBadges + shortBadges;
             }
@@ -451,7 +466,7 @@ export function renderTransactions() {
         const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const isSelected = selectedIndices.has(realIdx);
         const mainRowHtml = `
-        <tr id="txn-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row ${isSelected ? 'row-selected' : ''} ${isInlineEditing ? 'quick-editing' : ''}" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" ondblclick="if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap')) startInlineEdit(${realIdx});">
+        <tr id="txn-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row ${isSelected ? 'row-selected' : ''} ${isInlineEditing ? 'quick-editing' : ''}" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" ondblclick="if (window.innerWidth > 860 && !event.target.closest('input, select, button, a, .action-dropdown-wrap, .badge-schedule-link')) startInlineEdit(${realIdx});">
             <td class="col-batch-select hide-on-mobile" style="text-align: center;">
                 <input type="checkbox" class="batch-select-checkbox" data-real-idx="${realIdx}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleTxnSelection(${realIdx}, this.checked);">
             </td>
@@ -511,7 +526,7 @@ document.addEventListener('touchstart', (e) => {
     if (!row) return;
     
     // Check if the target is a button, don't trigger long press if clicking a button
-    if (e.target.closest('.row-btn') || e.target.closest('button')) return;
+    if (e.target.closest('.row-btn') || e.target.closest('button') || e.target.closest('.badge-schedule-link')) return;
 
     activeTouchRow = row;
     longPressTriggered = false;
@@ -935,6 +950,83 @@ if (typeof window !== 'undefined') {
     window.cancelInlineEdit = cancelInlineEdit;
     window.openQuickEditModal = startInlineEdit;
     window.isInlineEditModified = isInlineEditModified;
+}
+
+/**
+ * Resolves the schedule a generated transaction came from.
+ * Primary path parses the `__SCHEDULER_<id>_<date>` system txn ID. Transactions
+ * created before that ID scheme existed carry no schedule reference, so those fall
+ * back to matching the schedule that last produced a run on the same date with the
+ * same amount (and note, when both are present). The fallback only accepts a unique
+ * match to avoid jumping to the wrong schedule.
+ * @param {object} txn
+ * @param {Array} schedules
+ * @returns {number} Index into `schedules`, or -1 when it cannot be resolved.
+ */
+function resolveScheduleIndexForTxn(txn, schedules) {
+    if (!txn || !Array.isArray(schedules) || schedules.length === 0) return -1;
+
+    const schedId = getScheduleIdFromTxnId(txn.txnId || txn.transactionId);
+    if (schedId) {
+        const byId = schedules.findIndex(st => st && st.id !== undefined && st.id !== null && String(st.id) === schedId);
+        if (byId !== -1) return byId;
+    }
+
+    const amt = Number(txn.amount);
+    const note = (txn.note || '').trim().toLowerCase();
+    const candidates = schedules.filter(st => {
+        if (!st || st.last_run_date !== txn.date) return false;
+        if (Number.isNaN(amt) || Number.isNaN(Number(st.amount))) return false;
+        if (Number(st.amount) !== amt) return false;
+        const stNote = (st.note || '').trim().toLowerCase();
+        if (note && stNote && note !== stNote) return false;
+        return true;
+    });
+    return candidates.length === 1 ? schedules.indexOf(candidates[0]) : -1;
+}
+
+/**
+ * Desktop-only: jumps from a transaction's "Schedule" source badge to the schedule
+ * list and flashes the originating row. Mirrors the post-save focus pattern in form.js
+ * (switchView -> deferred lookup -> scrollIntoView -> temporary tint).
+ * @param {number} txnIdx Index into state.expenses.
+ * @param {Event} [event]
+ */
+if (typeof window !== 'undefined') {
+    window.openScheduleFromBadge = function (txnIdx, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (window.innerWidth <= 860) return;
+
+        const txn = state.expenses ? state.expenses[txnIdx] : null;
+        if (!txn) {
+            toast('Could not find that transaction.', 'error');
+            return;
+        }
+
+        const idx = resolveScheduleIndexForTxn(txn, state.scheduledTransactions || []);
+        if (idx === -1) {
+            toast('Could not match this entry to a schedule. It may predate your current schedule list.', 'error');
+            return;
+        }
+
+        if (typeof window.switchView === 'function') window.switchView('scheduled');
+
+        setTimeout(() => {
+            const row = document.getElementById(`sched-row-${idx}`);
+            if (!row) {
+                toast('Could not highlight the schedule row.', 'error');
+                return;
+            }
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const oldBg = row.style.backgroundColor;
+            row.style.transition = 'background-color 0.5s ease';
+            row.style.backgroundColor = 'rgba(99, 138, 255, 0.3)';
+            setTimeout(() => { row.style.backgroundColor = oldBg; }, 1500);
+        }, 100);
+    };
 }
 
 

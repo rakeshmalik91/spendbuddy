@@ -12,7 +12,7 @@ export function getTxnIdList(t) {
         .filter(Boolean);
 }
 
-import { SYSTEM_TXN_ID_PREFIXES, SYSTEM_TXN_SOURCES, TXN_SOURCE_SCHEDULE, TXN_SOURCE_QUICK_ADD, TXN_SOURCE_SMS_PREFIX, TXN_SOURCE_EMAIL_PREFIX } from "../../config.js";
+import { SYSTEM_TXN_ID_PREFIXES, SYSTEM_TXN_SOURCES, SYSTEM_TXN_PREFIX_SCHEDULER, TXN_SOURCE_SCHEDULE, TXN_SOURCE_QUICK_ADD, TXN_SOURCE_SMS_PREFIX, TXN_SOURCE_EMAIL_PREFIX } from "../../config.js";
 import { escHtml } from "./date_helpers.js";
 export { SYSTEM_TXN_ID_PREFIXES, SYSTEM_TXN_SOURCES, TXN_SOURCE_SCHEDULE, TXN_SOURCE_QUICK_ADD, TXN_SOURCE_SMS_PREFIX, TXN_SOURCE_EMAIL_PREFIX };
 
@@ -127,6 +127,27 @@ export function isTxnIdInOtherTxn(txnId, list, excludeTxn = null) {
         const realIds = getRealTxnIdList(t);
         return realIds.includes(cleanId);
     });
+}
+
+/**
+ * Extracts the originating schedule ID from a system transaction ID.
+ * Scheduled transactions are generated as `__SCHEDULER_<scheduleId>_<YYYY-MM-DD>`
+ * (see storage.js). The schedule ID is free-form and may itself contain underscores,
+ * so everything up to the trailing date is captured greedily.
+ * @param {string} txnId
+ * @returns {string|null} Schedule ID, or null when the ID is not scheduler-generated.
+ */
+export function getScheduleIdFromTxnId(txnId) {
+    if (!txnId) return null;
+    const ids = getTxnIdList({ txnId });
+    for (const id of ids) {
+        if (!isSystemTxnId(id)) continue;
+        const upper = String(id).trim().toUpperCase();
+        if (!upper.startsWith(SYSTEM_TXN_PREFIX_SCHEDULER.toUpperCase())) continue;
+        const match = String(id).trim().match(/^__SCHEDULER_(.+)_(\d{4}-\d{2}-\d{2})$/);
+        if (match && match[1]) return match[1];
+    }
+    return null;
 }
 
 /**

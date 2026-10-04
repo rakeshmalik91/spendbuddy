@@ -654,6 +654,23 @@ tr.quick-editing td {
     white-space: nowrap;
 }
 
+/* ══════════════ SCHEDULE SOURCE BADGE LINK (DESKTOP ONLY) ══════════════ */
+/* Pointer affordance is desktop-scoped because the jump is desktop-only;
+   the badge still renders (without affordance) at mobile widths. */
+@media (min-width: 861px) {
+    .badge-source.badge-schedule-link {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .badge-source.badge-schedule-link:hover {
+        background: rgba(99, 138, 255, 0.25) !important;
+        border-color: rgba(99, 138, 255, 0.6) !important;
+        box-shadow: 0 0 8px rgba(99, 138, 255, 0.3);
+    }
+}
+
 /* ══════════════ COLLAPSIBLE REFUND SUB-ROW (DESKTOP ONLY) ══════════════ */
 .badge-refund-toggle {
     transition: all 0.2s ease;
