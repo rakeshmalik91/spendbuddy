@@ -148,69 +148,127 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Sends a cached location to the WebView immediately so the UI is never blocked,
+     * then immediately requests a fresh fix. When the fresh fix arrives the WebView
+     * is updated with it, so a stale cached reading can never be the final answer.
+     */
+    private void sendLocationToWebView(Location loc) {
+        if (loc == null) return;
+        double lat = loc.getLatitude();
+        double lon = loc.getLongitude();
+        webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + lat + ", " + lon + ");", null);
+    }
+
+    private void sendLocationErrorToWebView(String message) {
+        webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('" + message + "');", null);
+    }
+
+    /**
+     * Returns the most recent cached fix, or null when none is available.
+     * Used only as a fallback when a fresh fix cannot be obtained.
+     */
+    @SuppressLint("MissingPermission")
+    private Location getCachedLocation(LocationManager locationManager) {
+        try {
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                if (loc != null) return loc;
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Requests a single up-to-date location fix.
+     *
+     * getLastKnownLocation() can return a reading that is hours or days old, so it is
+     * never used as the primary source. A fresh fix is requested first and the cached
+     * reading is only consulted when that request cannot be satisfied.
+     */
     @SuppressLint("MissingPermission")
     public void fetchLocation() {
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (locationManager != null) {
-            Location loc = null;
-            try {
-                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                }
-            } catch (Exception ignored) {}
-            try {
-                if (loc == null && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                    loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                }
-            } catch (Exception ignored) {}
+        if (locationManager == null) {
+            sendLocationErrorToWebView("LocationManager null");
+            return;
+        }
 
-            if (loc != null) {
-                double lat = loc.getLatitude();
-                double lon = loc.getLongitude();
-                webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + lat + ", " + lon + ");", null);
-                return;
-            }
+        final Location cached = getCachedLocation(locationManager);
+        // Give the WebView a reading straight away so it can render; the fresh fix
+        // below will overwrite it if one arrives.
+        if (cached != null) {
+            sendLocationToWebView(cached);
+        }
 
-            try {
-                String provider = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-                        ? LocationManager.NETWORK_PROVIDER
-                        : (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? LocationManager.GPS_PROVIDER : null);
-                if (provider != null) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        locationManager.getCurrentLocation(provider, null, getMainExecutor(), location -> {
+        try {
+            boolean hasGps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            boolean hasNetwork = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+            if (hasGps || hasNetwork) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    final LocationManager lm = locationManager;
+                    // Prefer GPS so the fix reflects the current position rather than
+                    // the coarse network cell the WebView would otherwise get.
+                    final String provider = hasGps ? LocationManager.GPS_PROVIDER : LocationManager.NETWORK_PROVIDER;
+                    lm.getCurrentLocation(provider, null, getMainExecutor(), location -> {
+                        if (location != null) {
+                            sendLocationToWebView(location);
+                        } else if (cached != null) {
+                            // Fresh request produced nothing; the cached fix already
+                            // sent above remains in effect.
+                            Log.d("MainActivity", "Fresh location unavailable, using cached fix");
+                        } else {
+                            sendLocationErrorToWebView("Location unavailable");
+                        }
+                    });
+                    return;
+                } else {
+                    final LocationManager lm = locationManager;
+                    final boolean preferGps = hasGps;
+                    final Location cachedFallback = cached;
+                    LocationListener listener = new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            try { lm.removeUpdates(this); } catch (Exception ignored) {}
                             if (location != null) {
-                                webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + location.getLatitude() + ", " + location.getLongitude() + ");", null);
+                                sendLocationToWebView(location);
+                            } else if (cachedFallback != null) {
+                                Log.d("MainActivity", "Fresh location unavailable, using cached fix");
                             } else {
-                                webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
+                                sendLocationErrorToWebView("Location unavailable");
                             }
-                        });
-                        return;
+                        }
+                        @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+                        @Override public void onProviderEnabled(String provider) {}
+                        @Override public void onProviderDisabled(String provider) {}
+                    };
+                    if (preferGps) {
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, listener, Looper.getMainLooper());
+                        // Also ask the network provider so a fix still arrives indoors
+                        // or with a cold GPS, whichever returns first.
+                        if (hasNetwork) {
+                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, listener, Looper.getMainLooper());
+                        }
                     } else {
-                        LocationListener listener = new LocationListener() {
-                            @Override
-                            public void onLocationChanged(Location location) {
-                                try { locationManager.removeUpdates(this); } catch (Exception ignored) {}
-                                if (location != null) {
-                                    webView.evaluateJavascript("if(window.onAndroidLocationReceived) window.onAndroidLocationReceived(" + location.getLatitude() + ", " + location.getLongitude() + ");", null);
-                                } else {
-                                    webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
-                                }
-                            }
-                            @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
-                            @Override public void onProviderEnabled(String provider) {}
-                            @Override public void onProviderDisabled(String provider) {}
-                        };
-                        locationManager.requestSingleUpdate(provider, listener, Looper.getMainLooper());
-                        return;
+                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, listener, Looper.getMainLooper());
                     }
+                    return;
                 }
-            } catch (Exception e) {
-                Log.w("MainActivity", "Failed to request fresh location update", e);
             }
+        } catch (Exception e) {
+            Log.w("MainActivity", "Failed to request fresh location update", e);
+        }
 
-            webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('Location unavailable');", null);
+        if (cached != null) {
+            Log.d("MainActivity", "No provider enabled, using cached fix");
         } else {
-            webView.evaluateJavascript("if(window.onAndroidLocationError) window.onAndroidLocationError('LocationManager null');", null);
+            sendLocationErrorToWebView("Location unavailable");
         }
     }
     @SuppressLint("SetJavaScriptEnabled")

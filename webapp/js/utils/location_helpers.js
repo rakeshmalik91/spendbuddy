@@ -336,7 +336,13 @@ export async function getCurrentLocationTag(options = {}) {
                         clearTimeout(timeoutId);
                         rej(err);
                     },
-                    { timeout: 10000, maximumAge: 60000 }
+                    // maximumAge: 0 forbids a cached fix, so the browser must obtain a current
+                    // reading rather than reusing one from an earlier session. This
+                    // matters on mobile, where a cached position can be hours old.
+                    // enableHighAccuracy forces GPS instead of the coarse
+                    // network/cell estimate, and the timeout is raised because a
+                    // cold GPS fix can take longer than the default.
+                    { timeout: 20000, maximumAge: 0, enableHighAccuracy: true }
                 );
             } else {
                 clearTimeout(timeoutId);
