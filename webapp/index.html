@@ -8,9 +8,9 @@
     <meta name="description"
         content="SpendBuddy — Track, visualize, and export your expenses with beautiful charts and CSV support.">
     <title>SpendBuddy</title>
-    <link rel="icon" type="image/svg+xml" href="spendbuddy-icon.svg">
-    <link rel="icon" href="logo.svg">
-    <link rel="apple-touch-icon" href="spendbuddy-icon.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/spendbuddy-icon.svg">
+    <link rel="icon" href="assets/logo.svg">
+    <link rel="apple-touch-icon" href="assets/spendbuddy-icon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -155,7 +155,7 @@
     <!-- ═══════════ GLOBAL LOADER ═══════════ -->
     <div id="global-loader">
         <div class="loader-creative">
-            <img src="spendbuddy-mascot.svg" alt="Loading..." class="money-bag" style="width: 4rem; height: 4rem;">
+            <img src="assets/spendbuddy-mascot.svg" alt="Loading..." class="money-bag" style="width: 4rem; height: 4rem;">
             <div class="shadow"></div>
         </div>
     </div>
@@ -173,7 +173,7 @@
     </script>
     <link rel="stylesheet" href="css/base/reset.css?v=12">
     <link rel="stylesheet" href="css/base/scrollbar.css?v=4">
-    <link rel="stylesheet" href="css/layout/sidebar.css?v=9">
+    <link rel="stylesheet" href="css/layout/sidebar.css?v=11">
     <link rel="stylesheet" href="css/layout/header.css?v=4">
     <link rel="stylesheet" href="css/layout/main.css?v=13">
     <link rel="stylesheet" href="css/components/buttons.css?v=10">
@@ -258,7 +258,7 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-brand">
-                <span class="brand-icon"><img src="logo.svg" alt="logo"
+                <span class="brand-icon"><img src="assets/logo.svg" alt="logo"
                         style="width: 1.2em; height: 1.2em;"></span>
                 <span class="brand-text">SpendBuddy</span>
             </div>
@@ -275,8 +275,9 @@
                 </svg>
             </button>
         </div>
+        <div class="sidebar-tagline">Track easily. Save effortlessly</div>
         <div id="sidebar-user-id"
-            style="padding: 0 16px 24px 16px; font-size: 0.8rem; color: var(--text-dim); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            style="padding: 0 4px 24px 4px; font-size: 0.8rem; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
         </div>
         <nav class="sidebar-nav">
             <button class="nav-btn" data-view="add" id="nav-add" title="Add Entry">
@@ -307,7 +308,7 @@
     <!-- ═══════════ MOBILE HEADER ═══════════ -->
     <header class="mobile-header" id="mobile-header">
         <button class="hamburger" id="hamburger">☰</button>
-        <span class="brand-text" style="display: flex; align-items: center; gap: 8px;"><img src="logo.svg" alt="logo"
+        <span class="brand-text" style="display: flex; align-items: center; gap: 8px;"><img src="assets/logo.svg" alt="logo"
                 style="width: 1.2em; height: 1.2em;"> SpendBuddy</span>
     </header>
 
