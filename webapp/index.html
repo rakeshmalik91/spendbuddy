@@ -1196,6 +1196,48 @@
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+
+                    <div class="card"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                        onclick="window.switchView('about')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">ℹ️</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">About</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Copyright and
+                                    credits</div>
+                            </div>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── ABOUT VIEW ── -->
+            <section class="view" id="view-about">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom: 0;">About</h1>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="card" style="padding: 28px; text-align: center;">
+                        <img src="assets/spendbuddy-icon.svg" alt="SpendBuddy"
+                            style="width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 16px; display: block;">
+                        <div
+                            style="font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                            SpendBuddy
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 6px;">Track easily. Save
+                            effortlessly</div>
+                        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <div style="font-size: 0.9rem; color: var(--text-primary);">© Rakesh Malik 2026</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">Co authored by:
+                                Gemini 3.8 Flash, Space Bunny Alpha, Claude Opus 4.6</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
