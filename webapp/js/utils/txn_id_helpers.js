@@ -151,6 +151,19 @@ export function getScheduleIdFromTxnId(txnId) {
 }
 
 /**
+ * True when a transaction was generated from a schedule, i.e. its source
+ * contains a Schedule component. Composite sources such as
+ * 'Schedule & Email: ...' also qualify, since those entries were produced by
+ * the schedule scheduler before being enriched by another channel.
+ * @param {object} t
+ * @returns {boolean}
+ */
+export function isScheduleGeneratedTxn(t) {
+    if (!t) return false;
+    return getRawSourceList(t.source).includes(TXN_SOURCE_SCHEDULE);
+}
+
+/**
  * Extracts normalized provider channel name (e.g. 'hdfc', 'amazon', 'swiggy', 'airtel') from a source string.
  */
 export function getSourceProvider(sourceStr) {

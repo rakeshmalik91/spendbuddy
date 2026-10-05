@@ -1,4 +1,4 @@
-import { getScheduleIdFromTxnId, TXN_SOURCE_SCHEDULE, getRawSourceList, getDisplaySourceList } from '../js/utils/txn_id_helpers.js';
+import { getScheduleIdFromTxnId, isScheduleGeneratedTxn, TXN_SOURCE_SCHEDULE, getRawSourceList, getDisplaySourceList } from '../js/utils/txn_id_helpers.js';
 
 describe('Schedule badge link helpers', () => {
     describe('getScheduleIdFromTxnId', () => {
@@ -75,6 +75,36 @@ describe('Schedule badge link helpers', () => {
 
         it('does not link an SMS badge', () => {
             expect(getRawSourceList('SMS: AD-HDFCBK-S').filter(isLinkable)).toEqual([]);
+        });
+    });
+
+    describe('isScheduleGeneratedTxn', () => {
+        it('is true for a pure Schedule source', () => {
+            expect(isScheduleGeneratedTxn({ source: 'Schedule' })).toBe(true);
+        });
+
+        it('is true for a composite Schedule & Email source', () => {
+            expect(isScheduleGeneratedTxn({ source: 'Schedule & Email: alerts@hdfcbank.com' })).toBe(true);
+        });
+
+        it('is true when Schedule appears after another channel', () => {
+            expect(isScheduleGeneratedTxn({ source: 'Email: a@b.com & Schedule' })).toBe(true);
+        });
+
+        it('is false for non-schedule sources', () => {
+            expect(isScheduleGeneratedTxn({ source: 'SMS: AD-HDFCBK-S' })).toBe(false);
+            expect(isScheduleGeneratedTxn({ source: 'Quick Add' })).toBe(false);
+            expect(isScheduleGeneratedTxn({ source: 'Email: a@b.com' })).toBe(false);
+        });
+
+        it('is false for empty or missing input', () => {
+            expect(isScheduleGeneratedTxn({ source: '' })).toBe(false);
+            expect(isScheduleGeneratedTxn({})).toBe(false);
+            expect(isScheduleGeneratedTxn(null)).toBe(false);
+        });
+
+        it('does not match a source that merely contains the word schedule', () => {
+            expect(isScheduleGeneratedTxn({ source: 'SchedulePayment' })).toBe(false);
         });
     });
 });

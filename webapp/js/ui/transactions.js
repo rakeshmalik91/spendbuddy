@@ -1,6 +1,6 @@
 import { getFilteredExpenses } from "./filters.js";
 import { getDaySeparatorHTML } from "./settings.js";
-import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, getScheduleIdFromTxnId, TXN_SOURCE_SCHEDULE, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
+import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, getScheduleIdFromTxnId, isScheduleGeneratedTxn, TXN_SOURCE_SCHEDULE, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
 import { $ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
@@ -445,6 +445,10 @@ export function renderTransactions() {
                         <button class="action-dropdown-item" onclick="openRefundLinkingModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🔗</span> ${isExpense ? 'Link Refunds' : 'Link Original Expense'}
                         </button>
+                        ${isScheduleGeneratedTxn(e) ? `
+                        <button class="action-dropdown-item" onclick="openScheduleFromBadge(${realIdx}, event); closeAllActionDropdowns();">
+                            <span class="action-icon">🗓️</span> Go to Schedule
+                        </button>` : ''}
                         ${isExpense && !hasRefunds ? `
                         <button class="action-dropdown-item" onclick="generateRefund(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">↩️</span> Create Refund
@@ -682,6 +686,7 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
     const btnDeleteRefund = document.getElementById('btn-mobile-delete-refund');
     const btnToggle = document.getElementById('btn-mobile-toggle');
     const btnLink = document.getElementById('btn-mobile-link');
+    const btnGoSchedule = document.getElementById('btn-mobile-go-schedule');
     const btnCancel = document.getElementById('btn-mobile-cancel');
 
     // Reset handlers by cloning
@@ -690,13 +695,15 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
     const cleanDelete = btnDelete.cloneNode(true);
     const cleanDeleteRefund = btnDeleteRefund.cloneNode(true);
     const cleanLink = btnLink ? btnLink.cloneNode(true) : null;
+    const cleanGoSchedule = btnGoSchedule ? btnGoSchedule.cloneNode(true) : null;
     const cleanCancel = btnCancel.cloneNode(true);
-    
+
     btnEdit.replaceWith(cleanEdit);
     btnRefund.replaceWith(cleanRefund);
     btnDelete.replaceWith(cleanDelete);
     btnDeleteRefund.replaceWith(cleanDeleteRefund);
     if (btnLink && cleanLink) btnLink.replaceWith(cleanLink);
+    if (btnGoSchedule && cleanGoSchedule) btnGoSchedule.replaceWith(cleanGoSchedule);
     btnCancel.replaceWith(cleanCancel);
 
     const closeModal = () => {
@@ -711,6 +718,18 @@ window.openMobileTxnMenu = function (realIdx, prefix = 'txn-row') {
         cleanLink.style.display = 'flex';
         cleanLink.innerHTML = isTargetRefund ? '<span>🔗</span> Link Original Expense' : '<span>🔗</span> Link Refunds';
         cleanLink.onclick = () => { closeModal(); window.openRefundLinkingModal(realIdx); };
+    }
+
+    if (cleanGoSchedule) {
+        // Only offered for entries the scheduler generated.
+        if (isScheduleGeneratedTxn(e)) {
+            cleanGoSchedule.style.display = 'flex';
+            cleanGoSchedule.innerHTML = '<span>🗓️</span> Go to Schedule';
+            cleanGoSchedule.onclick = () => { closeModal(); window.openScheduleFromBadge(realIdx, null, true); };
+        } else {
+            cleanGoSchedule.style.display = 'none';
+            cleanGoSchedule.onclick = null;
+        }
     }
 
     if (hasRefunds && !isTargetRefund) {
@@ -993,12 +1012,14 @@ function resolveScheduleIndexForTxn(txn, schedules) {
  * @param {Event} [event]
  */
 if (typeof window !== 'undefined') {
-    window.openScheduleFromBadge = function (txnIdx, event) {
+    window.openScheduleFromBadge = function (txnIdx, event, allowMobile) {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
-        if (window.innerWidth <= 860) return;
+        // The source badge is desktop-only; the row action menus call this with
+        // allowMobile so the same jump works from the mobile hold sheet.
+        if (!allowMobile && window.innerWidth <= 860) return;
 
         const txn = state.expenses ? state.expenses[txnIdx] : null;
         if (!txn) {
