@@ -176,7 +176,7 @@
     <link rel="stylesheet" href="css/layout/sidebar.css?v=11">
     <link rel="stylesheet" href="css/layout/header.css?v=4">
     <link rel="stylesheet" href="css/layout/main.css?v=13">
-    <link rel="stylesheet" href="css/components/buttons.css?v=10">
+    <link rel="stylesheet" href="css/components/buttons.css?v=11">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
     <link rel="stylesheet" href="css/components/tables.css?v=61">
     <link rel="stylesheet" href="css/components/forms.css?v=15">
@@ -389,10 +389,15 @@
                         <!-- Populated by JS -->
                     </div>
 
-                    <button class="btn btn-primary dash-add-btn" id="dash-add-btn"
-                        style="padding: 8px 16px; font-size: 0.9rem;">
-                        <span style="font-size: 1.2rem; font-weight: bold; line-height: 1;">+</span> Add Entry
-                    </button>
+                    <div class="dash-header-actions" style="display: flex; align-items: center; gap: 8px;">
+                        <button class="btn btn-icon dash-eye-btn" id="dash-eye-btn" title="Toggle amount visibility" aria-label="Toggle amount visibility" style="padding: 8px; display: flex; align-items: center; justify-content: center;">
+                            <span class="eye-icon" style="font-size: 1.1rem;">👁️</span>
+                        </button>
+                        <button class="btn btn-primary dash-add-btn" id="dash-add-btn"
+                            style="padding: 8px 16px; font-size: 0.9rem;">
+                            <span style="font-size: 1.2rem; font-weight: bold; line-height: 1;">+</span> Add Entry
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Summary Cards -->

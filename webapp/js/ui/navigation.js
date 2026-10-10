@@ -1,4 +1,4 @@
-import { renderDashboard } from "./dashboard.js";
+import { renderDashboard, initDashboard } from "./dashboard.js";
 import { renderSettings } from "./settings.js";
 import { renderKeywordMappings } from "./keyword_mappings.js";
 import { renderChartsPage } from "./charts.js";
@@ -30,6 +30,8 @@ export function setupNavigation() {
     if (dashAddBtn) {
         dashAddBtn.addEventListener('click', () => switchView('add'));
     }
+
+    initDashboard();
 
     if (!window.Android) {
         const syncCard = $('#android-sync-card');

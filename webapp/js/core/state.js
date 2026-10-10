@@ -42,6 +42,7 @@ export const state = {
     hideTransfer: localStorage.getItem('expman_hide_transfer') === 'true',
     mergeRefunds: localStorage.getItem('expman_merge_refunds') !== 'false',
     hideSourceTxnId: localStorage.getItem('expman_hide_source_txnid') === 'true',
+    hideAmounts: localStorage.getItem('expman_hide_amounts') === 'true',
     keywordMappings: (() => {
         try {
             const val = localStorage.getItem('expman_keyword_mappings');

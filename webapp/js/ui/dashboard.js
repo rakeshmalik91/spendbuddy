@@ -11,6 +11,33 @@ import { showScheduledApprovalModal } from "./scheduled_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
+const HIDDEN_AMOUNT = '✦✦✦✦.✦✦';
+const HIDDEN_CURRENCY = '₹';
+
+function formatAmount(value) {
+    return (value >= 0 ? '₹' : '-₹') + Math.abs(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatAmountPositive(value) {
+    return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getDisplayValue(value, isPositive = true) {
+    return state.hideAmounts ? (isPositive ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : '- ' + HIDDEN_CURRENCY + HIDDEN_AMOUNT) : (isPositive ? formatAmountPositive(value) : formatAmount(value));
+}
+
+function updateEyeButton() {
+    const eyeBtn = $('#dash-eye-btn');
+    if (eyeBtn) {
+        const eyeIcon = eyeBtn.querySelector('.eye-icon');
+        if (eyeIcon) {
+            eyeIcon.textContent = state.hideAmounts ? '🙈' : '👁️';
+        }
+        eyeBtn.setAttribute('aria-label', state.hideAmounts ? 'Show amounts' : 'Hide amounts');
+        eyeBtn.title = state.hideAmounts ? 'Show amounts' : 'Hide amounts';
+    }
+}
+
 export function renderDashboard() {
     const currentExpenses = getGlobalFilteredExpenses();
     const baseExpenses = currentExpenses.filter(e => !e.txnType || e.txnType === 'Expense' || e.txnType === 'Refund');
@@ -22,18 +49,20 @@ export function renderDashboard() {
     const totalInvestment = currentExpenses.filter(e => e.txnType === 'Investment').reduce((s, e) => s + Math.abs(e.amount), 0);
     const totalTransfer = currentExpenses.filter(e => e.txnType === 'Transfer').reduce((s, e) => s + Math.abs(e.amount), 0);
 
-    if ($('#net-balance')) $('#net-balance').textContent = (net >= 0 ? '₹' : '-₹') + Math.abs(net).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if ($('#small-expense')) $('#small-expense').textContent = '₹' + totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if ($('#small-refunds')) $('#small-refunds').textContent = '₹' + totalRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if ($('#net-balance')) $('#net-balance').textContent = getDisplayValue(net, net >= 0);
+    if ($('#small-expense')) $('#small-expense').textContent = getDisplayValue(totalExpense);
+    if ($('#small-refunds')) $('#small-refunds').textContent = getDisplayValue(totalRefunds);
 
-    if ($('#total-income-real')) $('#total-income-real').textContent = '₹' + totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if ($('#total-investment')) $('#total-investment').textContent = '₹' + totalInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if ($('#total-transfer')) $('#total-transfer').textContent = '₹' + totalTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if ($('#total-income-real')) $('#total-income-real').textContent = getDisplayValue(totalIncome);
+    if ($('#total-investment')) $('#total-investment').textContent = getDisplayValue(totalInvestment);
+    if ($('#total-transfer')) $('#total-transfer').textContent = getDisplayValue(totalTransfer);
     if ($('#total-count')) $('#total-count').textContent = currentExpenses.length;
 
     if ($('#card-income-total')) $('#card-income-total').style.display = state.hideIncome ? 'none' : '';
     if ($('#card-investment')) $('#card-investment').style.display = state.hideInvestment ? 'none' : '';
     if ($('#card-transfer')) $('#card-transfer').style.display = state.hideTransfer ? 'none' : '';
+
+    updateEyeButton();
 
     const summaryContainer = document.querySelector('.summary-cards');
     if (summaryContainer) {
@@ -109,7 +138,7 @@ export function renderDashboard() {
         }
     }
     const dailyAvg = net / days;
-    if ($('#daily-avg-spend')) $('#daily-avg-spend').textContent = (dailyAvg >= 0 ? '₹' : '-₹') + Math.abs(dailyAvg).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if ($('#daily-avg-spend')) $('#daily-avg-spend').textContent = getDisplayValue(dailyAvg, dailyAvg >= 0);
 
     const prevExpenses = getPrevGlobalFilteredExpenses();
     const prevBase = prevExpenses.filter(e => !e.txnType || e.txnType === 'Expense' || e.txnType === 'Refund');
@@ -194,7 +223,9 @@ export function renderDashboard() {
                         const pSign5 = percent5 > 0 ? '+' : '';
                         percentStr5 = ` (${pSign5}${percent5}%)`;
                     }
-                    htmlStr = `<div style="display: flex; gap: 4px; align-items: baseline;"><span class="${diffClass5}" style="white-space: nowrap;">${sign5}₹${Math.round(diff5).toLocaleString('en-IN')}${percentStr5}</span> <span style="color: var(--text-muted); font-weight: normal; font-size: 0.75rem; white-space: normal;">vs ${periodStr5}</span></div>`;
+                    
+                    let diffDisplay = state.hideAmounts ? (diff5 >= 0 ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : '- ' + HIDDEN_CURRENCY + HIDDEN_AMOUNT) : `${sign5}₹${Math.round(diff5).toLocaleString('en-IN')}${percentStr5}`;
+                    htmlStr = `<div style="display: flex; gap: 4px; align-items: baseline;"><span class="${diffClass5}" style="white-space: nowrap;">${diffDisplay}</span> <span style="color: var(--text-muted); font-weight: normal; font-size: 0.75rem; white-space: normal;">vs ${periodStr5}</span></div>`;
                 }
 
                 $('#daily-avg-trend').innerHTML = htmlStr;
@@ -577,10 +608,11 @@ export function renderQuickAdd() {
     quickAddTemplates.forEach(st => {
         const amtColor = st.amount < 0 ? 'var(--green)' : 'var(--amount-negative)';
         const displayType = st.amount < 0 ? '+' : '';
+        const amountDisplay = state.hideAmounts ? (displayType === '+' ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : HIDDEN_CURRENCY + HIDDEN_AMOUNT) : `${displayType}₹${Math.abs(st.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add" data-id="${st.id}" title="Click to instantly log ${escHtml(st.note || st.category)}">
             <span class="qa-note">⚡ ${escHtml(st.note || st.category)}</span>
-            <span class="qa-amount" style="color: ${amtColor}">${displayType}₹${Math.abs(st.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            <span class="qa-amount" style="color: ${amtColor}">${amountDisplay}</span>
         </button>
         `;
     });
@@ -594,7 +626,7 @@ export function renderQuickAdd() {
         `;
     }
 
-    pendingSms.forEach((txn, i) => {
+pendingSms.forEach((txn, i) => {
         if (txn.date !== todayStr) return;
         const title = txn.merchant || txn.source || 'SMS';
         const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
@@ -605,10 +637,11 @@ export function renderQuickAdd() {
         const displayType = isCredit ? '+' : '';
         const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
         const emoji = (txn.source || '').toLowerCase().includes('email') ? '📧' : '💬';
+        const amountDisplay = state.hideAmounts ? (displayType === '+' ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : HIDDEN_CURRENCY + HIDDEN_AMOUNT) : `${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add sms-quick-add" data-index="${i}" title="Approve: ${escHtml(title)}" style="border: 1px solid var(--accent);">
             <span class="qa-note">${emoji} ${escHtml(title)}</span>
-            <span class="qa-amount" style="color: ${amtColor}">${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            <span class="qa-amount" style="color: ${amtColor}">${amountDisplay}</span>
         </button>
         `;
     });
@@ -753,4 +786,20 @@ export function renderQuickAdd() {
             renderAll();
         });
     });
+}
+
+let dashboardInitialized = false;
+
+export function initDashboard() {
+    if (dashboardInitialized) return;
+    dashboardInitialized = true;
+
+    const eyeBtn = $('#dash-eye-btn');
+    if (eyeBtn) {
+        eyeBtn.addEventListener('click', () => {
+            state.hideAmounts = !state.hideAmounts;
+            localStorage.setItem('expman_hide_amounts', state.hideAmounts ? 'true' : 'false');
+            renderDashboard();
+        });
+    }
 }
