@@ -11,7 +11,7 @@ import { showScheduledApprovalModal } from "./scheduled_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
-const HIDDEN_AMOUNT = '✦✦✦✦.✦✦';
+const HIDDEN_AMOUNT = '🙈🙈🙈.🙈🙈';
 const HIDDEN_CURRENCY = '₹';
 
 function formatAmount(value) {
