@@ -2,28 +2,16 @@
 ---------------------
 Pick feature, enhancements, fixes from here.
 commit after each features or set of fixes/enhancements
+run full test & update docs for new changes
+do not make changes to this file except mark/unmark todo items
 ---------------------
 
 ### 2026.10.19
 
-Chore:
-- [ ] Hook firebase deploy on commit
-- [ ] squash whole repo changes to single commit.
-
-Features:
-- [ ] Ability to add/update/delete txn offline
-- [ ] Split tool (store as json file)
-   - add multiple people (option to resuse people from older bills)
-   - configure total amount
-   - configure how to split the bill: equally or using expressions for each people
-   - configure total tax expression for each people. Option to choose how to split tax: equally or percentage wise
-   - expressions should support for +-/* & brackets
-   - store the end amount as well for each user
-- [ ] add & manage bills, create txn from bill
-- [ ] To check google drive backup implementation without using gcp api
-- [ ] activity history: as new section under settings. Stored as json file. Stores txn or scheduled txn added/updated/deleted/restored with activity timestamp, type (schedule/quickadd/txn), source for non-scheduled txn (manual/schedule/sms/email/…), updated field name+from+to (only for amount, note, date). Clicking on an activity should move to the txn or scheduled txn
-- [ ] trash: no new section on ui. Stored as new field in txn csvs. Any txn delete moves to trash. Activity history for any delete show restore option if the txn was not restored already. 
-- [ ] activate a specific tag to be added to new txns. Configured in settings. To be shown on dashboard. To be added to any txn from sms/email/quick add. To be prefilled in add form, not update form. Not to be used by txn added from scheduled txn.
+Chores:
+- [ ] Hook firebase auto deploy on commit, remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
+- [ ] to check if netlify/firebase on commit deploy can be triggered only if there are changes in webapp folder
+- [ ] squash whole repo changes to single commit to make it public on github.
 
 Bugs:
 - [ ] keyword mapping  
@@ -40,6 +28,42 @@ Bugs:
    - [ ] only if scheduler is being edited make scheduler freq uncollapsed by default
    - [ ] make all the badge list (category, txn type, txn mode, note, tags, location etc) horizontally scrollable
    - [ ] disable swipe left/right on add page only
+   - [ ] rows of txns on selected date has a gap on the right side (looks like gap for action buttons)
+- [ ] settings > about missing for mobile
+
+Features:
+- [ ] Ability to add/update/delete/restore txn offline (only for android app)
+  - website needs to cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
+  - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
+  - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.
+- [ ] Split tool (store as json file)
+   - add multiple people (option to resuse people from older bills)
+   - configure total amount
+   - configure how to split the bill: equally or using expressions for each people
+   - configure total tax expression for each people. Option to choose how to split tax: equally or percentage wise
+   - expressions should support for +-/* & brackets
+   - store the end amount as well for each user
+- [ ] activity history
+  - as new section under settings.
+  - Stored as json file. Stores txn or scheduled txn added/updated/deleted/restored with activity timestamp, type (schedule/quickadd/txn), source for non-scheduled txn (manual/schedule/sms/email/…), updated field name+from+to (only for amount, note, date).
+  - Clicking on an activity should move to the txn or scheduled txn
+- [ ] trash
+  - no new section on ui.
+  - Stored as new field in txn csvs.
+  - Any txn delete moves to trash.
+  - Activity history for any delete should show restore option if the txn was not restored already. 
+- [ ] activate a specific tag to be added to new txns. Configured in settings.
+  - To be shown on dashboard.
+  - To be added to any txn from sms/email/quick add.
+  - To be prefilled in add form, not update form.
+  - Not to be used by txn added from scheduled txn.
+- [ ] add & manage bills, create txn from bill
+- [ ] only for mobile, in dashboard, below cards add a row of tools, with round icons with text below it.
+  - tools to show (whichever is implemented): balance tracker, split tool, bill tracker, activity history. (divide setting menu in 3 sections: settings, tools, about)
+  - for mobile only: these same tools shoud available inside settings menu as well
+  - for non mobile only: these same tools should be available in left side panel
+- [ ] To check feasibility of google drive backup implementation without using gcp
+
 
 ### Older
 
