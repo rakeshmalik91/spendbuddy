@@ -13,6 +13,8 @@ brain
 .kiro
 .vscode
 .idea
+.shai
+.shai_backups
 
 # Node
 node_modules/
