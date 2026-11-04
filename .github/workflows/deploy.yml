@@ -2,6 +2,11 @@
 name: Deploy to Firebase Hosting
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'webapp/**'
   workflow_dispatch:
 
 permissions:

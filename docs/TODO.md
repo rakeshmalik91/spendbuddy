@@ -9,9 +9,10 @@ do not make changes to this file except mark/unmark todo items
 ### 2026.10.19
 
 Chores:
-- [ ] Hook firebase auto deploy on commit, remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
-- [ ] to check if netlify/firebase on commit deploy can be triggered only if there are changes in webapp folder
-- [ ] disable netlify deploy on commit, instead keep it only as a github workflow to be manually run
+- [x] Hook firebase auto deploy on commit
+- [ ] remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
+- [x] disable netlify deploy on commit
+- [x] add netlify auto deploy as github workflow
 - [ ] link android app to firebase instead of netlify
 - [ ] squash whole repo changes to single commit to make it public on github.
 
