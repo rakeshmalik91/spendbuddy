@@ -11,6 +11,8 @@ do not make changes to this file except mark/unmark todo items
 Chores:
 - [ ] Hook firebase auto deploy on commit, remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
 - [ ] to check if netlify/firebase on commit deploy can be triggered only if there are changes in webapp folder
+- [ ] disable netlify deploy on commit, instead keep it only as a github workflow to be manually run
+- [ ] link android app to firebase instead of netlify
 - [ ] squash whole repo changes to single commit to make it public on github.
 
 Bugs:
@@ -27,7 +29,7 @@ Bugs:
    - [ ] collapse tags, location, scheduler frequency under a section
    - [ ] only if scheduler is being edited make scheduler freq uncollapsed by default
    - [ ] make all the badge list (category, txn type, txn mode, note, tags, location etc) horizontally scrollable
-   - [ ] disable swipe left/right on add page only
+   - [x] disable swipe left/right on add page only
    - [ ] rows of txns on selected date has a gap on the right side (looks like gap for action buttons)
 - [ ] settings > about missing for mobile
 
@@ -63,6 +65,7 @@ Features:
   - for mobile only: these same tools shoud available inside settings menu as well
   - for non mobile only: these same tools should be available in left side panel
 - [ ] To check feasibility of google drive backup implementation without using gcp
+- [ ] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least pull down to refresh should completely refresh whole website
 
 
 ### Older

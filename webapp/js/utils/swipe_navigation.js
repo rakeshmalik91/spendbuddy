@@ -18,6 +18,15 @@ export let isPullingDown = false;
 export let ptrDeltaY = 0;
 
 /**
+ * Helper function to check if the add transaction view is currently active.
+ * Swipe navigation should be disabled on the add transaction page.
+ */
+export function isAddViewActive() {
+    const activeView = document.querySelector('.view.active');
+    return activeView && activeView.id === 'view-add';
+}
+
+/**
  * Helper function to check if any modal, bottom sheet, sidebar or fullscreen overlay is currently active.
  * When active, background 1:1 view swiping and pull-to-refresh gestures should be completely disabled.
  */
@@ -65,6 +74,15 @@ document.addEventListener('touchstart', e => {
 document.addEventListener('touchmove', e => {
     if (isAnimatingSwipe) return;
     if (window.innerWidth > 768) return;
+
+    // Disable horizontal swipe navigation (1:1 view swiping) on add transaction page
+    // but allow pull-to-refresh to still work
+    if (isAddViewActive() && !isPullingDown) {
+        if (isSwiping1to1) {
+            cleanupSwipe();
+        }
+        return;
+    }
 
     // Completely ignore swipe movements if any modal, bottom sheet, or sidebar is active
     if (isModalActive(e)) {
