@@ -20,7 +20,7 @@ Bugs:
 - [x] keyword mapping  
    - [x] support to update tags. support for enable/disable.
    - [x] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
-- [x] any refund are getting added as income from dashboard sms suggestion
+- [ ] any refund are getting added as income from dashboard sms suggestion - TO BE VERIFIED
 - [x] visibility prefs > compact view toggle button layout broken. Compact view shouldnt be under hide data. Add hide amount config here too
 - [x] when a tag/note is selected on add or batch update form, focus on the textbox but for touch devices dont open keyboard, unless explicitly tapped on the textbox
 - [x] in dashboard, quick edit button for refunds dont work. Make it work and add the same button for normal txns too
