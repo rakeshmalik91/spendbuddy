@@ -379,7 +379,7 @@ export function openBatchUpdateModal() {
                     }
                     if (tagInput) {
                         tagInput.value = chip.dataset.value;
-                        tagInput.focus();
+                        focusWithoutKeyboard(tagInput);
                     }
                 };
             });

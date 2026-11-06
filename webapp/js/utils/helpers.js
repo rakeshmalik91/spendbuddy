@@ -171,6 +171,11 @@ export async function editScheduledTransaction(idx) {
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = idx;
     $('#edit-index').value = -1;
 
+    const moreBody = document.getElementById('more-section-body');
+    const moreIcon = document.getElementById('more-section-icon');
+    if (moreBody) moreBody.style.display = 'flex';
+    if (moreIcon) moreIcon.textContent = '▼';
+
     // Show expression if it exists, otherwise show the calculated amount
     $('#input-amount').value = st.amountExpression || amountToStr(Math.abs(st.amount));
     $('#input-currency').value = st.currency || 'INR';
@@ -262,4 +267,24 @@ if (typeof window !== 'undefined') {
         window.openDeleteModal = openDeleteModal;
         window.openDeleteMultipleModal = openDeleteMultipleModal;
     });
+}
+
+
+/**
+ * Focuses on an input element without automatically opening the software virtual keyboard
+ * on touch devices, while still placing caret/focus and allowing explicit taps to type.
+ * @param {HTMLElement} inputEl
+ */
+export function focusWithoutKeyboard(inputEl) {
+    if (!inputEl) return;
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    if (isTouch) {
+        inputEl.readOnly = true;
+        inputEl.focus({ preventScroll: true });
+        setTimeout(() => {
+            inputEl.readOnly = false;
+        }, 150);
+    } else {
+        inputEl.focus();
+    }
 }

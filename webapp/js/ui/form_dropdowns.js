@@ -1,7 +1,7 @@
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY } from "../../config.js";
 import { renderChartsPage } from "./charts.js";
 import { $$, $ } from "../core/init.js";
-import { escHtml, isRefundTxn } from "../utils/helpers.js";
+import { escHtml, isRefundTxn, focusWithoutKeyboard } from "../utils/helpers.js";
 import { state } from "../core/state.js";
 import { updateTimeFilterUI } from "./time_filter.js";
 import { evaluateExpression, getIsFormSubmitting, recordFormFillTime, setCategoryManuallyChanged, setTxnModeManuallyChanged, setTxnTypeManuallyChanged } from "./form.js";
@@ -322,7 +322,7 @@ export function populateNoteSuggestions() {
                 noteInput.value = val;
             }
             noteInput.dispatchEvent(new Event('input'));
-            noteInput.focus();
+            focusWithoutKeyboard(noteInput);
         });
     });
 }
@@ -472,7 +472,7 @@ export function populateTagSuggestions() {
                 chip.classList.add('active');
                 tagInput.value = val;
             }
-            tagInput.focus();
+            focusWithoutKeyboard(tagInput);
         });
     });
 }

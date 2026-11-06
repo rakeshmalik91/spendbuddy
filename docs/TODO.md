@@ -10,28 +10,29 @@ do not make changes to this file except mark/unmark todo items
 
 Chores:
 - [x] Hook firebase auto deploy on commit
+- [x] remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
 - [x] disable netlify deploy on commit
 - [x] add netlify auto deploy as github workflow
 - [ ] link android app to firebase instead of netlify
 - [ ] squash whole repo changes to single commit to make it public on github.
 
 Bugs:
-- [ ] keyword mapping  
-   - [ ] support to update tags. support for enable/disable.
-   - [ ] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
-- [ ] any refund are getting added as income from dashboard sms suggestion
-- [ ] visibility prefs > compact view toggle button layout broken. Compact view shouldnt be under hide data. Add hide amount config here too
-- [ ] when a tag/note is selected on add or batch update form, focus on the textbox but for touch devices dont open keyboard, unless explicitly tapped on the textbox
-- [ ] in dashboard, quick edit button for refunds dont work. Make it work and add the same button for normal txns too
-- [ ] txn page > top most row > context menu going behind table header
-- [ ] txn page (mobile only) > filters have a large gap at bottom when expanded
-- [ ] add txn page (mobile only)
-   - [ ] collapse tags, location, scheduler frequency under a section
-   - [ ] only if scheduler is being edited make scheduler freq uncollapsed by default
-   - [ ] make all the badge list (category, txn type, txn mode, note, tags, location etc) horizontally scrollable
+- [x] keyword mapping  
+   - [x] support to update tags. support for enable/disable.
+   - [x] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
+- [x] any refund are getting added as income from dashboard sms suggestion
+- [x] visibility prefs > compact view toggle button layout broken. Compact view shouldnt be under hide data. Add hide amount config here too
+- [x] when a tag/note is selected on add or batch update form, focus on the textbox but for touch devices dont open keyboard, unless explicitly tapped on the textbox
+- [x] in dashboard, quick edit button for refunds dont work. Make it work and add the same button for normal txns too
+- [x] txn page > top most row > context menu going behind table header
+- [x] txn page (mobile only) > filters have a large gap at bottom when expanded
+- [x] add txn page (mobile only)
+   - [x] collapse tags, location, scheduler frequency under a section
+   - [x] only if scheduler is being edited make scheduler freq uncollapsed by default
+   - [x] make all the badge list (category, txn type, txn mode, note, tags, location etc) horizontally scrollable
    - [x] disable swipe left/right on add page only
-   - [ ] rows of txns on selected date has a gap on the right side (looks like gap for action buttons)
-- [ ] settings > about missing for mobile
+   - [x] rows of txns on selected date has a gap on the right side (looks like gap for action buttons)
+- [x] settings > about missing for mobile
 
 Features:
 - [ ] Ability to add/update/delete/restore txn offline (only for android app)

@@ -301,6 +301,9 @@
             <button class="nav-btn" data-view="settings" id="nav-settings" title="Settings">
                 <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
             </button>
+            <button class="nav-btn" data-view="about" id="nav-about" title="About">
+                <span class="nav-icon">ℹ️</span> <span class="nav-text">About</span>
+            </button>
             <div class="sidebar-spacer" style="flex: 1;"></div>
             <button class="nav-btn" id="nav-lock" title="Lock App">
                 <span class="nav-icon">🔒</span> <span class="nav-text">Lock App</span>
@@ -700,6 +703,15 @@
                                 <input type="hidden" id="input-txn-type">
                                 <div id="txnmode-chips" class="chip-group"></div>
                             </div>
+                            <!-- Collapsible More Options Section (Mobile Only) -->
+                            <div class="form-group full-width form-collapsible-section" id="add-more-section" style="margin-top: 4px;">
+                                <button type="button" class="btn-toggle-section" id="btn-toggle-more-section" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-weight: 500; font-size: 0.95rem; cursor: pointer; transition: background 0.2s;">
+                                    <span style="display: flex; align-items: center; gap: 8px;">
+                                        <span>⚙️</span> <span id="more-section-title">More Options (Location, Tag, Frequency)</span>
+                                    </span>
+                                    <span id="more-section-icon" style="transition: transform 0.2s; font-size: 0.8rem; color: var(--text-muted);">▶</span>
+                                </button>
+                                <div class="collapsible-section-body" id="more-section-body" style="display: none; flex-direction: column; gap: 16px; margin-top: 14px;">
                             <div class="form-group full-width">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                     <label for="input-location" style="margin-bottom: 0;">Location</label>
@@ -819,6 +831,8 @@
                                 </div>
                             </div>
 
+                                </div>
+                            </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary" id="btn-submit">Add Entry</button>
                                 <button type="button" class="btn btn-ghost" id="btn-cancel" style="display:none;">Cancel
@@ -1219,6 +1233,7 @@
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
                 </div>
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
 
             <!-- ── ABOUT VIEW ── -->
@@ -1247,6 +1262,7 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
 
             <!-- ── VISIBILITY VIEW ── -->
@@ -1259,6 +1275,7 @@
                 </div>
 
                 <div class="settings-grid">
+                    <!-- Hide Data Card -->
                     <div class="card">
                         <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
                             <span>👁️</span> Hide Data
@@ -1268,49 +1285,71 @@
                         </p>
 
                         <!-- Hide Income Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Income</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude income records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding income">
                                 <input type="checkbox" id="toggle-hide-income">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
                         <!-- Hide Investments Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Investments</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude investment records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding investments">
                                 <input type="checkbox" id="toggle-hide-investment">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
                         <!-- Hide Transfers Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
+                            <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Transfers</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude transfer records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding transfers">
                                 <input type="checkbox" id="toggle-hide-transfer">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
+                    </div>
+
+                    <!-- Display Preferences Card (Compact view & Hide amounts) -->
+                    <div class="card">
+                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span>🎛️</span> Display Preferences
+                        </h2>
+                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
+                            Customize data density, badge presentation, and privacy masking.
+                        </p>
 
                         <!-- Compact View Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
-                            <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; color: var(--text-main);">Compact View</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes for a clean display</div>
                             </div>
-                            <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
                                 <input type="checkbox" id="toggle-hide-source-txnid-settings">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <!-- Hide Amounts Toggle -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500; color: var(--text-main);">Hide Amounts</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Mask numerical amount values with "✦✦✦✦.✦✦" across dashboard cards and summary widgets</div>
+                            </div>
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding amounts">
+                                <input type="checkbox" id="toggle-hide-amount-settings">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -1326,14 +1365,14 @@
                         </p>
 
                         <!-- Merge Refunds Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
-                            <div style="max-width: 80%;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
+                            <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 500; color: var(--text-main);">Merge Refunds with Expenses</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">
                                     Auto-group matching refunds into collapsible expense rows to show net amounts. When disabled, refunds appear as independent standalone entries.
                                 </div>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle merge refunds">
                                 <input type="checkbox" id="toggle-merge-refunds">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -1374,8 +1413,10 @@
                             <table class="data-table" id="keyword-mapping-table">
                                 <thead>
                                     <tr>
+                                        <th data-col="status" style="width: 60px; text-align: center;">Active</th>
                                         <th data-col="keyword">Keyword</th>
                                         <th data-col="category">Category</th>
+                                        <th data-col="tag">Tag</th>
                                         <th data-col="txntype">Txn Type</th>
                                         <th data-col="txnmode">Txn Mode</th>
                                         <th data-col="actions" style="text-align: right;">Actions</th>
@@ -1969,6 +2010,13 @@
                     </div>
 
                     <div>
+                        <label for="kw-input-tag" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                            Tag Override
+                        </label>
+                        <input type="text" id="kw-input-tag" class="form-control" placeholder="e.g. Vacation, Office, Tax" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
+                    </div>
+
+                    <div>
                         <label for="kw-input-txntype" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
                             Transaction Type Override
                         </label>
@@ -1984,6 +2032,18 @@
                         <select id="kw-input-txnmode" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
                             <!-- Populated dynamically -->
                         </select>
+                    </div>
+                </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-subtle); margin-top: 4px;">
+                        <div>
+                            <div style="font-weight: 500; color: var(--text-main); font-size: 0.95rem;">Rule Active</div>
+                            <div style="font-size: 0.82rem; color: var(--text-dim); margin-top: 2px;">Enable or disable this keyword mapping rule</div>
+                        </div>
+                        <label class="toggle-switch" style="flex-shrink: 0;" title="Enable or disable rule">
+                            <input type="checkbox" id="kw-input-enabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 

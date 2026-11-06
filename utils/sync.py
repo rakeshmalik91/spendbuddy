@@ -22,25 +22,12 @@ try:
 except ImportError:
     HAS_CRYPTO = False
 
+API_KEY = "AIzaSyDP7TynxQU7mJTulz9aji8apJ_b5-x6Rvo"
+AUTH_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}"
+BUCKET_API_URL = "https://firebasestorage.googleapis.com/v0/b/expense-manager-iq.firebasestorage.app/o"
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'data'))
-
-API_KEY = "AIzaSyDP7TynxQU7mJTulz9aji8apJ_b5-x6Rvo"
-STORAGE_BUCKET = "expense-manager-iq.firebasestorage.app"
-
-# Load credentials from git-crypt protected credentials file if present
-CREDENTIALS_FILE = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'firebase-credentials.json'))
-if os.path.exists(CREDENTIALS_FILE):
-    try:
-        with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
-            creds = json.load(f)
-            API_KEY = creds.get('apiKey', API_KEY)
-            STORAGE_BUCKET = creds.get('storageBucket', STORAGE_BUCKET)
-    except Exception:
-        pass
-
-AUTH_URL = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={API_KEY}"
-BUCKET_API_URL = f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o"
 
 parser = argparse.ArgumentParser(description='Sync Firebase data locally.')
 parser.add_argument('-e', '--email', type=str, help='Email address to sync')

@@ -25,6 +25,7 @@ let lastFormFillTime = 0;
 let isCategoryManuallyChanged = false;
 let isTxnModeManuallyChanged = false;
 let isTxnTypeManuallyChanged = false;
+let isTagManuallyChanged = false;
 
 export function setCategoryManuallyChanged(val = true) {
     isCategoryManuallyChanged = !!val;
@@ -538,6 +539,18 @@ export function setupForm() {
     $('#input-date').dispatchEvent(new Event('change'));
     prefillLocation();
 
+    const btnToggleMore = $('#btn-toggle-more-section');
+    if (btnToggleMore) {
+        btnToggleMore.addEventListener('click', () => {
+            const moreBody = $('#more-section-body');
+            const moreIcon = $('#more-section-icon');
+            if (!moreBody) return;
+            const isVisible = moreBody.style.display === 'flex';
+            moreBody.style.display = isVisible ? 'none' : 'flex';
+            if (moreIcon) moreIcon.textContent = isVisible ? '▶' : '▼';
+        });
+    }
+
     $('#input-amount')?.addEventListener('input', (e) => {
         const val = e.target.value;
         const errEl = $('#amount-error');
@@ -585,6 +598,15 @@ export function setupForm() {
                     }
                 }
             }
+
+            // Only infer tag if left untouched by user and custom mapping specifies tag
+            if (!isTagManuallyChanged && !currentSelectedSuggestionTxn) {
+                const rule = findMatchingKeywordRule(val);
+                if (rule && rule.tag && $('#input-tag')) {
+                    $('#input-tag').value = rule.tag;
+                    syncChips('#tag-suggestions', rule.tag);
+                }
+            }
         }
     });
 
@@ -596,6 +618,9 @@ export function setupForm() {
     });
     $('#input-transaction-type')?.addEventListener('change', () => {
         isTxnTypeManuallyChanged = true;
+    });
+    $('#input-tag')?.addEventListener('input', () => {
+        isTagManuallyChanged = true;
     });
 
     // We can expose updateTxnTypeAuto globally for category changes
@@ -1106,6 +1131,14 @@ export function resetForm(force = false) {
     isCategoryManuallyChanged = false;
     isTxnModeManuallyChanged = false;
     isTxnTypeManuallyChanged = false;
+    isTagManuallyChanged = false;
+
+    const moreBody = $('#more-section-body');
+    const moreIcon = $('#more-section-icon');
+    if (window.innerWidth <= 860) {
+        if (moreBody) moreBody.style.display = 'none';
+        if (moreIcon) moreIcon.textContent = '▶';
+    }
 
     if (typeof renderSelectedDayTransactions === 'function') {
         renderSelectedDayTransactions();
@@ -1157,6 +1190,13 @@ export async function editEntry(idx) {
     $('#btn-submit').style.display = 'inline-block';
     $('#btn-cancel').style.display = 'inline-flex';
     updateFormActionButtons();
+
+    const moreBody = $('#more-section-body');
+    const moreIcon = $('#more-section-icon');
+    if (window.innerWidth <= 860) {
+        if (moreBody) moreBody.style.display = 'none';
+        if (moreIcon) moreIcon.textContent = '▶';
+    }
     switchView('add');
 }
 

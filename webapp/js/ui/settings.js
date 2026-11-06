@@ -533,6 +533,32 @@ export function setupSettings() {
         });
     }
 
+    const toggleHideAmount = $('#toggle-hide-amount-settings');
+    if (toggleHideAmount) {
+        toggleHideAmount.checked = Boolean(state.hideAmounts);
+        toggleHideAmount.addEventListener('change', async (e) => {
+            state.hideAmounts = e.target.checked;
+            localStorage.setItem('expman_hide_amounts', e.target.checked ? 'true' : 'false');
+            try { await updateUserSettings({ ui: { hideAmounts: state.hideAmounts } }); } catch(err) { console.error('Failed to sync hideAmounts to cloud', err); }
+            toast(e.target.checked ? 'Amounts masked' : 'Amounts visible', 'info');
+            onSettingsChanged();
+            if (typeof window.renderAll === 'function') window.renderAll();
+        });
+    }
+
+    const toggleHideAmount = $('#toggle-hide-amount-settings');
+    if (toggleHideAmount) {
+        toggleHideAmount.checked = Boolean(state.hideAmounts);
+        toggleHideAmount.addEventListener('change', async (e) => {
+            state.hideAmounts = e.target.checked;
+            localStorage.setItem('expman_hide_amounts', e.target.checked ? 'true' : 'false');
+            try { await updateUserSettings({ ui: { hideAmounts: state.hideAmounts } }); } catch(err) { console.error('Failed to sync hideAmounts to cloud', err); }
+            toast(e.target.checked ? 'Amounts masked' : 'Amounts visible', 'info');
+            onSettingsChanged();
+            if (typeof window.renderAll === 'function') window.renderAll();
+        });
+    }
+
     updateAccountView();
 }
 
