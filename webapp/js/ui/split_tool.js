@@ -379,25 +379,25 @@ function recalculateAndRenderParticipants() {
     tableBody.innerHTML = (activeBill.participants || []).map((p, idx) => {
         return `
             <tr data-person-idx="${idx}">
-                <td style="padding: 8px 6px;">
+                <td data-label="Person" style="padding: 8px 6px;">
                     <input type="text" class="form-control split-person-name" data-idx="${idx}" value="${escHtml(p.name)}" placeholder="Person Name" style="width: 100%; min-width: 100px; padding: 6px 10px; font-size: 0.9rem;" />
                 </td>
-                <td style="padding: 8px 6px;">
+                <td data-label="Base Share" style="padding: 8px 6px;">
                     <div style="position: relative;">
                         <input type="text" class="form-control split-person-expr" data-idx="${idx}" value="${escHtml(p.expression || '')}" ${!isExpressionSplit ? 'readonly' : ''} placeholder="${isExpressionSplit ? 'e.g. 250+50' : 'Equal'}" style="width: 100%; min-width: 110px; padding: 6px 10px; font-size: 0.9rem; ${!isExpressionSplit ? 'background: rgba(255,255,255,0.03); color: var(--text-dim);' : ''}" />
                         ${isExpressionSplit ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">= ₹${roundAmount(p.baseAmount)}</div>` : ''}
                     </div>
                 </td>
-                <td style="padding: 8px 6px; text-align: right; font-size: 0.88rem; color: var(--yellow);">
+                <td data-label="Tax Share" style="padding: 8px 6px; text-align: right; font-size: 0.88rem; color: var(--yellow);">
                     ₹${roundAmount(p.taxAmount)}
                 </td>
-                <td style="padding: 8px 6px; text-align: right;">
+                <td data-label="Total" style="padding: 8px 6px; text-align: right;">
                     <span style="font-weight: 700; color: var(--accent); font-size: 1rem;">₹${roundAmount(p.endAmount)}</span>
                 </td>
-                <td style="padding: 8px 6px; text-align: center;">
+                <td data-label="Paid" style="padding: 8px 6px; text-align: center;">
                     <input type="checkbox" class="split-person-paid" data-idx="${idx}" ${p.isPaid ? 'checked' : ''} title="Mark Paid" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
                 </td>
-                <td style="padding: 8px 4px; text-align: right;">
+                <td data-label="Remove" style="padding: 8px 4px; text-align: right;">
                     <button type="button" class="btn btn-sm btn-ghost" onclick="window.removePersonFromSplit(${idx})" title="Remove person" style="color: var(--text-muted); padding: 4px 6px; line-height: 1;">&times;</button>
                 </td>
             </tr>

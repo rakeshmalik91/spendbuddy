@@ -883,3 +883,123 @@
         align-items: stretch !important;
     }
 }
+
+/* Split bill editor: compact, readable participant cards on phones. */
+@media (max-width: 600px) {
+    #split-editor-card {
+        padding: 16px !important;
+        margin-left: 0;
+        margin-right: 0;
+        min-width: 0;
+    }
+
+    #split-editor-card .table-wrap {
+        overflow: visible;
+        width: 100%;
+    }
+
+    #split-participants-table,
+    #split-participants-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    #split-participants-table tbody tr {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px 12px;
+        width: 100%;
+        padding: 14px !important;
+        margin: 0 0 12px;
+        box-sizing: border-box;
+        border-radius: 16px;
+    }
+
+    #split-participants-table tbody td {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch !important;
+        justify-content: center;
+        width: auto !important;
+        min-width: 0;
+        padding: 0 !important;
+        border: 0 !important;
+        text-align: left !important;
+        white-space: normal;
+        gap: 5px;
+    }
+
+    #split-participants-table tbody td::before {
+        display: block !important;
+        content: attr(data-label);
+        font-size: 0.68rem;
+        font-weight: 650;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    #split-participants-table tbody td:nth-child(1),
+    #split-participants-table tbody td:nth-child(2) {
+        grid-column: 1 / -1;
+    }
+
+    #split-participants-table tbody td:nth-child(3),
+    #split-participants-table tbody td:nth-child(4) {
+        align-items: flex-start !important;
+        min-height: 42px;
+    }
+
+    #split-participants-table tbody td:nth-child(3) {
+        color: var(--yellow);
+    }
+
+    #split-participants-table tbody td:nth-child(4) span {
+        font-size: 1.05rem !important;
+    }
+
+    #split-participants-table tbody td:nth-child(5),
+    #split-participants-table tbody td:nth-child(6) {
+        flex-direction: row;
+        align-items: center !important;
+        justify-content: flex-start;
+        min-height: 32px;
+    }
+
+    #split-participants-table tbody td:nth-child(5)::before,
+    #split-participants-table tbody td:nth-child(6)::before {
+        margin-right: 4px;
+    }
+
+    #split-participants-table .split-person-name,
+    #split-participants-table .split-person-expr {
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+    }
+
+    #split-editor-card .split-method-tab,
+    #split-editor-card .tax-method-tab {
+        min-width: 0;
+        white-space: normal;
+        line-height: 1.25;
+        padding: 10px 8px;
+    }
+
+    #split-editor-card #btn-add-split-person {
+        flex-shrink: 0;
+    }
+
+    #split-editor-card #split-balance-indicator {
+        overflow-wrap: anywhere;
+    }
+
+    #split-editor-card > div:last-child {
+        flex-wrap: wrap;
+    }
+
+    #split-editor-card > div:last-child button {
+        flex: 1 1 120px;
+    }
+}
