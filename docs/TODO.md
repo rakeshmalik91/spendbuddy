@@ -10,7 +10,6 @@ do not make changes to this file except mark/unmark todo items
 
 Chores:
 - [x] Hook firebase auto deploy on commit
-- [ ] remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
 - [x] disable netlify deploy on commit
 - [x] add netlify auto deploy as github workflow
 - [ ] link android app to firebase instead of netlify

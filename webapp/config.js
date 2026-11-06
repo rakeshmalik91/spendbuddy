@@ -1,12 +1,5 @@
-export const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDP7TynxQU7mJTulz9aji8apJ_b5-x6Rvo",
-    authDomain: "expense-manager-iq.firebaseapp.com",
-    projectId: "expense-manager-iq",
-    storageBucket: "expense-manager-iq.firebasestorage.app",
-    messagingSenderId: "596670983606",
-    appId: "1:596670983606:web:f368a0b6043d3895236517",
-    measurementId: "G-XFVKNZHT46"
-};
+// Firebase configuration is loaded from a separate credentials file encrypted with git-crypt
+export { FIREBASE_CONFIG } from './firebase-credentials.js';
 
 export const USE_LOCAL_DATA = false;
 
@@ -85,4 +78,3 @@ export const TXN_SOURCE_EMAIL_PREFIX = 'Email:';
 export const GOOGLE_DRIVE_CLIENT_ID = '596670983606-f368a0b6043d3895236517.apps.googleusercontent.com';
 export const GOOGLE_DRIVE_BACKUP_FOLDER = 'SpendBuddy Backups';
 export const GOOGLE_DRIVE_BACKUP_PREFIX = 'SpendBuddy_Backup_';
-
