@@ -130,6 +130,9 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.totalAmount).toBe(1500);
             expect(result.taxAmount).toBe(180);
             expect(result.grandTotal).toBe(1680);
+            expect(result.remainingBase).toBe(0);
+            expect(result.remainingTax).toBe(0);
+            expect(result.remainingInclusive).toBe(0);
 
             // Alice gets 40% of 180 = 72
             expect(result.participants[0].baseAmount).toBe(600);
@@ -143,6 +146,21 @@ describe('Split Tool & Expression Calculations', () => {
 
             // Sum of end amounts equals grand total
             expect(result.participants[0].endAmount + result.participants[1].endAmount).toBe(1680);
+        });
+
+        it('reports remaining amounts both tax-exclusive and tax-inclusive', () => {
+            const result = calculateSplit({
+                totalAmountExpr: '1000',
+                taxExpr: '18%',
+                splitMethod: 'expression',
+                taxSplitMethod: 'percentage',
+                participants: [{ id: '1', name: 'Alice', expression: '400' }]
+            });
+
+            expect(result.grandTotal).toBe(1180);
+            expect(result.remainingBase).toBe(600);
+            expect(result.remainingTax).toBe(108);
+            expect(result.remainingInclusive).toBe(708);
         });
 
         it('distributes tax equally among participants', () => {

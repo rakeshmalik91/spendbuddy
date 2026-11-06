@@ -454,44 +454,39 @@ function recalculateAndRenderParticipants() {
 function updateAllocationSummaryBar() {
     if (!activeBill) return;
 
-    const baseTotal = activeBill.totalAmount || 0;
-    const allocated = activeBill.allocatedBase || 0;
-    const remaining = roundAmount(baseTotal - allocated);
-    const taxTotal = activeBill.taxAmount || 0;
-    const grandTotal = activeBill.grandTotal || (baseTotal + taxTotal);
+    const baseTotal = Number(activeBill.totalAmount) || 0;
+    const allocated = Number(activeBill.allocatedBase) || 0;
+    const remainingExclusive = roundAmount(baseTotal - allocated);
+    const taxTotal = Number(activeBill.taxAmount) || 0;
+    const allocatedTax = roundAmount((activeBill.participants || []).reduce((sum, p) => sum + (Number(p.taxAmount) || 0), 0));
+    const remainingTax = roundAmount(taxTotal - allocatedTax);
+    const grandTotal = roundAmount(baseTotal + taxTotal);
+    const remainingInclusive = roundAmount(remainingExclusive + remainingTax);
 
     const indicator = $('#split-balance-indicator');
     if (!indicator) return;
 
-    if (activeBill.splitMethod === 'equal') {
-        indicator.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.9rem; flex-wrap: wrap; gap: 8px;">
-                <span style="color: var(--green); font-weight: 600;">✓ Equal Split Active (${activeBill.participants.length} people)</span>
-                <div>
-                    <span style="color: var(--text-muted);">Base: <strong>₹${baseTotal}</strong></span> &bull; 
-                    <span style="color: var(--yellow);">Tax: <strong>₹${taxTotal}</strong></span> &bull; 
-                    <span style="color: var(--accent); font-weight: 800;">Grand Total: ₹${grandTotal}</span>
-                </div>
-            </div>
-        `;
-    } else {
-        const isBalanced = Math.abs(remaining) < 0.05;
-        const color = isBalanced ? 'var(--green)' : (remaining > 0 ? 'var(--yellow)' : 'var(--red)');
-        const statusText = isBalanced 
-            ? '✓ Perfectly Balanced' 
-            : (remaining > 0 ? `Remaining to allocate: ₹${remaining}` : `Overallocated by: ₹${Math.abs(remaining)}`);
+    const isBalanced = Math.abs(remainingExclusive) < 0.05 && Math.abs(remainingTax) < 0.05;
+    const color = isBalanced ? 'var(--green)' : (remainingExclusive > 0 ? 'var(--yellow)' : 'var(--red)');
+    const statusText = activeBill.splitMethod === 'equal'
+        ? `✓ Equal Split Active (${activeBill.participants.length} people)`
+        : (isBalanced
+            ? '✓ Perfectly Balanced'
+            : (remainingExclusive >= 0
+                ? 'Remaining to allocate'
+                : 'Overallocated'));
 
-        indicator.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.9rem; flex-wrap: wrap; gap: 8px;">
-                <span style="color: ${color}; font-weight: 600;">${statusText}</span>
-                <div>
-                    <span style="color: var(--text-muted);">Allocated: ₹${allocated} / ₹${baseTotal}</span> &bull; 
-                    <span style="color: var(--yellow);">Tax: ₹${taxTotal}</span> &bull; 
-                    <span style="color: var(--accent); font-weight: 800;">Grand Total: ₹${grandTotal}</span>
-                </div>
+    indicator.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; font-size: 0.9rem; flex-wrap: wrap; gap: 8px;">
+            <span style="color: ${color}; font-weight: 600;">${statusText}</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <span style="color: var(--text-muted);">Remaining (excl. tax): <strong>₹${remainingExclusive}</strong></span>
+                <span style="color: var(--text-muted);">Remaining (incl. tax): <strong>₹${remainingInclusive}</strong></span>
+                <span style="color: var(--text-muted);">Tax remaining: <strong>₹${remainingTax}</strong></span>
+                <span style="color: var(--accent); font-weight: 800;">Total Bill (incl. tax): ₹${grandTotal}</span>
             </div>
-        `;
-    }
+        </div>
+    `;
 }
 
 /**
@@ -586,7 +581,7 @@ export function copySplitBreakdown(billId) {
     const lines = [];
     lines.push(`🧾 Split Bill: ${bill.title || 'Untitled Bill'}`);
     lines.push(`📅 Date: ${bill.date || 'N/A'}`);
-    lines.push(`💵 Total Bill: ₹${bill.totalAmount} | Tax: ₹${bill.taxAmount || 0} | Grand Total: ₹${bill.grandTotal || (bill.totalAmount + (bill.taxAmount || 0))}`);
+    lines.push(`💵 Total Bill (tax inclusive): ₹${bill.grandTotal || (bill.totalAmount + (bill.taxAmount || 0))} | Base (tax exclusive): ₹${bill.totalAmount} | Tax: ₹${bill.taxAmount || 0}`);
     lines.push(`----------------------------------`);
     (bill.participants || []).forEach(p => {
         lines.push(`• ${p.name}: ₹${roundAmount(p.endAmount)} ${p.taxAmount > 0 ? `(Base: ₹${p.baseAmount} + Tax: ₹${p.taxAmount})` : ''} [${p.isPaid ? 'PAID' : 'PENDING'}]`);

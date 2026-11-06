@@ -1848,10 +1848,10 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
                         <div>
                             <label for="split-input-total" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
-                                Total Bill Amount (Supports + - * / and ()) <span style="color: var(--red);">*</span>
+                                Bill Amount (tax exclusive; supports + - * / and ()) <span style="color: var(--red);">*</span>
                             </label>
                             <input type="text" id="split-input-total" class="form-control" placeholder="e.g. 1500 or (350*3)+450" style="width: 100%;" />
-                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter final bill amount or math expression</small>
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the amount before tax; tax / tip / surcharge is added to calculate the tax-inclusive total</small>
                         </div>
                         <div>
                             <label for="split-input-tax" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">

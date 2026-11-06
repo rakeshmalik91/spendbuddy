@@ -180,7 +180,11 @@ export function calculateSplit(billData) {
     bill.participants = participants;
     bill.allocatedBase = roundAmount(totalBase);
     bill.remainingBase = roundAmount(bill.totalAmount - totalBase);
+    const allocatedTax = participants.reduce((sum, p) => sum + (Number(p.taxAmount) || 0), 0);
+    bill.allocatedTax = roundAmount(allocatedTax);
+    bill.remainingTax = roundAmount(bill.taxAmount - allocatedTax);
     bill.grandTotal = roundAmount(bill.totalAmount + bill.taxAmount);
+    bill.remainingInclusive = roundAmount(bill.remainingBase + bill.remainingTax);
 
     return bill;
 }
