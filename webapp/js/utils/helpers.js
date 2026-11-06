@@ -1,4 +1,3 @@
-import { evaluateExpression } from "../ui/form.js";
 import { state } from "../core/state.js";
 
 /* ══════════════ RE-EXPORTS FROM SPLIT MODULES ══════════════
@@ -264,5 +263,3 @@ if (typeof window !== 'undefined') {
         window.openDeleteMultipleModal = openDeleteMultipleModal;
     });
 }
-
-export { evaluateExpression };

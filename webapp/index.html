@@ -457,11 +457,11 @@
                     <div class="dashboard-tools-header">Tools</div>
                     <div class="dashboard-tools-row">
                         <button type="button" class="dashboard-tool-btn" onclick="window.switchView('balance')" title="Balance Tracker">
-                            <div class="tool-icon-circle">💰</div>
+                            <span class="tool-icon-circle">💰</span>
                             <span class="tool-label">Balance</span>
                         </button>
                         <button type="button" class="dashboard-tool-btn" onclick="window.switchView('split')" title="Split Tool">
-                            <div class="tool-icon-circle">➗</div>
+                            <span class="tool-icon-circle">➗</span>
                             <span class="tool-label">Split Tool</span>
                         </button>
                     </div>
@@ -1800,7 +1800,7 @@
             <section class="view" id="view-split">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.switchView(state.previousView || 'dashboard')">
+                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.switchView('dashboard')">
                         <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
                         <h1 class="view-title" style="margin-bottom: 0;">Split Tool</h1>
                     </div>
