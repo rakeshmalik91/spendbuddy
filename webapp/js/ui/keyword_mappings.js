@@ -63,7 +63,6 @@ export function renderKeywordMappings(filterText = '') {
         mappings = mappings.filter(m =>
             (m.keyword || '').toLowerCase().includes(filterText) ||
             (m.category || '').toLowerCase().includes(filterText) ||
-            (m.tag || '').toLowerCase().includes(filterText) ||
             (m.txnType || '').toLowerCase().includes(filterText) ||
             (m.txnMode || '').toLowerCase().includes(filterText)
         );
@@ -73,15 +72,15 @@ export function renderKeywordMappings(filterText = '') {
         if (state.keywordMappings.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 28px 16px;">
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 28px 16px;">
                         No custom keyword rules configured yet.<br>
-                        Click <strong>"+ Add Rule"</strong> to override default category, tag, type, or mode for specific merchants/keywords.
+                        Click <strong>"+ Add Rule"</strong> to override default category, type, or mode for specific merchants/keywords.
                     </td>
                 </tr>`;
         } else {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 16px;">
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 16px;">
                         No keyword rules match "${escHtml(filterText)}".
                     </td>
                 </tr>`;
@@ -91,14 +90,9 @@ export function renderKeywordMappings(filterText = '') {
 
     tbody.innerHTML = mappings.map((rule) => {
         const origIndex = state.keywordMappings.indexOf(rule);
-        const isEnabled = rule.enabled !== false;
         const resolvedCategory = resolveCategoryName(rule.category, state.categories);
         const categoryDisplay = resolvedCategory
             ? `<span style="font-weight: 500; color: var(--text-main);">${escHtml(resolvedCategory)}</span>`
-            : `<span style="color: var(--text-muted); font-style: italic;">—</span>`;
-
-        const tagDisplay = rule.tag
-            ? `<span class="badge-tag" title="Tag: ${escHtml(rule.tag)}">🏷️ ${escHtml(rule.tag)}</span>`
             : `<span style="color: var(--text-muted); font-style: italic;">—</span>`;
 
         const normalizedType = normalizeTxnType(rule.txnType);
@@ -113,23 +107,14 @@ export function renderKeywordMappings(filterText = '') {
             ? `<span style="font-weight: 500; color: var(--text-main);">${escHtml(resolvedMode)}</span>`
             : `<span style="color: var(--text-muted); font-style: italic;">—</span>`;
 
-        const rowOpacity = isEnabled ? '1' : '0.55';
-
         return `
-            <tr data-index="${origIndex}" style="opacity: ${rowOpacity};">
-                <td data-label="Status" style="text-align: center;">
-                    <label class="toggle-switch" style="transform: scale(0.8); margin: 0 auto; display: inline-block;" title="${isEnabled ? 'Disable rule' : 'Enable rule'}">
-                        <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="window.toggleKeywordMappingEnabled(${origIndex}, this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </td>
+            <tr data-index="${origIndex}">
                 <td data-label="Keyword">
-                    <span class="kw-keyword-badge" style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 0.95rem; background: rgba(59, 130, 246, 0.08); padding: 2px 6px; border-radius: 4px; display: inline-block; max-width: 100%; word-break: break-word; overflow-wrap: anywhere; white-space: normal;">
+                    <span style="font-weight: 600; color: var(--accent); font-family: monospace; font-size: 0.95rem; background: rgba(59, 130, 246, 0.08); padding: 2px 6px; border-radius: 4px;">
                         ${escHtml(rule.keyword)}
                     </span>
                 </td>
                 <td data-label="Category">${categoryDisplay}</td>
-                <td data-label="Tag">${tagDisplay}</td>
                 <td data-label="Txn Type">${txnTypeBadge}</td>
                 <td data-label="Txn Mode">${txnModeDisplay}</td>
                 <td data-label="Actions">
@@ -144,6 +129,10 @@ export function renderKeywordMappings(filterText = '') {
     }).join('');
 }
 
+/**
+ * Opens the add or edit modal for a keyword rule.
+ * @param {number} index - Index of rule to edit, or -1 for a new rule
+ */
 export function openKeywordMappingModal(index = -1) {
     currentEditingIndex = index;
     const overlay = $('#keyword-mapping-modal-overlay');
@@ -151,11 +140,9 @@ export function openKeywordMappingModal(index = -1) {
 
     const titleEl = $('#kw-modal-title');
     const inputKeyword = $('#kw-input-keyword');
-    const inputTag = $('#kw-input-tag');
     const selectCategory = $('#kw-input-category');
     const selectTxnType = $('#kw-input-txntype');
     const selectTxnMode = $('#kw-input-txnmode');
-    const inputEnabled = $('#kw-input-enabled');
 
     // Populate category dropdown
     selectCategory.innerHTML = `<option value="">-- No Category Override --</option>` +
@@ -174,8 +161,6 @@ export function openKeywordMappingModal(index = -1) {
         const rule = state.keywordMappings[index];
         titleEl.textContent = 'Edit Keyword Mapping';
         inputKeyword.value = rule.keyword || '';
-        if (inputTag) inputTag.value = rule.tag || '';
-        if (inputEnabled) inputEnabled.checked = rule.enabled !== false;
 
         if (rule.category) {
             const cleanCat = stripEmojiPrefix(rule.category).toLowerCase();
@@ -203,8 +188,6 @@ export function openKeywordMappingModal(index = -1) {
     } else {
         titleEl.textContent = 'Add Keyword Mapping';
         inputKeyword.value = '';
-        if (inputTag) inputTag.value = '';
-        if (inputEnabled) inputEnabled.checked = true;
         selectCategory.value = '';
         selectTxnType.value = '';
         selectTxnMode.value = '';
@@ -232,18 +215,14 @@ export function closeKeywordMappingModal() {
  */
 export async function saveKeywordMapping() {
     const inputKeyword = $('#kw-input-keyword');
-    const inputTag = $('#kw-input-tag');
     const selectCategory = $('#kw-input-category');
     const selectTxnType = $('#kw-input-txntype');
     const selectTxnMode = $('#kw-input-txnmode');
-    const inputEnabled = $('#kw-input-enabled');
 
     const keyword = (inputKeyword?.value || '').trim();
-    const tag = (inputTag?.value || '').trim();
     const category = selectCategory?.value || '';
     const txnType = selectTxnType?.value || '';
     const txnMode = selectTxnMode?.value || '';
-    const enabled = inputEnabled ? inputEnabled.checked : true;
 
     if (!keyword) {
         toast('Please enter a keyword', 'error');
@@ -251,8 +230,8 @@ export async function saveKeywordMapping() {
         return;
     }
 
-    if (!category && !txnType && !txnMode && !tag) {
-        toast('Please select at least one override (Category, Tag, Txn Type, or Txn Mode)', 'error');
+    if (!category && !txnType && !txnMode) {
+        toast('Please select at least one override (Category, Txn Type, or Txn Mode)', 'error');
         return;
     }
 
@@ -275,9 +254,7 @@ export async function saveKeywordMapping() {
         keyword,
         category: category ? stripEmojiPrefix(category) : null,
         txnType: txnType ? normalizeTxnType(txnType) : null,
-        txnMode: txnMode ? stripEmojiPrefix(txnMode) : null,
-        tag: tag || null,
-        enabled: Boolean(enabled)
+        txnMode: txnMode ? stripEmojiPrefix(txnMode) : null
     };
 
     if (currentEditingIndex >= 0) {
@@ -348,7 +325,6 @@ export function runKeywordMappingOnExisting(index) {
 
     const overridesSummary = [];
     if (rule.category) overridesSummary.push(`Category → ${rule.category}`);
-    if (rule.tag) overridesSummary.push(`Tag → ${rule.tag}`);
     if (rule.txnType) overridesSummary.push(`Txn Type → ${rule.txnType}`);
     if (rule.txnMode) overridesSummary.push(`Txn Mode → ${rule.txnMode}`);
 
@@ -401,16 +377,9 @@ export async function executeRulesOnExpenses(rules) {
             || (e.merchant ? findMatchingKeywordRule(e.merchant, rules) : null)
             || (e.source ? findMatchingKeywordRule(e.source, rules) : null);
 
-        if (!matchedRule || matchedRule.enabled === false) continue;
+        if (!matchedRule) continue;
         totalMatched++;
         let changed = false;
-
-        if (matchedRule.tag) {
-            if (e.tag !== matchedRule.tag) {
-                e.tag = matchedRule.tag;
-                changed = true;
-            }
-        }
 
         if (matchedRule.category) {
             const targetCategory = resolveCategoryName(matchedRule.category, state.categories);
@@ -559,23 +528,3 @@ window.renderKeywordMappings = renderKeywordMappings;
 window.runKeywordMappingOnExisting = runKeywordMappingOnExisting;
 window.runAllKeywordMappingsOnExisting = runAllKeywordMappingsOnExisting;
 window.syncKeywordMappingsOnEntityChange = syncKeywordMappingsOnEntityChange;
-
-
-/**
- * Toggles whether a keyword mapping rule is enabled or disabled.
- * @param {number} index
- * @param {boolean} enabled
- */
-export async function toggleKeywordMappingEnabled(index, enabled) {
-    if (!state.keywordMappings || !state.keywordMappings[index]) return;
-    state.keywordMappings[index].enabled = Boolean(enabled);
-    localStorage.setItem('expman_keyword_mappings', JSON.stringify(state.keywordMappings));
-    try {
-        await updateUserSettings({ keywordMappings: state.keywordMappings });
-        toast(`Keyword rule for "${state.keywordMappings[index].keyword}" ${enabled ? 'enabled' : 'disabled'}`, 'info');
-    } catch (err) {
-        console.error("Failed to sync keyword mapping toggle to cloud:", err);
-    }
-    renderKeywordMappings();
-}
-window.toggleKeywordMappingEnabled = toggleKeywordMappingEnabled;

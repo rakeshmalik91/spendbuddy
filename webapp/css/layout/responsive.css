@@ -232,18 +232,15 @@
         display: none;
         flex-direction: column;
         align-items: stretch;
-        margin-top: 12px;
+        margin-top: 16px;
         width: 100%;
-        gap: 12px;
     }
 
     .filter-search-action {
         flex-direction: column;
         align-items: stretch;
         width: 100%;
-        gap: 12px;
-        flex: none !important;
-        min-width: 0 !important;
+        gap: 16px;
     }
 
     .filter-group-action {
@@ -451,8 +448,7 @@
         margin-top: 4px !important;
     }
 
-    #recent-table tr.day-separator,
-    #selected-day-tbody tr.day-separator {
+    #recent-table tr.day-separator {
         grid-template-columns: 1fr auto !important;
     }
 
@@ -561,28 +557,13 @@
     }
 
     /* Compact Layout for Transaction Tables on Mobile */
-    #all-table tr:not(.month-separator):not(.month-header):not(.day-separator) {
+    #all-table tr:not(.month-separator):not(.month-header):not(.day-separator),
+    #selected-day-tbody tr:not(.month-separator):not(.month-header):not(.day-separator) {
         display: grid;
         grid-template-areas:
             "category amount actions"
             "note note actions";
         grid-template-columns: 1fr auto 28px;
-        gap: 3px 10px;
-        padding: 10px 4px;
-        margin-bottom: 0;
-        background: transparent;
-        border: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 0;
-        align-items: center;
-    }
-
-    #selected-day-tbody tr:not(.month-separator):not(.month-header):not(.day-separator) {
-        display: grid;
-        grid-template-areas:
-            "category amount"
-            "note note";
-        grid-template-columns: 1fr auto;
         gap: 3px 10px;
         padding: 10px 4px;
         margin-bottom: 0;
@@ -755,11 +736,8 @@
         display: none !important;
     }
 
-    #selected-day-tbody td[data-label="Actions"] {
-        display: none !important;
-    }
-
     #all-table td[data-label="Actions"],
+    #selected-day-tbody td[data-label="Actions"],
     #scheduled-table td[data-label="Actions"] {
         grid-area: actions;
         justify-content: flex-end;
@@ -903,43 +881,5 @@
     }
     #map-picker-backdrop {
         align-items: stretch !important;
-    }
-
-    /* Horizontal scroll for badge lists on Add Entry view (Mobile only) */
-    #view-add .chip-group,
-    #view-add .frequency-selector-grid,
-    #view-add .date-quick-actions {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-        gap: 8px;
-        padding-bottom: 6px;
-        padding-top: 2px;
-        scrollbar-width: none;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-    #view-add .chip-group::-webkit-scrollbar,
-    #view-add .frequency-selector-grid::-webkit-scrollbar,
-    #view-add .date-quick-actions::-webkit-scrollbar {
-        display: none;
-    }
-    #view-add .chip-group .chip,
-    #view-add .frequency-selector-grid .chip,
-    #view-add .date-quick-actions .chip {
-        flex-shrink: 0 !important;
-        white-space: nowrap !important;
-    }
-}
-
-/* Desktop layout for Add More Section */
-@media (min-width: 861px) {
-    #add-more-section .collapsible-section-body {
-        display: contents !important;
-    }
-    #btn-toggle-more-section {
-        display: none !important;
     }
 }

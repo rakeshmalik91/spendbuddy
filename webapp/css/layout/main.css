@@ -248,3 +248,90 @@
         transform: translateY(0);
     }
 }
+
+/* ══════════════ DASHBOARD TOOLS ROW (MOBILE ONLY) ══════════════ */
+.dashboard-tools-section {
+    margin-bottom: 22px;
+}
+
+.dashboard-tools-header {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-left: 2px;
+}
+
+.dashboard-tools-row {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 2px 8px 2px;
+    scrollbar-width: none;
+}
+
+.dashboard-tools-row::-webkit-scrollbar {
+    display: none;
+}
+
+.dashboard-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+    min-width: 68px;
+    padding: 0;
+}
+
+.dashboard-tool-btn .tool-icon-circle {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.55rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, border-color 0.2s;
+}
+
+.dashboard-tool-btn:hover .tool-icon-circle,
+.dashboard-tool-btn:active .tool-icon-circle {
+    transform: scale(1.08);
+    background: var(--bg-card-hover);
+    border-color: var(--accent);
+}
+
+.dashboard-tool-btn .tool-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* ══════════════ SPLIT TOOL STYLES ══════════════ */
+.split-method-tab.active,
+.tax-method-tab.active {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+.split-bill-card:hover {
+    border-color: var(--border-focus);
+}
+
+.settings-section-heading {
+    letter-spacing: -0.01em;
+}

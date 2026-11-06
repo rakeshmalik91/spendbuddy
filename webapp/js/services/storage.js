@@ -835,6 +835,7 @@ export async function syncCloudDataInBackground(specificFiles = null) {
             }
             
             if (state.balanceLoaded) filesToSync.push('balance.csv');
+            if (state.splitBillsLoaded) filesToSync.push('split_bills.json');
         }
 
         // Fetch all files from cloud in parallel
@@ -901,6 +902,21 @@ export async function syncCloudDataInBackground(specificFiles = null) {
                 try {
                     const settings = JSON.parse(content);
                     if (applyUserSettings(settings)) hasChanges = true;
+                } catch (e) { }
+            } else if (filename === 'split_bills.json') {
+                try {
+                    const data = JSON.parse(content);
+                    if (data && Array.isArray(data.bills)) {
+                        state.splitBills = data.bills;
+                    } else if (Array.isArray(data)) {
+                        state.splitBills = data;
+                    }
+                    if (data && Array.isArray(data.recentPeople)) {
+                        state.splitRecentPeople = data.recentPeople;
+                    }
+                    localStorage.setItem('expman_split_bills', JSON.stringify(state.splitBills));
+                    localStorage.setItem('expman_split_recent_people', JSON.stringify(state.splitRecentPeople));
+                    hasChanges = true;
                 } catch (e) { }
             }
         }

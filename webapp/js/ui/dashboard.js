@@ -390,70 +390,11 @@ export function renderRecentTransactions() {
         }
 
         const isExpense = !isRefundTxn(e);
-        const isInlineEditing = (state.inlineEditTxnIdx === realIdx);
-
-        let catHtml = `<td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>`;
-        let noteHtml = `
-            <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
-                <div class="note-content">
-                    <span class="${!e.note ? 'empty-dash' : ''}">${e.note ? escHtml(e.note) : ''}</span>
-                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
-                </div>
-            </td>`;
-        let actionsHtml = '';
-
-        if (isInlineEditing) {
-            const distinctCategories = Array.from(new Set([
-                ...(state.categories || []),
-                ...state.expenses.map(ex => ex.category).filter(Boolean)
-            ])).sort();
-            if (e.category && !distinctCategories.includes(e.category)) {
-                distinctCategories.unshift(e.category);
-            }
-            catHtml = `
-            <td data-label="Category" class="inline-edit-cell">
-                <select id="inline-edit-category-${realIdx}" class="inline-edit-input inline-edit-select">
-                    ${distinctCategories.map(c => `<option value="${escHtml(c)}" ${c === e.category ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
-                </select>
-            </td>`;
-
-            noteHtml = `
-            <td data-label="Note" class="inline-edit-cell">
-                <div class="inline-edit-note-wrap">
-                    <input type="text" id="inline-edit-note-${realIdx}" class="inline-edit-input inline-edit-note-input" value="${escHtml(e.note || '')}" placeholder="Note..." autocomplete="off" />
-                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
-                </div>
-            </td>`;
-
-            const initialAmtVal = e.amountExpression || (
-                Math.abs(e.amount) % 1 === 0 
-                    ? Math.abs(e.amount).toString() 
-                    : Math.abs(e.amount).toFixed(2)
-            );
-            amountHtml = `
-            <td data-label="Amount" class="inline-edit-cell">
-                <div class="inline-edit-amount-wrap">
-                    <input type="text" id="inline-edit-amount-${realIdx}" class="inline-edit-input inline-edit-amount-input" value="${escHtml(initialAmtVal)}" placeholder="Amount / expr" autocomplete="off" />
-                    <span id="inline-edit-preview-${realIdx}" class="inline-edit-preview-pill" style="display: none;"></span>
-                </div>
-            </td>`;
-
-            actionsHtml = `
-            <td data-label="Actions" class="inline-edit-cell">
-                <div class="row-actions inline-edit-actions">
-                    <button type="button" class="row-btn inline-btn-save" onclick="saveInlineEdit(${realIdx})" title="Save (Enter)">✓</button>
-                    <button type="button" class="row-btn inline-btn-cancel" onclick="cancelInlineEdit()" title="Cancel (Esc)">✕</button>
-                </div>
-            </td>`;
-        } else {
-            actionsHtml = `
+        let actionsHtml = `
             <td data-label="Actions">
                 <div class="row-actions action-dropdown-wrap">
                     <button class="row-btn action-dropdown-btn hide-on-mobile" onclick="toggleActionDropdown(event, 'dash-${realIdx}')" title="Actions">⋮</button>
                     <div class="action-dropdown-menu hide-on-mobile" id="action-dropdown-dash-${realIdx}">
-                        <button class="action-dropdown-item action-quick-edit show-on-ipad" onclick="startInlineEdit(${realIdx}); closeAllActionDropdowns();">
-                            <span class="action-icon">⚡</span> Quick Edit
-                        </button>
                         <button class="action-dropdown-item" onclick="openRefundLinkingModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🔗</span> ${isExpense ? 'Link Refunds' : 'Link Original Expense'}
                         </button>
@@ -471,15 +412,19 @@ export function renderRecentTransactions() {
                     <button class="row-btn hide-on-desktop mobile-menu-btn" onclick="openMobileTxnMenu(${realIdx}, 'dash-row')" title="Options">⋮</button>
                 </div>
             </td>`;
-        }
 
         const hasSubrow = hasRefunds || hasLinkedExpenses;
         const isExpandedClass = hasSubrow && !isCollapsedByDefault ? 'refund-expanded' : '';
         const mainRowHtml = `
-        <tr id="dash-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row ${isInlineEditing ? 'quick-editing' : ''}" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" data-row-prefix="dash-row">
+        <tr id="dash-row-${realIdx}" class="${g.merged ? 'merged-row' : ''} ${isExpandedClass} touchable-row" data-real-idx="${realIdx}" data-refund-idx="${refundRealIdx || -1}" data-merged="${g.merged ? 'true' : 'false'}" data-row-prefix="dash-row">
             <td data-label="Date"><span class="txn-date-text hide-on-mobile">${formatDate(e.date)}</span></td>
-            ${catHtml}
-            ${noteHtml}
+            <td data-label="Category" title="${escHtml(e.category)}">${escHtml(e.category)}</td>
+            <td data-label="Note" class="${!e.note && !badges ? 'empty-note' : ''}">
+                <div class="note-content">
+                    <span class="${!e.note ? 'empty-dash' : ''}">${e.note ? escHtml(e.note) : ''}</span>
+                    ${badges ? `<div class="badges-wrapper">${badges}</div>` : ''}
+                </div>
+            </td>
             ${amountHtml}
             <td data-label="Mode" title="${escHtml(e.txnMode)}"><span class="mode-cell">${escHtml(e.txnMode)}</span></td>
             ${actionsHtml}
@@ -498,12 +443,6 @@ export function renderRecentTransactions() {
     }
 
     tbody.innerHTML = htmlContent;
-
-    if (state.inlineEditTxnIdx !== null && state.inlineEditTxnIdx !== undefined) {
-        if (typeof window.attachInlineEventListeners === 'function') {
-            window.attachInlineEventListeners(state.inlineEditTxnIdx);
-        }
-    }
 
     if (isTruncated) {
         setupInfiniteScroll('infinite-scroll-dash', 'dashboard', renderRecentTransactions);
@@ -692,9 +631,8 @@ pendingSms.forEach((txn, i) => {
         const title = txn.merchant || txn.source || 'SMS';
         const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
         const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-        const inferredType = !ruleTxnType ? getTxnTypeForMerchant(txn.merchant, null, txn.source) : null;
-        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (inferredType === 'Income');
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : (!isIncome && (txn.amount < 0 || normalizeTxnType(txn.txnType) === 'Refund' || isRefundTxn(txn)));
+        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
+        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
         const isCredit = ruleTxnType ? (ruleTxnType === 'Refund' || ruleTxnType === 'Income') : (isRefund || isIncome || txn.amount < 0);
         const displayType = isCredit ? '+' : '';
         const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
@@ -775,17 +713,15 @@ pendingSms.forEach((txn, i) => {
             if (ruleTxnType) {
                 computedType = ruleTxnType;
             } else {
-                // Check if merchant/source explicitly infers Income via historical or keyword mapping
-                const inferredType = getTxnTypeForMerchant(txn.merchant, null, txn.source);
-                if (inferredType === 'Income') {
-                    computedType = 'Income';
-                } else if (txn.amount < 0 || normalizeTxnType(txn.txnType) === 'Refund' || isRefundTxn(txn)) {
-                    // Default for -ve transaction from SMS/email suggestion is Refund, not Income!
+                const isRefund = isRefundTxn(txn);
+                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
+                computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
+                if (!computedType) {
+                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
+                    computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
+                }
+                if (isRefund) {
                     computedType = 'Refund';
-                } else if (normalizeTxnType(txn.txnType) === 'Income') {
-                    computedType = 'Income';
-                } else {
-                    computedType = getTxnTypeForMerchant(txn.merchant, 'Expense', txn.source);
                 }
             }
             const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
@@ -866,9 +802,4 @@ export function initDashboard() {
             renderDashboard();
         });
     }
-}
-
-if (typeof window !== 'undefined') {
-    window.renderRecentTransactions = renderRecentTransactions;
-    window.renderDashboardRecentTransactions = renderRecentTransactions;
 }

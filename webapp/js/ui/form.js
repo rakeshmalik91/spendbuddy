@@ -25,7 +25,6 @@ let lastFormFillTime = 0;
 let isCategoryManuallyChanged = false;
 let isTxnModeManuallyChanged = false;
 let isTxnTypeManuallyChanged = false;
-let isTagManuallyChanged = false;
 
 export function setCategoryManuallyChanged(val = true) {
     isCategoryManuallyChanged = !!val;
@@ -109,46 +108,101 @@ export function setFormSubmittingState(submitting) {
 export function evaluateExpression(expr) {
     if (!expr || typeof expr !== 'string') return 0;
     
-    // If it's just a plain number, return it
+    // If it's just a plain number without operators or parentheses, return it directly
     const plainNum = parseFloat(expr);
-    if (!isNaN(plainNum) && !expr.includes('+') && !expr.includes('-') && !expr.includes('*')) {
+    if (!isNaN(plainNum) && !/[+\-*/()]/.test(expr)) {
         return plainNum;
     }
     
     try {
-        // Remove spaces and validate the expression contains only numbers, +, -, *, ., and whitespace
+        // Remove whitespace and validate expression contains only allowed arithmetic characters: digits, ., +, -, *, /, (, )
         const cleaned = expr.replace(/\s/g, '');
-        if (!/^[\d.+\-*]+$/.test(cleaned)) {
-            // Invalid characters, return as plain number or 0
+        if (!/^[\d.+\-*/()]+$/.test(cleaned)) {
             return isNaN(plainNum) ? 0 : plainNum;
         }
-        
-        // Split by + and - operators while keeping the operators
-        const parts = cleaned.split(/([+\-])/);
-        let result = 0;
-        let currentOp = '+';
-        
-        for (const part of parts) {
-            if (part === '+' || part === '-') {
-                currentOp = part;
-            } else if (part) {
-                let num;
-                if (part.includes('*')) {
-                    const factors = part.split('*');
-                    num = factors.reduce((acc, val) => acc * (parseFloat(val) || 0), 1);
-                } else {
-                    num = parseFloat(part);
+
+        // Tokenize stream
+        const tokens = [];
+        let i = 0;
+        while (i < cleaned.length) {
+            const ch = cleaned[i];
+            if ('+-*/()'.includes(ch)) {
+                tokens.push(ch);
+                i++;
+            } else if (/[0-9.]/.test(ch)) {
+                let numStr = '';
+                while (i < cleaned.length && /[0-9.]/.test(cleaned[i])) {
+                    numStr += cleaned[i];
+                    i++;
                 }
-                
-                if (!isNaN(num)) {
-                    result = currentOp === '+' ? result + num : result - num;
-                }
+                tokens.push(parseFloat(numStr) || 0);
+            } else {
+                i++;
             }
         }
-        
-        return result;
+
+        let pos = 0;
+        const peek = () => tokens[pos];
+        const consume = (expected) => {
+            const t = tokens[pos];
+            if (expected !== undefined && t !== expected) {
+                throw new Error('Unexpected token: ' + t);
+            }
+            pos++;
+            return t;
+        };
+
+        // Grammar: expr -> term (( '+' | '-' ) term)*
+        function parseExpression() {
+            let left = parseTerm();
+            while (peek() === '+' || peek() === '-') {
+                const op = consume();
+                const right = parseTerm();
+                if (op === '+') left += right;
+                else left -= right;
+            }
+            return left;
+        }
+
+        // Grammar: term -> factor (( '*' | '/' ) factor)*
+        function parseTerm() {
+            let left = parseFactor();
+            while (peek() === '*' || peek() === '/') {
+                const op = consume();
+                const right = parseFactor();
+                if (op === '*') {
+                    left *= right;
+                } else {
+                    left = right !== 0 ? left / right : 0;
+                }
+            }
+            return left;
+        }
+
+        // Grammar: factor -> ('+' | '-')? ( NUMBER | '(' expr ')' )
+        function parseFactor() {
+            if (peek() === '+') {
+                consume('+');
+                return parseFactor();
+            }
+            if (peek() === '-') {
+                consume('-');
+                return -parseFactor();
+            }
+            if (peek() === '(') {
+                consume('(');
+                const val = parseExpression();
+                consume(')');
+                return val;
+            }
+            const t = consume();
+            if (typeof t === 'number') return t;
+            return 0;
+        }
+
+        const res = parseExpression();
+        return isFinite(res) ? res : (isNaN(plainNum) ? 0 : plainNum);
     } catch (e) {
-        console.warn('Failed to evaluate expression:', expr, e);
         return isNaN(plainNum) ? 0 : plainNum;
     }
 }
@@ -539,18 +593,6 @@ export function setupForm() {
     $('#input-date').dispatchEvent(new Event('change'));
     prefillLocation();
 
-    const btnToggleMore = $('#btn-toggle-more-section');
-    if (btnToggleMore) {
-        btnToggleMore.addEventListener('click', () => {
-            const moreBody = $('#more-section-body');
-            const moreIcon = $('#more-section-icon');
-            if (!moreBody) return;
-            const isVisible = moreBody.style.display === 'flex';
-            moreBody.style.display = isVisible ? 'none' : 'flex';
-            if (moreIcon) moreIcon.textContent = isVisible ? '▶' : '▼';
-        });
-    }
-
     $('#input-amount')?.addEventListener('input', (e) => {
         const val = e.target.value;
         const errEl = $('#amount-error');
@@ -598,15 +640,6 @@ export function setupForm() {
                     }
                 }
             }
-
-            // Only infer tag if left untouched by user and custom mapping specifies tag
-            if (!isTagManuallyChanged && !currentSelectedSuggestionTxn) {
-                const rule = findMatchingKeywordRule(val);
-                if (rule && rule.tag && $('#input-tag')) {
-                    $('#input-tag').value = rule.tag;
-                    syncChips('#tag-suggestions', rule.tag);
-                }
-            }
         }
     });
 
@@ -618,9 +651,6 @@ export function setupForm() {
     });
     $('#input-transaction-type')?.addEventListener('change', () => {
         isTxnTypeManuallyChanged = true;
-    });
-    $('#input-tag')?.addEventListener('input', () => {
-        isTagManuallyChanged = true;
     });
 
     // We can expose updateTxnTypeAuto globally for category changes
@@ -1131,14 +1161,6 @@ export function resetForm(force = false) {
     isCategoryManuallyChanged = false;
     isTxnModeManuallyChanged = false;
     isTxnTypeManuallyChanged = false;
-    isTagManuallyChanged = false;
-
-    const moreBody = $('#more-section-body');
-    const moreIcon = $('#more-section-icon');
-    if (window.innerWidth <= 860) {
-        if (moreBody) moreBody.style.display = 'none';
-        if (moreIcon) moreIcon.textContent = '▶';
-    }
 
     if (typeof renderSelectedDayTransactions === 'function') {
         renderSelectedDayTransactions();
@@ -1190,13 +1212,6 @@ export async function editEntry(idx) {
     $('#btn-submit').style.display = 'inline-block';
     $('#btn-cancel').style.display = 'inline-flex';
     updateFormActionButtons();
-
-    const moreBody = $('#more-section-body');
-    const moreIcon = $('#more-section-icon');
-    if (window.innerWidth <= 860) {
-        if (moreBody) moreBody.style.display = 'none';
-        if (moreIcon) moreIcon.textContent = '▶';
-    }
     switchView('add');
 }
 

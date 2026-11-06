@@ -174,7 +174,7 @@ export async function restoreDataFromZip(file) {
 
             // Validate that it's an expected file
             const isYearCSV = /^\d{4}\.csv$/.test(basename);
-            if (isYearCSV || basename === 'metadata.csv' || basename === 'user_settings.json' || basename === 'scheduled_transaction.csv' || basename === 'balance.csv' || basename === 'location.csv') {
+            if (isYearCSV || basename === 'metadata.csv' || basename === 'user_settings.json' || basename === 'scheduled_transaction.csv' || basename === 'balance.csv' || basename === 'location.csv' || basename === 'split_bills.json') {
                 hasValidFile = true;
                 
                 // For CSVs, do a basic parse check

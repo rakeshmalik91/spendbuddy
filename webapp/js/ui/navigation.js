@@ -116,6 +116,10 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings'].includes(viewName)) {
         $$('.bottom-nav .nav-btn[data-view="settings"]').forEach(b => b.classList.add('active'));
     }
+    if (viewName === 'split' || viewName === 'balance') {
+        const fallbackNav = (previousViewId === 'settings' || window.location.hash.includes('settings')) ? 'settings' : 'dashboard';
+        $$(`.bottom-nav .nav-btn[data-view="${fallbackNav}"]`).forEach(b => b.classList.add('active'));
+    }
     $$('.view').forEach(v => v.classList.remove('active'));
     $(`#view-${viewName}`)?.classList.add('active');
 
@@ -191,6 +195,9 @@ export function switchView(viewName, pushStateToHistory = true) {
                 window.syncCloudDataInBackground(['scheduled_transaction.csv']);
             }
         }
+    }
+    if (viewName === 'split') {
+        import('./split_tool.js').then(m => m.renderSplitTool());
     }
     if (viewName === 'balance') {
         if (!state.balanceLoaded) {

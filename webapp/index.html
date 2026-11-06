@@ -295,14 +295,14 @@
             <button class="nav-btn" data-view="charts" id="nav-charts" title="Charts">
                 <span class="nav-icon">📈</span> <span class="nav-text">Charts</span>
             </button>
-            <button class="nav-btn" data-view="balance" id="nav-balance" title="Balance">
+            <button class="nav-btn" data-view="balance" id="nav-balance" title="Balance Tracker">
                 <span class="nav-icon">💰</span> <span class="nav-text">Balance</span>
+            </button>
+            <button class="nav-btn" data-view="split" id="nav-split" title="Split Tool">
+                <span class="nav-icon">➗</span> <span class="nav-text">Split Tool</span>
             </button>
             <button class="nav-btn" data-view="settings" id="nav-settings" title="Settings">
                 <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
-            </button>
-            <button class="nav-btn" data-view="about" id="nav-about" title="About">
-                <span class="nav-icon">ℹ️</span> <span class="nav-text">About</span>
             </button>
             <div class="sidebar-spacer" style="flex: 1;"></div>
             <button class="nav-btn" id="nav-lock" title="Lock App">
@@ -450,6 +450,21 @@
                 <div
                     style="font-size: 0.8rem; color: var(--text-dim); text-align: right; margin-top: 4px; margin-bottom: 20px;">
                     * Net Spend excludes Income, Investment, and Transfer transactions.
+                </div>
+
+                <!-- Mobile Dashboard Tools Row (Round icons with text below) -->
+                <div class="dashboard-tools-section hide-on-desktop" id="dashboard-tools-section">
+                    <div class="dashboard-tools-header">Tools</div>
+                    <div class="dashboard-tools-row">
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('balance')" title="Balance Tracker">
+                            <div class="tool-icon-circle">💰</div>
+                            <span class="tool-label">Balance</span>
+                        </button>
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('split')" title="Split Tool">
+                            <div class="tool-icon-circle">➗</div>
+                            <span class="tool-label">Split Tool</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Quick Charts -->
@@ -703,15 +718,6 @@
                                 <input type="hidden" id="input-txn-type">
                                 <div id="txnmode-chips" class="chip-group"></div>
                             </div>
-                            <!-- Collapsible More Options Section (Mobile Only) -->
-                            <div class="form-group full-width form-collapsible-section" id="add-more-section" style="margin-top: 4px;">
-                                <button type="button" class="btn-toggle-section" id="btn-toggle-more-section" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-weight: 500; font-size: 0.95rem; cursor: pointer; transition: background 0.2s;">
-                                    <span style="display: flex; align-items: center; gap: 8px;">
-                                        <span>⚙️</span> <span id="more-section-title">More Options (Location, Tag, Frequency)</span>
-                                    </span>
-                                    <span id="more-section-icon" style="transition: transform 0.2s; font-size: 0.8rem; color: var(--text-muted);">▶</span>
-                                </button>
-                                <div class="collapsible-section-body" id="more-section-body" style="display: none; flex-direction: column; gap: 16px; margin-top: 14px;">
                             <div class="form-group full-width">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                     <label for="input-location" style="margin-bottom: 0;">Location</label>
@@ -831,8 +837,6 @@
                                 </div>
                             </div>
 
-                                </div>
-                            </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary" id="btn-submit">Add Entry</button>
                                 <button type="button" class="btn btn-ghost" id="btn-cancel" style="display:none;">Cancel
@@ -1074,7 +1078,11 @@
             <section class="view" id="view-settings">
                 <h1 class="view-title">Settings</h1>
 
-                <div class="settings-grid" style="margin-bottom: 24px;">
+                <!-- Section 1: Settings -->
+                <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                    <span>⚙️</span> Settings
+                </h2>
+                <div class="settings-grid" style="margin-bottom: 28px;">
                     <div class="card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                         onclick="window.switchView('account')">
@@ -1082,8 +1090,7 @@
                             <span style="font-size: 1.8rem;">👤</span>
                             <div>
                                 <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Account</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Profile and
-                                    passwords</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Profile and passwords</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
@@ -1109,8 +1116,7 @@
                             <span style="font-size: 1.8rem;">🔄</span>
                             <div>
                                 <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Syncing</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Gmail IMAP and
-                                    SMS integration</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Gmail IMAP and SMS integration</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
@@ -1122,10 +1128,8 @@
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">⏰</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Scheduled
-                                    Transactions</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage
-                                    recurring expenses</div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Scheduled Transactions</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage recurring expenses</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
@@ -1137,27 +1141,8 @@
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">🏷️</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Categories
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Customize
-                                    spending categories</div>
-                            </div>
-                        </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
-                    </div>
-
-                    <div class="card hide-on-desktop"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
-                        onclick="window.switchView('balance')">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <span style="font-size: 1.8rem;">💰</span>
-                            <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Balance
-                                    Tracker
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Track account
-                                    balances over time
-                                </div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Categories</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Customize spending categories</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
@@ -1169,73 +1154,110 @@
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">💳</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Transaction
-                                    Modes</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage payment
-                                    methods</div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Transaction Modes</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage payment methods</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+
                     <div class="card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                         onclick="window.switchView('locations')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">📍</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Locations
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">View all
-                                    transaction locations
-                                </div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Locations</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">View all transaction locations</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+
                     <div class="card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                         onclick="window.switchView('visibility')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">👁️</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Visibility Preferences
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide data, refund merging</div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Visibility Preferences</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide data, display preferences, refund merging</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+
                     <div class="card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                         onclick="window.switchView('keyword-mappings')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">🔤</span>
                             <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Keyword Mappings
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Override category, txn type, and txn mode</div>
-                            </div>
-                        </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
-                    </div>
-
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
-                        onclick="window.switchView('about')">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <span style="font-size: 1.8rem;">ℹ️</span>
-                            <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">About</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Copyright and
-                                    credits</div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Keyword Mappings</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Override category, tag, txn type, and mode</div>
                             </div>
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
                 </div>
+
+                <!-- Section 2: Tools (Available on mobile inside settings menu) -->
+                <div class="hide-on-desktop" style="margin-bottom: 28px;">
+                    <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                        <span>🛠️</span> Tools
+                    </h2>
+                    <div class="settings-grid">
+                        <div class="card"
+                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                            onclick="window.switchView('balance')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">💰</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Balance Tracker</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Track account balances and net worth trajectory over time</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        </div>
+
+                        <div class="card"
+                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                            onclick="window.switchView('split')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">➗</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Split Tool</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Split bills equally or using custom expressions with tax distribution</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: About -->
+                <div>
+                    <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                        <span>ℹ️</span> About
+                    </h2>
+                    <div class="settings-grid" style="margin-bottom: 24px;">
+                        <div class="card"
+                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                            onclick="window.switchView('about')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">ℹ️</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">About</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">App info, copyright and credits</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
-
             <!-- ── ABOUT VIEW ── -->
             <section class="view" id="view-about">
                 <div class="view-header-with-back"
@@ -1262,7 +1284,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
 
             <!-- ── VISIBILITY VIEW ── -->
@@ -1275,7 +1296,6 @@
                 </div>
 
                 <div class="settings-grid">
-                    <!-- Hide Data Card -->
                     <div class="card">
                         <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
                             <span>👁️</span> Hide Data
@@ -1285,71 +1305,49 @@
                         </p>
 
                         <!-- Hide Income Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Income</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude income records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding income">
+                            <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-income">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
                         <!-- Hide Investments Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Investments</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude investment records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding investments">
+                            <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-investment">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
                         <!-- Hide Transfers Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
-                            <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
+                            <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Hide Transfers</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Exclude transfer records from dashboard totals and lists</div>
                             </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding transfers">
+                            <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-hide-transfer">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
-                    </div>
-
-                    <!-- Display Preferences Card (Compact view & Hide amounts) -->
-                    <div class="card">
-                        <h2 class="chart-title" style="display: flex; align-items: center; gap: 8px;">
-                            <span>🎛️</span> Display Preferences
-                        </h2>
-                        <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem;">
-                            Customize data density, badge presentation, and privacy masking.
-                        </p>
 
                         <!-- Compact View Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle);">
-                            <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div>
                                 <div style="font-weight: 500; color: var(--text-main);">Compact View</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes for a clean display</div>
                             </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
+                            <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
                                 <input type="checkbox" id="toggle-hide-source-txnid-settings">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <!-- Hide Amounts Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 500; color: var(--text-main);">Hide Amounts</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Mask numerical amount values with "✦✦✦✦.✦✦" across dashboard cards and summary widgets</div>
-                            </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle hiding amounts">
-                                <input type="checkbox" id="toggle-hide-amount-settings">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -1365,14 +1363,14 @@
                         </p>
 
                         <!-- Merge Refunds Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0;">
-                            <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
+                            <div style="max-width: 80%;">
                                 <div style="font-weight: 500; color: var(--text-main);">Merge Refunds with Expenses</div>
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">
                                     Auto-group matching refunds into collapsible expense rows to show net amounts. When disabled, refunds appear as independent standalone entries.
                                 </div>
                             </div>
-                            <label class="toggle-switch" style="flex-shrink: 0;" title="Toggle merge refunds">
+                            <label class="toggle-switch">
                                 <input type="checkbox" id="toggle-merge-refunds">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -1413,10 +1411,8 @@
                             <table class="data-table" id="keyword-mapping-table">
                                 <thead>
                                     <tr>
-                                        <th data-col="status" style="width: 60px; text-align: center;">Active</th>
                                         <th data-col="keyword">Keyword</th>
                                         <th data-col="category">Category</th>
-                                        <th data-col="tag">Tag</th>
                                         <th data-col="txntype">Txn Type</th>
                                         <th data-col="txnmode">Txn Mode</th>
                                         <th data-col="actions" style="text-align: right;">Actions</th>
@@ -1800,6 +1796,145 @@
                 </div>
             </section>
 
+            <!-- ── SPLIT TOOL VIEW ── -->
+            <section class="view" id="view-split">
+                <div class="view-header-with-back"
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.switchView(state.previousView || 'dashboard')">
+                        <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
+                        <h1 class="view-title" style="margin-bottom: 0;">Split Tool</h1>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-create-split" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span>➕</span> New Split Bill
+                    </button>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="summary-cards" style="margin-bottom: 24px;">
+                    <div class="card summary-card card-balance">
+                        <div class="card-label">Total Bills Split</div>
+                        <div class="card-value" id="split-stat-count">0</div>
+                    </div>
+                    <div class="card summary-card card-daily-avg">
+                        <div class="card-label">Total Volume Split</div>
+                        <div class="card-value" id="split-stat-volume">₹0</div>
+                    </div>
+                    <div class="card summary-card card-income-total">
+                        <div class="card-label">Active People</div>
+                        <div class="card-value" id="split-stat-people">0</div>
+                    </div>
+                </div>
+
+                <!-- Split Builder / Editor Card -->
+                <div class="card" id="split-editor-card" style="display: none; margin-bottom: 28px; padding: 24px; border: 1px solid var(--border-focus);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-main);" id="split-editor-heading">
+                            Bill Breakdown & Calculator
+                        </h2>
+                        <button type="button" class="close-btn" onclick="window.closeSplitEditor()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                        <div>
+                            <label for="split-input-title" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Bill Title / Description</label>
+                            <input type="text" id="split-input-title" class="form-control" placeholder="e.g. Dinner with Friends" style="width: 100%;" />
+                        </div>
+                        <div>
+                            <label for="split-input-date" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Date</label>
+                            <input type="date" id="split-input-date" class="form-control" style="width: 100%;" />
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <div>
+                            <label for="split-input-total" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                                Total Bill Amount (Supports + - * / and ()) <span style="color: var(--red);">*</span>
+                            </label>
+                            <input type="text" id="split-input-total" class="form-control" placeholder="e.g. 1500 or (350*3)+450" style="width: 100%;" />
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter final bill amount or math expression</small>
+                        </div>
+                        <div>
+                            <label for="split-input-tax" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
+                                Tax / Tip / Surcharge (Optional)
+                            </label>
+                            <input type="text" id="split-input-tax" class="form-control" placeholder="e.g. 18% or 180 or 120+60" style="width: 100%;" />
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Supports flat amounts, expressions, or percentage (e.g. 18%)</small>
+                        </div>
+                    </div>
+
+                    <!-- Split Method & Tax Method Toggles -->
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px 16px; background: rgba(0, 0, 0, 0.2); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Bill Split Method</label>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary split-method-tab active" data-method="equal" style="flex: 1;">Equal Split</button>
+                                <button type="button" class="btn btn-sm btn-secondary split-method-tab" data-method="expression" style="flex: 1;">Custom Expressions</button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Tax Distribution</label>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary tax-method-tab active" data-tax-method="percentage" style="flex: 1;">Percentage-wise</button>
+                                <button type="button" class="btn btn-sm btn-secondary tax-method-tab" data-tax-method="equal" style="flex: 1;">Equal Share</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- People Reuse Chips -->
+                    <div id="split-people-reuse-container" style="margin-bottom: 16px; display: none;"></div>
+
+                    <!-- Add Person Input Row -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: center; max-width: 450px;">
+                        <input type="text" id="split-input-new-person" class="form-control" placeholder="Add person name (e.g. David)" style="flex: 1;" />
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-add-split-person" style="white-space: nowrap;">+ Add Person</button>
+                    </div>
+
+                    <!-- Participants Table -->
+                    <div class="table-wrap" style="margin-bottom: 18px;">
+                        <table class="data-table" id="split-participants-table">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 130px;">Person</th>
+                                    <th style="min-width: 140px;">Base Share (Expr)</th>
+                                    <th style="min-width: 100px; text-align: right;">Tax Share</th>
+                                    <th style="min-width: 110px; text-align: right;">End Amount</th>
+                                    <th style="width: 60px; text-align: center;">Paid</th>
+                                    <th style="width: 40px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="split-participants-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Balance Summary Bar -->
+                    <div id="split-balance-indicator" style="padding: 12px 16px; border-radius: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); margin-bottom: 20px;"></div>
+
+                    <!-- Form Actions -->
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                        <button type="button" class="btn btn-secondary" id="split-btn-cancel">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="split-btn-save">Save Split Bill</button>
+                    </div>
+                </div>
+
+                <!-- Split Bills History List -->
+                <div style="margin-bottom: 16px;">
+                    <h2 class="chart-title" style="margin-bottom: 16px;">Split Bills History</h2>
+                    <div id="split-history-list"></div>
+                    <div id="split-empty-state" class="card" style="text-align: center; padding: 36px 20px; display: none;">
+                        <div style="font-size: 2.5rem; margin-bottom: 12px;">🧾</div>
+                        <h3 style="font-size: 1.2rem; color: var(--text-main); margin-bottom: 6px;">No Split Bills Yet</h3>
+                        <p style="color: var(--text-dim); max-width: 420px; margin: 0 auto 18px; font-size: 0.9rem;">
+                            Easily split group dinner bills, shared rentals, or trip expenses equally or using custom mathematical expressions with tax.
+                        </p>
+                        <button type="button" class="btn btn-primary" onclick="window.openSplitEditor()">
+                            <span>➕</span> Create First Split Bill
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-bottom-spacer" aria-hidden="true"></div>
+            </section>
+
             <!-- ── BALANCE TRACKER VIEW ── -->
             <section class="view" id="view-balance">
                 <div class="view-header-with-back"
@@ -2010,13 +2145,6 @@
                     </div>
 
                     <div>
-                        <label for="kw-input-tag" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
-                            Tag Override
-                        </label>
-                        <input type="text" id="kw-input-tag" class="form-control" placeholder="e.g. Vacation, Office, Tax" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
-                    </div>
-
-                    <div>
                         <label for="kw-input-txntype" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
                             Transaction Type Override
                         </label>
@@ -2032,18 +2160,6 @@
                         <select id="kw-input-txnmode" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-primary); font-size: 0.95rem;">
                             <!-- Populated dynamically -->
                         </select>
-                    </div>
-                </div>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--border-subtle); margin-top: 4px;">
-                        <div>
-                            <div style="font-weight: 500; color: var(--text-main); font-size: 0.95rem;">Rule Active</div>
-                            <div style="font-size: 0.82rem; color: var(--text-dim); margin-top: 2px;">Enable or disable this keyword mapping rule</div>
-                        </div>
-                        <label class="toggle-switch" style="flex-shrink: 0;" title="Enable or disable rule">
-                            <input type="checkbox" id="kw-input-enabled" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
                     </div>
                 </div>
 

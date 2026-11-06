@@ -36,13 +36,6 @@ export function isInlineEditModified(realIdx) {
            (currentNote !== initialNote);
 }
 
-function refreshActiveTxnViews() {
-    renderTransactions();
-    if (typeof window.renderDashboardRecentTransactions === 'function' && document.getElementById('recent-tbody')) {
-        window.renderDashboardRecentTransactions();
-    }
-}
-
 export function startInlineEdit(realIdx) {
     if (typeof window !== 'undefined' && window.innerWidth <= 860) {
         if (typeof editEntry === 'function') editEntry(realIdx);
@@ -50,13 +43,13 @@ export function startInlineEdit(realIdx) {
     }
     state.inlineEditTxnIdx = realIdx;
     state.inlineEditStartedAt = Date.now();
-    refreshActiveTxnViews();
+    renderTransactions();
 }
 
 export function cancelInlineEdit() {
     state.inlineEditTxnIdx = null;
     state.inlineEditStartedAt = null;
-    refreshActiveTxnViews();
+    renderTransactions();
 }
 
 export async function saveInlineEdit(realIdx) {
@@ -114,7 +107,7 @@ export async function saveInlineEdit(realIdx) {
         const year = (targetTxn.date || '').split('-')[0] || new Date().getFullYear().toString();
         await saveYearCSV(year);
         toast('Transaction updated!', 'success');
-        refreshActiveTxnViews();
+        renderTransactions();
 
         setTimeout(() => {
             const row = document.getElementById(`txn-row-${realIdx}`);
@@ -130,7 +123,7 @@ export async function saveInlineEdit(realIdx) {
     } catch (err) {
         console.error('Inline edit save failed:', err);
         toast('Error saving transaction to cloud', 'error');
-        refreshActiveTxnViews();
+        renderTransactions();
     }
 }
 
@@ -917,12 +910,14 @@ window.toggleActionDropdown = function (event, id) {
             const menuHeight = targetMenu.offsetHeight || 140;
             const viewportSpaceBelow = window.innerHeight - btnRect.bottom;
 
-            const spaceAbove = btnRect.top;
-            const spaceBelow = window.innerHeight - btnRect.bottom;
+            const container = btn.closest('.table-wrap') || btn.closest('.card') || btn.closest('.refund-collapsible-container');
+            let containerSpaceBelow = viewportSpaceBelow;
+            if (container) {
+                const containerRect = container.getBoundingClientRect();
+                containerSpaceBelow = containerRect.bottom - btnRect.bottom;
+            }
 
-            // Only drop up if there is NOT enough space below AND there IS sufficient space above
-            // Never drop-up if space above is less than menuHeight or if button is near table header
-            if (spaceBelow < menuHeight + 12 && spaceAbove > menuHeight + 40) {
+            if (viewportSpaceBelow < menuHeight + 12 || containerSpaceBelow < menuHeight + 12) {
                 targetMenu.classList.add('drop-up');
             }
         }
@@ -973,7 +968,6 @@ if (typeof window !== 'undefined') {
     window.saveInlineEdit = saveInlineEdit;
     window.cancelInlineEdit = cancelInlineEdit;
     window.openQuickEditModal = startInlineEdit;
-    window.attachInlineEventListeners = attachInlineEventListeners;
     window.isInlineEditModified = isInlineEditModified;
 }
 

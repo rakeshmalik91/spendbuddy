@@ -35,7 +35,7 @@ Bugs:
 - [x] settings > about missing for mobile
 
 Features:
-- [ ] Ability to add/update/delete/restore txn offline (only for android app)
+- [x] Ability to add/update/delete/restore txn offline (only for android app)
   - website needs to cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
   - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
   - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.
@@ -61,7 +61,7 @@ Features:
   - To be prefilled in add form, not update form.
   - Not to be used by txn added from scheduled txn.
 - [ ] add & manage bills, create txn from bill
-- [ ] only for mobile, in dashboard, below cards add a row of tools, with round icons with text below it.
+- [x] only for mobile, in dashboard, below cards add a row of tools, with round icons with text below it.
   - tools to show (whichever is implemented): balance tracker, split tool, bill tracker, activity history. (divide setting menu in 3 sections: settings, tools, about)
   - for mobile only: these same tools shoud available inside settings menu as well
   - for non mobile only: these same tools should be available in left side panel

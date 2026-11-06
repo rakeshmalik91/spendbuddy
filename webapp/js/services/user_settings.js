@@ -25,11 +25,6 @@ export function applyUserSettings(settings) {
         localStorage.setItem('expman_hide_transfer', ui.hideTransfer ? 'true' : 'false');
         localChanged = true;
     }
-    if (ui.hideAmounts !== undefined && ui.hideAmounts !== state.hideAmounts) {
-        state.hideAmounts = Boolean(ui.hideAmounts);
-        localStorage.setItem('expman_hide_amounts', state.hideAmounts ? 'true' : 'false');
-        localChanged = true;
-    }
     if (ui.mergeRefunds !== undefined && ui.mergeRefunds !== state.mergeRefunds) {
         state.mergeRefunds = ui.mergeRefunds;
         localStorage.setItem('expman_merge_refunds', ui.mergeRefunds ? 'true' : 'false');
@@ -133,9 +128,7 @@ export function normalizeKeywordMappings(rules) {
         keyword: (r.keyword || '').trim(),
         category: r.category ? stripEmojiPrefix(r.category) : null,
         txnType: r.txnType ? normalizeTxnType(r.txnType) : null,
-        txnMode: r.txnMode ? stripEmojiPrefix(r.txnMode) : null,
-        tag: r.tag ? (String(r.tag).trim() || null) : null,
-        enabled: r.enabled !== false
+        txnMode: r.txnMode ? stripEmojiPrefix(r.txnMode) : null
     }));
 }
 

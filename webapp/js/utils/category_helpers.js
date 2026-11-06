@@ -36,7 +36,7 @@ export function findMatchingKeywordRule(text, customRulesList) {
     let maxMatchLength = 0;
 
     for (const rule of rules) {
-        if (!rule || !rule.keyword || rule.enabled === false) continue;
+        if (!rule || !rule.keyword) continue;
         const tokens = rule.keyword.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
         for (const token of tokens) {
             if (cleanText.includes(token)) {

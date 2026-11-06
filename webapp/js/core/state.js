@@ -50,5 +50,22 @@ export const state = {
         } catch (_) {
             return [];
         }
-    })()
+    })(),
+    splitBills: (() => {
+        try {
+            const val = localStorage.getItem('expman_split_bills');
+            return val ? JSON.parse(val) : [];
+        } catch (_) {
+            return [];
+        }
+    })(),
+    splitRecentPeople: (() => {
+        try {
+            const val = localStorage.getItem('expman_split_recent_people');
+            return val ? JSON.parse(val) : [];
+        } catch (_) {
+            return [];
+        }
+    })(),
+    splitBillsLoaded: false
 };
