@@ -35,22 +35,21 @@ Bugs:
 - [x] settings > about missing for mobile
 
 Features:
-- [x] Ability to add/update/delete/restore txn offline (only for android app)
+- [ ] Ability to add/update/delete/restore txn offline (only for android app)
   - website needs to cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
   - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
   - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.
-- [ ] Split tool (store as json file)
+- [x] Split tool (store as json file)
    - add multiple people (option to resuse people from older bills)
    - configure total amount
    - configure how to split the bill: equally or using expressions for each people
    - configure total tax expression for each people. Option to choose how to split tax: equally or percentage wise
    - expressions should support for +-/* & brackets
-   - store the end amount as well for each user
-- [ ] activity history
+   - store the end amount as well for each x] activity history
   - as new section under settings.
   - Stored as json file. Stores txn or scheduled txn added/updated/deleted/restored with activity timestamp, type (schedule/quickadd/txn), source for non-scheduled txn (manual/schedule/sms/email/…), updated field name+from+to (only for amount, note, date).
   - Clicking on an activity should move to the txn or scheduled txn
-- [ ] trash
+- [x] trash
   - no new section on ui.
   - Stored as new field in txn csvs.
   - Any txn delete moves to trash.

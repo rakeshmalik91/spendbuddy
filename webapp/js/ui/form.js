@@ -222,7 +222,8 @@ export async function saveYearCSV(year) {
     state.expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     const yearExpenses = state.expenses.filter(e => e.date && e.date.startsWith(year));
-    const csvContent = expensesToCSV(yearExpenses);
+    const trashed = (state.trash || []).filter(e => e.date && e.date.startsWith(year)).map(e => ({...e, deleted: true}));
+    const csvContent = expensesToCSV(yearExpenses.concat(trashed));
 
     const userEmail = getRequiredEmail();
     const fileRef = ref(state.storage, `${userEmail}/${year}.csv`);
@@ -810,6 +811,10 @@ export function setupForm() {
                     toast('Updating schedule to cloud...', 'info');
                     try {
                         await saveScheduledCSV();
+                        const { recordActivity } = await import("../services/activity.js");
+                        await recordActivity({action:"updated",type:"schedule",source:"schedule",id:entry.id,txn:entry,changes:{
+                            amount:{from:oldExisting.amount,to:entry.amount},note:{from:oldExisting.note,to:entry.note},date:{from:oldExisting.start_date,to:entry.start_date}
+                        }});
                         await processScheduledTransactions();
                         toast('Scheduled transaction updated!', 'success');
                         const targetView = state.editOriginView || 'scheduled';
@@ -832,6 +837,8 @@ export function setupForm() {
                     toast('Saving schedule to cloud...', 'info');
                     try {
                         await saveScheduledCSV();
+                        const { recordActivity } = await import("../services/activity.js");
+                        await recordActivity({action:"added",type:"schedule",source:"schedule",id:entry.id,txn:entry});
                         await processScheduledTransactions();
                         toast('Scheduled transaction added!', 'success');
                         resetForm(true);
@@ -892,6 +899,10 @@ export function setupForm() {
                             await saveYearCSV(oldYear);
                             await saveYearCSV(newYear);
                         }
+                        const { recordActivity } = await import("../services/activity.js");
+                        await recordActivity({action:"updated",type:"txn",source:entry.source || "manual",txn:entry,changes:{
+                            amount:{from:oldEntry.amount,to:entry.amount}, note:{from:oldEntry.note,to:entry.note}, date:{from:oldEntry.date,to:entry.date}
+                        }});
                         toast('Transaction updated!', 'success');
                         const targetView = state.editOriginView || state.previousView || 'dashboard';
                         resetForm(true);
@@ -931,6 +942,8 @@ export function setupForm() {
                     toast('Saving to cloud...', 'info');
                     try {
                         await saveYearCSV(newYear);
+                        const { recordActivity } = await import("../services/activity.js");
+                        await recordActivity({action:"added",type:String(entry.source||"").toLowerCase().replace(/[^a-z]/g,"").includes("quickadd")?"quickadd":"txn",source:entry.source || "manual",txn:entry});
                         toast('Transaction added!', 'success');
                     } catch (error) {
                         if (error.message === "CONFLICT_DETECTED") {

@@ -123,10 +123,10 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName !== 'add') state.previousView = viewName;
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$(`.nav-btn[data-view="${viewName}"]`).forEach(b => b.classList.add('active'));
-    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings'].includes(viewName)) {
+    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings', 'activity'].includes(viewName)) {
         $$('.bottom-nav .nav-btn[data-view="settings"]').forEach(b => b.classList.add('active'));
     }
-    if (viewName === 'split' || viewName === 'balance') {
+    if (viewName === 'split' || viewName === 'balance' || viewName === 'activity') {
         const fallbackNav = (previousViewId === 'settings' || window.location.hash.includes('settings')) ? 'settings' : 'dashboard';
         $$(`.bottom-nav .nav-btn[data-view="${fallbackNav}"]`).forEach(b => b.classList.add('active'));
     }
@@ -206,6 +206,7 @@ export function switchView(viewName, pushStateToHistory = true) {
             }
         }
     }
+    if (viewName === 'activity') import('./activity.js').then(m => m.renderActivityHistory());
     if (viewName === 'split') {
         import('./split_tool.js').then(m => m.renderSplitTool());
     }

@@ -131,13 +131,16 @@ async function getCsvContentFromCloud(filename, knownHash = null) {
 
 export async function loadAllCSVs() {
     state.expenses = [];
+    state.trash = [];
     const currentYear = new Date().getFullYear();
 
     try {
         const text = await getCsvContent(`${currentYear}.csv`);
         if (text) {
             const parsed = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
-            state.expenses = parsed.data.map(normalizeRow).filter(r => r !== null);
+            const rows = parsed.data.map(normalizeRow).filter(r => r !== null);
+            state.expenses = rows.filter(r => !r.deleted);
+            state.trash = (state.trash || []).concat(rows.filter(r => r.deleted));
         }
     } catch (e) {
         console.warn('Could not load current year CSV', e);
@@ -150,7 +153,8 @@ export async function loadAllCSVs() {
         if (textPrev) {
             const parsedPrev = Papa.parse(textPrev.trim(), { header: true, skipEmptyLines: true });
             const expensesPrev = parsedPrev.data.map(normalizeRow).filter(r => r !== null);
-            state.expenses = state.expenses.concat(expensesPrev);
+            state.expenses = state.expenses.concat(expensesPrev.filter(r => !r.deleted));
+            state.trash = (state.trash || []).concat(expensesPrev.filter(r => r.deleted));
         }
     } catch (e) {
         console.warn('Could not load previous year CSV', e);
@@ -203,7 +207,7 @@ export async function saveScheduledCSV() {
     const rows = state.scheduledTransactions.map(e => {
         const expr = csvEscape(e.amountExpression || '');
         const weekdaysStr = (e.recur_weekdays && e.recur_weekdays.length > 0) ? e.recur_weekdays.join('|') : (!isNaN(e.recur_weekday) && e.recur_weekday !== null ? e.recur_weekday : '');
-        return `${e.id},${e.disabled === true},${amountToStr(e.amount)},${expr},${e.currency},${csvEscape(e.category)},${csvEscape(e.txnMode)},${csvEscape(e.note)},${e.frequency},${isNaN(e.recur_month) || e.recur_month === null ? '' : e.recur_month},${isNaN(e.recur_day) || e.recur_day === null ? '' : e.recur_day},${weekdaysStr},${e.start_date || ''},${e.last_run_date || ''},${e.next_run_date || ''},${e.end_condition || 'never'},${e.end_date || ''},${isNaN(e.max_occurrences) || e.max_occurrences === null ? '' : e.max_occurrences},${e.run_count || 0},${csvEscape(e.txnType)},${csvEscape(e.location || '')},${csvEscape(e.tag || '')}`;
+        return `${e.id},${e.disabled === true},${amountToStr(e.amount)},${expr},${e.currency},${csvEscape(e.category)},${csvEscape(e.txnMode)},${csvEscape(e.note)},${e.frequency},${isNaN(e.recur_month) || e.recur_month === null ? '' : e.recur_month},${isNaN(e.recur_day) || e.recur_day === null ? '' : e.recur_day},${weekdaysStr},${e.start_date || ''},${e.last_run_date || ''},${e.next_run_date || ''},${e.end_condition || 'never'},${e.end_date || ''},${isNaN(e.max_occurrences) || e.max_occurrences === null ? '' : e.max_occurrences},${e.run_count || 0},${csvEscape(e.txnType)},${csvEscape(e.location || '')},${csvEscape(e.tag || '')},${e.deleted === true ? 'true' : 'false'}`;
     });
     const csvContent = header + '\n' + rows.join('\n');
     const userEmail = getRequiredEmail();
@@ -547,7 +551,9 @@ export async function loadHistoricalData() {
                 .then(text => {
                     if (!text) return [];
                     const parsed = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
-                    return parsed.data.map(normalizeRow).filter(r => r !== null);
+                    const rows = parsed.data.map(normalizeRow).filter(r => r !== null);
+                    state.trash = (state.trash || []).concat(rows.filter(r => r.deleted));
+                    return rows.filter(r => !r.deleted);
                 })
                 .catch(e => [])
         );
@@ -612,13 +618,15 @@ export async function fetchYearCSVIfNeeded(year) {
         if (text) {
             const parsed = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
             const rows = parsed.data.map(normalizeRow).filter(r => r !== null);
-            if (rows.length > 0) {
-                state.expenses = state.expenses.concat(rows);
+            state.trash = (state.trash || []).concat(rows.filter(r => r.deleted));
+            const activeRows = rows.filter(r => !r.deleted);
+            if (activeRows.length > 0) {
+                state.expenses = state.expenses.concat(activeRows);
                 state.expenses.sort((a, b) => b.date.localeCompare(a.date));
                 populateNoteSuggestions();
                 renderAll();
                 if (!isMobileView()) {
-                    toast(`Loaded ${rows.length} transactions for ${year}`, 'success');
+                    toast(`Loaded ${activeRows.length} transactions for ${year}`, 'success');
                 }
             }
         }
@@ -766,12 +774,12 @@ export function normalizeRow(row) {
         source: row.Source || '',
         txnId: row['Txn ID'] || '',
         location: row.Location || row.location || '',
-        tag: row.Tag || row.tag || ''
+        tag: row.Tag || row.tag || '', deleted: String(row.Deleted || '').toLowerCase() === 'true'
     };
 }
 
 export function expensesToCSV(data, preserveOrder = false) {
-    const header = 'Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag';
+    const header = 'Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag,Deleted';
     const list = Array.isArray(data) ? [...data] : [];
     const sorted = preserveOrder ? list : list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const rows = sorted.map(e => {
@@ -780,7 +788,7 @@ export function expensesToCSV(data, preserveOrder = false) {
         const txnType = csvEscape(e.txnType);
         const txn = csvEscape(e.txnMode);
         const expr = csvEscape(e.amountExpression || '');
-        return `${e.date},${amountToStr(e.amount)},${expr},${e.currency},${cat},${txnType},${txn},${note},${csvEscape(e.source || '')},${csvEscape(e.txnId || '')},${csvEscape(e.location || '')},${csvEscape(e.tag || '')}`;
+        return `${e.date},${amountToStr(e.amount)},${expr},${e.currency},${cat},${txnType},${txn},${note},${csvEscape(e.source || '')},${csvEscape(e.txnId || '')},${csvEscape(e.location || '')},${csvEscape(e.tag || '')},${e.deleted === true ? 'true' : 'false'}`;
     });
     return header + '\n' + rows.join('\n');
 }

@@ -130,12 +130,15 @@ export function openDeleteModal(idx) {
         confirmClass: 'btn-danger',
         onConfirm: async () => {
             const deleted = state.expenses.splice(idx, 1)[0];
+            deleted.deleted = true; deleted.txnId = deleted.txnId || `trash-${Date.now()}-${idx}`; state.trash = state.trash || []; state.trash.push(deleted);
             toast('Deleting from cloud...', 'info');
             try {
                 await saveYearCSV(year);
+                const { recordActivity } = await import("../services/activity.js");
+                await recordActivity({action:"deleted",type:"txn",source:deleted.source || "manual",txn:deleted});
                 toast('Transaction deleted', 'success');
             } catch (error) {
-                state.expenses.splice(idx, 0, deleted);
+                state.expenses.splice(idx, 0, deleted); state.trash = (state.trash || []).filter(t => t !== deleted); deleted.deleted = false;
                 toast('Error deleting from cloud', 'error');
                 return false;
             }
@@ -169,16 +172,16 @@ export function openDeleteMultipleModal(indices, customTitle, customMessage) {
         confirmClass: 'btn-danger',
         onConfirm: async () => {
             const removed = validIndices.map(idx => ({ idx, item: state.expenses.splice(idx, 1)[0] }));
+            state.trash = state.trash || [];
+            removed.forEach(({item,idx}) => { item.deleted = true; item.txnId = item.txnId || `trash-${Date.now()}-${idx}`; state.trash.push(item); });
             toast('Deleting from cloud...', 'info');
             try {
-                for (const yr of years) {
-                    await saveYearCSV(yr);
-                }
+                for (const yr of years) { await saveYearCSV(yr); }
+                const { recordActivity } = await import("../services/activity.js");
+                for (const {item} of removed) await recordActivity({action:"deleted", type:"txn", source:item.source || "manual", txn:item});
                 toast(`${validIndices.length} transaction${validIndices.length > 1 ? 's' : ''} deleted`, 'success');
             } catch (error) {
-                removed.reverse().forEach(({ idx, item }) => {
-                    state.expenses.splice(idx, 0, item);
-                });
+                removed.reverse().forEach(({ idx, item }) => { state.expenses.splice(idx, 0, item); state.trash = (state.trash || []).filter(t => t !== item); item.deleted = false; });
                 toast('Error deleting from cloud', 'error');
                 return false;
             }

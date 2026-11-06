@@ -301,6 +301,9 @@
             <button class="nav-btn" data-view="split" id="nav-split" title="Split Tool">
                 <span class="nav-icon">➗</span> <span class="nav-text">Split Tool</span>
             </button>
+            <button class="nav-btn" data-view="activity" id="nav-activity" title="Activity History">
+                <span class="nav-icon">🕘</span> <span class="nav-text">Activity</span>
+            </button>
             <button class="nav-btn" data-view="settings" id="nav-settings" title="Settings">
                 <span class="nav-icon">⚙️</span> <span class="nav-text">Settings</span>
             </button>
@@ -463,6 +466,9 @@
                         <button type="button" class="dashboard-tool-btn" onclick="window.switchView('split')" title="Split Tool">
                             <span class="tool-icon-circle">➗</span>
                             <span class="tool-label">Split Tool</span>
+                        </button>
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('activity')" title="Activity History">
+                            <span class="tool-icon-circle">🕘</span><span class="tool-label">Activity</span>
                         </button>
                     </div>
                 </div>
@@ -1201,37 +1207,13 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Tools (Available on mobile inside settings menu) -->
-                <div class="hide-on-desktop" style="margin-bottom: 28px;">
-                    <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
-                        <span>🛠️</span> Tools
-                    </h2>
+                <!-- Section 2: Tools -->
+                <div class="hide-on-desktop" style="margin-bottom:28px;">
+                    <h2 class="settings-section-heading" style="font-size:1.15rem;font-weight:700;color:var(--text-secondary);margin:0 0 14px 4px;display:flex;align-items:center;gap:8px;"><span>🛠️</span> Tools</h2>
                     <div class="settings-grid">
-                        <div class="card"
-                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
-                            onclick="window.switchView('balance')">
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <span style="font-size: 1.8rem;">💰</span>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Balance Tracker</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Track account balances and net worth trajectory over time</div>
-                                </div>
-                            </div>
-                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
-                        </div>
-
-                        <div class="card"
-                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
-                            onclick="window.switchView('split')">
-                            <div style="display: flex; align-items: center; gap: 16px;">
-                                <span style="font-size: 1.8rem;">➗</span>
-                                <div>
-                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Split Tool</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Split bills equally or using custom expressions with tax distribution</div>
-                                </div>
-                            </div>
-                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
-                        </div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('balance')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">💰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Balance Tracker</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Track account balances and net worth</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
                     </div>
                 </div>
 
@@ -1797,6 +1779,11 @@
             </section>
 
             <!-- ── SPLIT TOOL VIEW ── -->
+            <section class="view" id="view-activity">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><button class="btn btn-secondary" onclick="window.goBackView()">← Back</button><h1 class="view-title" style="margin:0;">Activity History</h1></div>
+              <div id="activity-history-list" class="card"><div class="text-muted">Loading activity…</div></div>
+            </section>
+
             <section class="view" id="view-split">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">

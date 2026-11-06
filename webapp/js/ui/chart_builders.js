@@ -1896,8 +1896,16 @@ export function renderScheduledTransactions() {
                         message: `Are you sure you want to delete this scheduled transaction?`,
                         confirmLabel: 'Delete',
                         onConfirm: async () => {
-                            state.scheduledTransactions.splice(idx, 1);
-                            await saveScheduledCSV();
+                            const deletedSchedule = state.scheduledTransactions.splice(idx, 1)[0];
+                            try {
+                                await saveScheduledCSV();
+                                const { recordActivity } = await import("../services/activity.js");
+                                await recordActivity({action:"deleted",type:"schedule",source:"schedule",id:deletedSchedule.id,txn:deletedSchedule});
+                            } catch (error) {
+                                state.scheduledTransactions.splice(idx, 0, deletedSchedule);
+                                await saveScheduledCSV();
+                                throw error;
+                            }
                             renderScheduledTransactions();
                             toast('Scheduled transaction deleted', 'success');
                         }

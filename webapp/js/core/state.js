@@ -1,5 +1,8 @@
 export const state = {
     expenses: [],
+    trash: [],
+    activityHistory: [],
+    activityLoaded: false,
     categories: [],
     txnModes: [],
     scheduledTransactions: [],
