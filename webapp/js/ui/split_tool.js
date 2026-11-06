@@ -356,6 +356,18 @@ function addNewPerson() {
 function recalculateAndRenderParticipants() {
     if (!activeBill) return;
 
+    // Rebuilding the participant table on every keystroke replaces the focused
+    // expression input. Preserve its identity and caret so typing remains continuous.
+    const focused = document.activeElement;
+    const focusState = focused?.classList?.contains('split-person-expr')
+        ? {
+            idx: focused.dataset.idx,
+            start: focused.selectionStart,
+            end: focused.selectionEnd,
+            direction: focused.selectionDirection
+        }
+        : null;
+
     const calc = calculateSplit(activeBill);
     activeBill = calc;
 
@@ -420,6 +432,17 @@ function recalculateAndRenderParticipants() {
             }
         });
     });
+
+    // Restore focus/caret after the table refresh triggered by expression input.
+    if (focusState) {
+        const replacement = tableBody.querySelector(`.split-person-expr[data-idx="${focusState.idx}"]`);
+        if (replacement) {
+            replacement.focus({ preventScroll: true });
+            if (focusState.start !== null && focusState.end !== null) {
+                replacement.setSelectionRange(focusState.start, focusState.end, focusState.direction || 'none');
+            }
+        }
+    }
 
     // Update Balance Summary Bar
     updateAllocationSummaryBar();

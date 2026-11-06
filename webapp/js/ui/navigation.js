@@ -11,7 +11,8 @@ import { resetForm, prefillLocation } from "./form.js";
 import { registerSwitchView } from "../utils/swipe_navigation.js";
 
 const lastNavSync = {};
-const NAV_SYNC_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+const NAV_SYNC_COOLDOWN = 5 * 60 * 1000;
+let viewNavigationStack = [];
 
 function shouldSyncOnNav(key) {
     const now = Date.now();
@@ -56,15 +57,21 @@ export function setupNavigation() {
     });
 
     window.addEventListener('popstate', (e) => {
-        if (e.state && e.state.view) {
-            switchView(e.state.view, false);
-        } else {
-            const hashView = window.location.hash.replace('#', '') || 'dashboard';
-            switchView(hashView, false);
+        const targetView = (e.state && e.state.view)
+            || window.location.hash.replace('#', '')
+            || 'dashboard';
+        const currentView = document.querySelector('.view.active')?.id.replace('view-', '');
+        if (viewNavigationStack[viewNavigationStack.length - 1] === currentView) {
+            viewNavigationStack.pop();
         }
+        if (viewNavigationStack[viewNavigationStack.length - 1] !== targetView) {
+            viewNavigationStack.push(targetView);
+        }
+        switchView(targetView, false);
     });
 
     const initialView = window.location.hash.replace('#', '') || 'dashboard';
+    viewNavigationStack = [initialView];
     window.history.replaceState({ view: initialView }, '', `#${initialView}`);
     if (initialView !== 'dashboard') {
         setTimeout(() => switchView(initialView, false), 0);
@@ -107,6 +114,9 @@ export function switchView(viewName, pushStateToHistory = true) {
         const currentPath = window.location.hash.replace('#', '') || 'dashboard';
         if (currentPath !== viewName) {
             window.history.pushState({ view: viewName }, '', `#${viewName}`);
+            if (viewNavigationStack[viewNavigationStack.length - 1] !== viewName) {
+                viewNavigationStack.push(viewName);
+            }
         }
     }
 
@@ -234,5 +244,15 @@ export function switchView(viewName, pushStateToHistory = true) {
     }, 10);
 }
 
+/** Navigate back to the actual view that opened the current tool. */
+export function goBackView() {
+    if (viewNavigationStack.length > 1) {
+        window.history.back();
+        return;
+    }
+    switchView('dashboard');
+}
+
 window.switchView = switchView;
+window.goBackView = goBackView;
 

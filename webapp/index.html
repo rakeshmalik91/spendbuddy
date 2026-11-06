@@ -1800,7 +1800,7 @@
             <section class="view" id="view-split">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.switchView('dashboard')">
+                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.goBackView ? window.goBackView() : window.switchView('dashboard')">
                         <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
                         <h1 class="view-title" style="margin-bottom: 0;">Split Tool</h1>
                     </div>
@@ -1939,7 +1939,7 @@
             <section class="view" id="view-balance">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
-                    onclick="if(window.innerWidth <= 768) window.switchView('settings')">
+                    onclick="if(window.innerWidth <= 768) { if(window.goBackView) window.goBackView(); else window.switchView('dashboard'); }">
                     <span style="font-size: 1.5rem; color: var(--text-muted);" class="mobile-only-inline">❮</span>
                     <h1 class="view-title" style="margin-bottom: 0;">Balance Tracker</h1>
                 </div>
