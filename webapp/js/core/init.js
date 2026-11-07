@@ -163,6 +163,7 @@ export const initApp = async () => {
         loadUserSettings()
     ]);
 
+
     if (settings) {
         applyUserSettings(settings);
     }
@@ -201,6 +202,7 @@ export const initApp = async () => {
     // Sync fresh data from cloud in the background
     // (initial load used local cache for instant startup)
     syncCloudDataInBackground();
+
 
     // Schedule a background refresh every 5 minutes
     startBackgroundRefresh();
@@ -765,3 +767,4 @@ window.onImapCredentialsSaved = async (email, pass) => {
         console.error("Failed to save IMAP credentials to cloud:", e);
     }
 };
+

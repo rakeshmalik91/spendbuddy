@@ -13,6 +13,7 @@ import { registerSwitchView } from "../utils/swipe_navigation.js";
 const lastNavSync = {};
 const NAV_SYNC_COOLDOWN = 5 * 60 * 1000;
 let viewNavigationStack = [];
+let scheduledReturnView = 'settings';
 
 function shouldSyncOnNav(key) {
     const now = Date.now();
@@ -93,6 +94,14 @@ export function switchView(viewName, pushStateToHistory = true) {
         state.scrollPositions[previousViewId] = window.scrollY || document.documentElement.scrollTop;
     }
 
+    // Remember where Scheduler was opened from so its back arrow returns
+    // to the originating surface (Dashboard Tools or Settings Tools).
+    if (viewName === 'scheduled' && previousViewId && previousViewId !== 'scheduled') {
+        scheduledReturnView = ['dashboard', 'settings'].includes(previousViewId)
+            ? previousViewId
+            : 'settings';
+    }
+
     const leavingAdd = previousViewId === 'add' && viewName !== 'add';
     const enteringAdd = viewName === 'add' && previousViewId !== 'add';
 
@@ -123,7 +132,7 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName !== 'add') state.previousView = viewName;
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$(`.nav-btn[data-view="${viewName}"]`).forEach(b => b.classList.add('active'));
-    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings', 'auto-tagging', 'activity'].includes(viewName)) {
+    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings', 'auto-tagging', 'activity', 'trash-retention'].includes(viewName)) {
         $$('.bottom-nav .nav-btn[data-view="settings"]').forEach(b => b.classList.add('active'));
     }
     if (viewName === 'split' || viewName === 'balance' || viewName === 'activity') {
@@ -181,7 +190,7 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName === 'dashboard') renderDashboard();
     if (viewName === 'charts') renderChartsPage();
     if (viewName === 'transactions') renderTransactions();
-    if (['settings', 'categories', 'txnmodes', 'locations', 'backups', 'keyword-mappings', 'auto-tagging'].includes(viewName)) {
+    if (['settings', 'categories', 'txnmodes', 'locations', 'backups', 'keyword-mappings', 'auto-tagging', 'trash-retention'].includes(viewName)) {
         renderSettings();
         if (viewName === 'keyword-mappings') {
             renderKeywordMappings();
@@ -262,6 +271,14 @@ export function goBackView() {
     switchView('dashboard');
 }
 
+export function backFromScheduled() {
+    const destination = ['dashboard', 'settings'].includes(scheduledReturnView)
+        ? scheduledReturnView
+        : 'settings';
+    switchView(destination);
+}
+
 window.switchView = switchView;
 window.goBackView = goBackView;
+window.backFromScheduled = backFromScheduled;
 

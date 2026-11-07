@@ -92,3 +92,51 @@ export async function restoreTrashedTransaction(activityId){
  await saveActivityHistory(); await recordActivity({action:"restored",type:"txn",source:t.source||"manual",txn:t});
  toast("Transaction restored","success"); return true;
 }
+
+/** Permanently remove a soft-deleted transaction and its deletion-history entry. */
+export async function permanentlyDeleteActivityEntry(activityId) {
+ const entry=(state.activityHistory||[]).find(x=>x.id===activityId);
+ if(!entry || entry.action!=="deleted") return false;
+ if(entry.type==="schedule") {
+  // Scheduled deletions are represented only by the activity snapshot.
+  state.activityHistory=state.activityHistory.filter(x=>x.id!==activityId);
+  await saveActivityHistory();
+  return true;
+ }
+ const target=entry.targetId;
+ const trashed=(state.trash||[]).find(t=>t.deleted && ((t.txnId||"")===target || `${t.date||""}|${t.amount??""}|${t.note||""}`===target));
+ const year=(trashed?.date||entry.date||"").slice(0,4);
+ if(trashed) state.trash=state.trash.filter(t=>t!==trashed);
+ try {
+  if(year) { const {saveYearCSV}=await import("../ui/form.js"); await saveYearCSV(year); }
+ } catch(error) {
+  if(trashed) state.trash.push(trashed);
+  throw error;
+ }
+ state.activityHistory=state.activityHistory.filter(x=>x.id!==activityId);
+ await saveActivityHistory();
+ return true;
+}
+
+/** Apply the browser-selected trash retention policy. A value of 0 disables cleanup. */
+export async function cleanupExpiredTrash() {
+ const days=Number(localStorage.getItem("expman_trash_retention_days") || 0);
+ if(!Number.isFinite(days) || days<=0) return 0;
+ const cutoff=Date.now()-days*86400000;
+ const deletionTimes=new Map((state.activityHistory||[]).filter(a=>a.action==="deleted").map(a=>[a.targetId,Date.parse(a.timestamp)||0]));
+ const expired=(state.trash||[]).filter(t=>{
+  if(!t.deleted) return false;
+  const target=t.txnId||`${t.date||""}|${t.amount??""}|${t.note||""}`;
+  const deletedAt=Date.parse(t.deletedAt||t.deleted_at||t.updatedAt||"")||deletionTimes.get(target)||Date.parse(t.date||"")||0;
+  return deletedAt>0 && deletedAt<cutoff;
+ });
+ if(!expired.length) return 0;
+ const ids=new Set(expired.map(t=>t.txnId).filter(Boolean));
+ const years=new Set(expired.map(t=>(t.date||"").slice(0,4)).filter(Boolean));
+ state.trash=(state.trash||[]).filter(t=>!expired.includes(t));
+ state.activityHistory=(state.activityHistory||[]).filter(a=>!(a.action==="deleted" && (ids.has(a.targetId) || expired.some(t=>`${t.date||""}|${t.amount??""}|${t.note||""}`===a.targetId))));
+ const {saveYearCSV}=await import("../ui/form.js");
+ for(const year of years) await saveYearCSV(year);
+ if(state.activityLoaded) await saveActivityHistory();
+ return expired.length;
+}

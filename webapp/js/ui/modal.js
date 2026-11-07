@@ -130,7 +130,7 @@ export function openDeleteModal(idx) {
         confirmClass: 'btn-danger',
         onConfirm: async () => {
             const deleted = state.expenses.splice(idx, 1)[0];
-            deleted.deleted = true; deleted.txnId = deleted.txnId || `trash-${Date.now()}-${idx}`; state.trash = state.trash || []; state.trash.push(deleted);
+            deleted.deleted = true; deleted.deletedAt = new Date().toISOString(); deleted.txnId = deleted.txnId || `trash-${Date.now()}-${idx}`; state.trash = state.trash || []; state.trash.push(deleted);
             toast('Deleting from cloud...', 'info');
             try {
                 await saveYearCSV(year);
@@ -173,7 +173,7 @@ export function openDeleteMultipleModal(indices, customTitle, customMessage) {
         onConfirm: async () => {
             const removed = validIndices.map(idx => ({ idx, item: state.expenses.splice(idx, 1)[0] }));
             state.trash = state.trash || [];
-            removed.forEach(({item,idx}) => { item.deleted = true; item.txnId = item.txnId || `trash-${Date.now()}-${idx}`; state.trash.push(item); });
+            removed.forEach(({item,idx}) => { item.deleted = true; item.deletedAt = new Date().toISOString(); item.txnId = item.txnId || `trash-${Date.now()}-${idx}`; state.trash.push(item); });
             toast('Deleting from cloud...', 'info');
             try {
                 for (const yr of years) { await saveYearCSV(yr); }

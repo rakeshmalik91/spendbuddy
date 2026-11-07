@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { loadActivityHistory, restoreTrashedTransaction } from "../services/activity.js";
+import { loadActivityHistory, restoreTrashedTransaction, permanentlyDeleteActivityEntry } from "../services/activity.js";
 import { toast } from "../utils/helpers.js";
 export async function renderActivityHistory() {
  const host=document.getElementById("activity-history-list"); if(!host)return;
@@ -15,10 +15,11 @@ export async function renderActivityHistory() {
   <span class="activity-title">${a.title||'Transaction'}${a.amount!=null?`<span class="activity-amount">₹${Number(a.amount).toLocaleString('en-IN')}</span>`:''}</span>
   <span class="activity-meta"><span>${new Date(a.timestamp).toLocaleString()}</span><span class="activity-meta-separator">·</span><span>${a.source||'manual'}</span>${(a.changes||[]).map(c=>`<span class="activity-change">${c.field}: ${c.from} → ${c.to}</span>`).join('')}</span>
  </button>
- ${a.action==='deleted'&&!a.restored?`<button type="button" class="btn btn-sm btn-secondary activity-restore" data-id="${a.id}">Restore</button>`:''}
+ ${a.action==='deleted'&&!a.restored?`<div class="activity-actions"><button type="button" class="btn btn-sm btn-secondary activity-restore" data-id="${a.id}">Restore</button><button type="button" class="btn btn-sm btn-danger activity-permanent-delete" data-id="${a.id}">Delete permanently</button></div>`:''}
  </article>`).join('');
   host.querySelectorAll('.activity-open').forEach(b=>b.addEventListener('click',()=>openActivityTarget(b.dataset.id)));
   host.querySelectorAll('.activity-restore').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;try{await restoreTrashedTransaction(b.dataset.id);await renderActivityHistory();}catch(e){console.error(e);toast('Could not restore transaction','error');b.disabled=false;}}));
+  host.querySelectorAll('.activity-permanent-delete').forEach(b=>b.addEventListener('click',async()=>{if(!window.confirm('Permanently delete this transaction? This cannot be undone.'))return;b.disabled=true;try{await permanentlyDeleteActivityEntry(b.dataset.id);toast('Transaction permanently deleted','success');await renderActivityHistory();}catch(e){console.error(e);toast('Could not permanently delete transaction','error');b.disabled=false;}}));
  } catch (error) {
   console.error('Failed to load activity history:', error);
   host.innerHTML=`<div style="padding:20px;color:var(--text-dim)">Could not load activity history. ${error?.message==='Activity history request timed out'?'The storage request timed out.':'Check your connection and storage access.'}<div style="margin-top:12px"><button type="button" class="btn btn-secondary" id="activity-retry">Retry</button></div></div>`;

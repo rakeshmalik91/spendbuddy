@@ -992,6 +992,12 @@ export async function syncCloudDataInBackground(specificFiles = null) {
             if (typeof window !== 'undefined' && typeof window.recomputePendingSmsTransactions === 'function') {
                 window.recomputePendingSmsTransactions();
             }
+
+            // Run trash retention only after cloud CSV sync has settled and ETags are fresh.
+            import('./activity.js').then(async ({ loadActivityHistory, cleanupExpiredTrash }) => {
+                try { await loadActivityHistory(false); await cleanupExpiredTrash(); }
+                catch (error) { console.warn('[Trash] Automatic retention cleanup skipped:', error); }
+            });
         }
     }
 }

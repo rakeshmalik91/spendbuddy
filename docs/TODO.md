@@ -11,10 +11,10 @@ do not make changes to this file except mark/unmark todo items
 - [ ] BUG: only for android app, footer button list is chopped off at the bottom. to be fixed in android app webview
 - [x] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history.
 - [ ] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
-- [ ] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
-- [ ] option to permanently delete a deleted txn from activity history
-- [ ] trash cleanup & retaintion settings
-- [ ] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
+- [x] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
+- [x] option to permanently delete a deleted txn from activity history
+- [x] trash cleanup & retaintion settings
+- [x] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
 - [ ] to connect android app to firebase instead of netlify
 
 ### 2026.10.19

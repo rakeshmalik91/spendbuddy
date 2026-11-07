@@ -1,3 +1,4 @@
+import { cleanupExpiredTrash } from "../services/activity.js";
 import { openModal } from "./modal.js";
 import { populateFormDropdowns } from "./form_dropdowns.js";
 import { showLoader, $$, hideLoader, $ } from "../core/init.js";
@@ -745,6 +746,24 @@ export function renderSettings() {
     if (toggleCompact) toggleCompact.checked = state.hideSourceTxnId;
     const toggleAmounts = $('#toggle-hide-amounts-settings');
     if (toggleAmounts) toggleAmounts.checked = state.hideAmounts;
+
+    const trashRetention = $('#select-trash-retention');
+    if (trashRetention) {
+        trashRetention.value = localStorage.getItem('expman_trash_retention_days') || '0';
+        trashRetention.onchange = async () => {
+            localStorage.setItem('expman_trash_retention_days', trashRetention.value);
+            try { const removed = await cleanupExpiredTrash(); toast(removed ? `Permanently removed ${removed} expired transaction(s)` : 'Trash retention updated', 'success'); }
+            catch (error) { console.error('Trash cleanup failed:', error); toast('Retention saved, but cleanup failed', 'error'); }
+        };
+    }
+    const cleanupButton = $('#btn-cleanup-trash-now');
+    if (cleanupButton) cleanupButton.onclick = async () => {
+        if (!window.confirm('Permanently delete all transactions older than the selected retention period?')) return;
+        cleanupButton.disabled = true;
+        try { const removed = await cleanupExpiredTrash(); toast(`Cleanup complete: ${removed} transaction(s) removed`, 'success'); }
+        catch (error) { console.error(error); toast('Trash cleanup failed', 'error'); }
+        finally { cleanupButton.disabled = false; }
+    };
 }
 
 // ── Category CRUD ──

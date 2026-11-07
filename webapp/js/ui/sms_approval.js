@@ -8,6 +8,26 @@ import { showLoader, hideLoader } from "../core/init.js";
 import { saveYearCSV } from "./form.js";
 
 const SMS_TXN_CACHE_KEY = 'expman_sms_txn_cache';
+const DISMISSED_SMS_KEY = 'expman_discarded_signatures';
+const DISMISSAL_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function loadDismissedSignatures() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(DISMISSED_SMS_KEY) || '{}');
+        const now = Date.now();
+        // Migrate the legacy array format and expire old entries.
+        const entries = Array.isArray(raw) ? raw.map(sig => [sig, now + DISMISSAL_TTL_MS]) : Object.entries(raw || {});
+        const active = Object.fromEntries(entries.filter(([sig, expires]) => sig && Number(expires) > now));
+        localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(active));
+        return active;
+    } catch (_) { return {}; }
+}
+
+function saveDismissedSignature(signature) {
+    const dismissed = loadDismissedSignatures();
+    dismissed[signature] = Date.now() + DISMISSAL_TTL_MS;
+    localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(dismissed));
+}
 
 /**
  * Calculates calendar day difference between two YYYY-MM-DD date strings.
@@ -196,7 +216,7 @@ export function recomputePendingSmsTransactions() {
         state.rawSmsTransactions.forEach(sanitizeTxnAmount);
     }
 
-    let discarded = JSON.parse(localStorage.getItem('expman_discarded_signatures') || '[]');
+    let discarded = loadDismissedSignatures();
     let lastProcessed = parseInt(localStorage.getItem('expman_last_sms_date')) || 0;
     const todayStr = getLocalDateString();
 
@@ -284,7 +304,7 @@ export function recomputePendingSmsTransactions() {
         }
 
         const sig = `${txn.date}_${txn.amount}`;
-        if (discarded.includes(sig)) return false;
+        if (discarded[sig]) return false;
         
         if (txn.date !== todayStr && !IGNORE_LAST_SMS_DATE && txn.timestamp && txn.timestamp <= lastProcessed) {
             return false;
@@ -431,12 +451,11 @@ export function consumeRawSmsTransaction(txn) {
 export function discardRawSmsTransaction(txn) {
     if (!txn) return;
     const sig = `${txn.date}_${txn.amount}`;
-    let discarded = JSON.parse(localStorage.getItem('expman_discarded_signatures') || '[]');
-    if (!discarded.includes(sig)) {
-        discarded.push(sig);
-        localStorage.setItem('expman_discarded_signatures', JSON.stringify(discarded));
-    }
+    saveDismissedSignature(sig);
     consumeRawSmsTransaction(txn);
+    // Recompute the dashboard's pending list immediately so the dismissal is
+    // reflected in both the Add Transaction page and Dashboard quick actions.
+    recomputePendingSmsTransactions();
 }
 
 /**
@@ -507,18 +526,17 @@ export function setupSmsApproval() {
                 }
             }
             
-            let discarded = JSON.parse(localStorage.getItem('expman_discarded_signatures') || '[]');
+            let discarded = loadDismissedSignatures();
             let modified = false;
             snapshot.forEach(t => {
                 const sig = `${t.date}_${t.amount}`;
-                if (!discarded.includes(sig)) {
-                    discarded.push(sig);
+                if (!discarded[sig]) {
+                    discarded[sig] = Date.now() + DISMISSAL_TTL_MS;
                     modified = true;
                 }
             });
             if (modified) {
-                if (discarded.length > 2000) discarded = discarded.slice(discarded.length - 2000);
-                localStorage.setItem('expman_discarded_signatures', JSON.stringify(discarded));
+                localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(discarded));
             }
             
             // Removed state.rawSmsTransactions.filter mutation so it stays in cache

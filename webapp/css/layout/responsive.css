@@ -1377,3 +1377,9 @@
     }
 }
 
+
+#activity-history-list .activity-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+@media (max-width: 600px) {
+  #activity-history-list .activity-row { align-items:flex-start; flex-direction:column; }
+  #activity-history-list .activity-actions { width:100%; justify-content:flex-end; }
+}

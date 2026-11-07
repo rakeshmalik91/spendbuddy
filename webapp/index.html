@@ -470,6 +470,10 @@
                         <button type="button" class="dashboard-tool-btn" onclick="window.switchView('activity')" title="Activity History">
                             <span class="tool-icon-circle">🕘</span><span class="tool-label">Activity</span>
                         </button>
+                        <button type="button" class="dashboard-tool-btn" onclick="window.switchView('scheduled')" title="Scheduled Transactions">
+                            <span class="tool-icon-circle">⏰</span>
+                            <span class="tool-label">Scheduled</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1064,7 +1068,7 @@
             <section class="view" id="view-scheduled">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; cursor: pointer;"
-                    onclick="window.switchView('settings')">
+                    onclick="window.backFromScheduled()">
                     <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
                     <h1 class="view-title" style="margin-bottom: 0;">Scheduled Transactions</h1>
                 </div>
@@ -1138,18 +1142,6 @@
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
-                        onclick="window.switchView('scheduled')">
-                        <div style="display: flex; align-items: center; gap: 16px;">
-                            <span style="font-size: 1.8rem;">⏰</span>
-                            <div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Scheduled Transactions</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage recurring expenses</div>
-                            </div>
-                        </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
-                    </div>
 
                     <div class="card"
                         style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
@@ -1232,13 +1224,16 @@
                 </div>
 
                 <!-- Section 2: Tools -->
-                <div class="hide-on-desktop" style="margin-bottom:28px;">
+                <div style="margin-bottom:28px;">
                     <h2 class="settings-section-heading" style="font-size:1.15rem;font-weight:700;color:var(--text-secondary);margin:0 0 14px 4px;display:flex;align-items:center;gap:8px;"><span>🛠️</span> Tools</h2>
                     <div class="settings-grid about-settings-grid">
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('balance')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">💰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Balance Tracker</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Track account balances and net worth</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('scheduled')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">⏰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Scheduled Transactions</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Manage recurring transactions</div></div></div><span>❯</span></div>
+                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('trash-retention')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🗑️</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Trash cleanup & retention</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Configure automatic deletion of trashed transactions</div></div></div><span>❯</span></div>
                     </div>
+
                 </div>
 
                 <!-- Section 3: About -->
@@ -1264,6 +1259,29 @@
 
                 <div class="form-bottom-spacer" aria-hidden="true"></div>
             </section>
+            <!-- ── TRASH RETENTION SETTINGS VIEW ── -->
+            <section class="view" id="view-trash-retention">
+                <div class="view-header-with-back"
+                    style="display:flex;align-items:center;gap:16px;margin-bottom:24px;cursor:pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size:1.5rem;color:var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom:0;">Trash cleanup & retention</h1>
+                </div>
+                <div class="card" style="margin:0 0 28px 0;padding:18px;max-width:640px;">
+                    <p style="color:var(--text-dim);font-size:.88rem;margin:6px 0 12px;">Automatically and permanently remove deleted transactions after the selected period. This also removes their deletion activity entries.</p>
+                    <label for="select-trash-retention" style="display:block;margin-bottom:6px;">Keep deleted transactions for</label>
+                    <select id="select-trash-retention" class="form-input" style="max-width:240px;">
+                        <option value="0">Never automatically delete</option>
+                        <option value="30">30 days</option>
+                        <option value="60">60 days</option>
+                        <option value="90">90 days</option>
+                        <option value="180">180 days</option>
+                        <option value="365">1 year</option>
+                    </select>
+                    <div style="margin-top:12px;"><button type="button" class="btn btn-secondary" id="btn-cleanup-trash-now">Clean up expired trash now</button></div>
+                </div>
+            </section>
+
             <!-- ── ABOUT VIEW ── -->
             <section class="view" id="view-about">
                 <div class="view-header-with-back"
