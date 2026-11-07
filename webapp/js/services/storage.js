@@ -918,7 +918,10 @@ export async function syncCloudDataInBackground(specificFiles = null) {
                     const eYear = parseInt(e.date.substring(0, 4));
                     return eYear !== year;
                 });
-                state.expenses = state.expenses.concat(rows);
+                // Replace this year's trash snapshot too, then only add active rows.
+                state.trash = (state.trash || []).filter(e => parseInt((e.date || '').substring(0, 4)) !== year)
+                    .concat(rows.filter(r => r.deleted));
+                state.expenses = state.expenses.concat(rows.filter(r => !r.deleted));
                 hasChanges = true;
             } else if (filename === 'metadata.csv') {
                 const parsed = Papa.parse(content.trim(), { header: true, skipEmptyLines: true });

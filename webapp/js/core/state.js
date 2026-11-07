@@ -74,3 +74,14 @@ export const state = {
     })(),
     splitBillsLoaded: false
 };
+
+
+// Keep soft-deleted transactions out of the active dataset used by every view,
+// total, and chart. Trashed transactions remain available in state.trash for restore.
+export function isTrashedTransaction(transaction) {
+    return !!transaction && (transaction.deleted === true || String(transaction.deleted).toLowerCase() === 'true');
+}
+
+export function removeTrashedTransactionsFromActiveState() {
+    state.expenses = (state.expenses || []).filter(transaction => !isTrashedTransaction(transaction));
+}

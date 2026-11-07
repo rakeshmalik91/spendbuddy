@@ -4,7 +4,7 @@ import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyE
 import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
-import { state } from "../core/state.js";
+import { state, removeTrashedTransactionsFromActiveState } from "../core/state.js";
 import { getGlobalFilteredExpenses, getPrevGlobalFilteredExpenses, getPrev5GlobalFilteredExpenses } from "./time_filter.js";
 import { saveYearCSV } from "./form.js";
 import { renderAll } from "./render_all.js";
@@ -41,6 +41,7 @@ function updateEyeButton() {
 }
 
 export function renderDashboard() {
+    removeTrashedTransactionsFromActiveState();
     const currentExpenses = getGlobalFilteredExpenses();
     const baseExpenses = currentExpenses.filter(e => !e.txnType || e.txnType === 'Expense' || e.txnType === 'Refund');
     const totalRefunds = baseExpenses.filter(e => e.txnType === 'Refund' || (!e.txnType && e.amount < 0)).reduce((s, e) => s + Math.abs(e.amount), 0);

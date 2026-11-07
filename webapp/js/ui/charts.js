@@ -1,10 +1,11 @@
 import { renderChart, buildTopExpensesChart, buildTxnTypeDailyTrendChart, buildTxnTypeYearlyTrendChart, buildTxnModeChart, buildCategoryDonut, buildDailyTrendChart, buildYearlyTrendChart, buildWeeklyTrendChart, buildCategoryBarChart, buildTagBarChart, buildMonthlyTrendChart, buildLocationChart, buildDailyBalanceChart } from "./chart_builders.js";
 import { $$, $ } from "../core/init.js";
-import { state } from "../core/state.js";
+import { state, removeTrashedTransactionsFromActiveState } from "../core/state.js";
 
 /* ══════════════ CHARTS PAGE ══════════════ */
 
 export function renderChartsPage() {
+    removeTrashedTransactionsFromActiveState();
     renderChart('chart-category-donut', buildCategoryDonut);
     renderChart('chart-category-bar', buildCategoryBarChart);
     renderChart('chart-tag-bar', buildTagBarChart);

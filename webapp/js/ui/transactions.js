@@ -2,7 +2,7 @@ import { getFilteredExpenses } from "./filters.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { formatDate, escHtml, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, mergeRefundTransactions, setupInfiniteScroll, buildFrequencyString, isRefundTxn, getDisplayTxnId, getDisplayTxnIdList, getRawSourceList, getDisplaySource, getDisplaySourceList, getScheduleIdFromTxnId, isScheduleGeneratedTxn, TXN_SOURCE_SCHEDULE, renderAmountHTML, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, toast } from "../utils/helpers.js";
 import { $ } from "../core/init.js";
-import { state } from "../core/state.js";
+import { state, removeTrashedTransactionsFromActiveState } from "../core/state.js";
 import { getSelectedTxnIndices, updateBatchActionBar } from "./batch_update.js";
 import { evaluateExpression, saveYearCSV, editEntry } from "./form.js";
 import { roundAmount } from "../services/storage.js";
@@ -193,6 +193,7 @@ function attachInlineEventListeners(realIdx) {
 }
 
 export function renderTransactions() {
+    removeTrashedTransactionsFromActiveState();
     const toggleMergeRefundsTxn = $('#toggle-merge-refunds-txn');
     if (toggleMergeRefundsTxn && toggleMergeRefundsTxn.checked !== (state.mergeRefunds !== false)) {
         toggleMergeRefundsTxn.checked = state.mergeRefunds !== false;

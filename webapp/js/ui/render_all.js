@@ -1,4 +1,5 @@
 import { renderDashboard, renderSelectedDayTransactions } from "./dashboard.js";
+import { removeTrashedTransactionsFromActiveState } from "../core/state.js";
 import { renderChartsPage } from "./charts.js";
 import { populateFilterOptions } from "./filters.js";
 import { renderCalendar, populateNoteSuggestions } from "./form_dropdowns.js";
@@ -13,6 +14,8 @@ import { renderKeywordMappings } from "./keyword_mappings.js";
 /* ══════════════ RENDER ALL ══════════════ */
 
 function _doRenderAll() {
+    // Defensive invariant: no soft-deleted transaction may reach any rendered view or calculation.
+    removeTrashedTransactionsFromActiveState();
     populateFilterOptions();
     if (typeof recomputePendingSmsTransactions === 'function') recomputePendingSmsTransactions();
     renderDashboard();
