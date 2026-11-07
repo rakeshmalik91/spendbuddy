@@ -1283,3 +1283,93 @@
         display: none !important;
     }
 }
+
+/* Mobile bottom navigation: use intrinsic item sizing rather than percentage
+   heights. Percentage heights combined with footer padding can leave WebView
+   with a smaller button content box and clip the label line box. */
+@media (max-width: 860px) {
+    #bottom-nav.bottom-nav {
+        position: fixed !important;
+        inset: auto 0 0 0 !important;
+        display: flex !important;
+        width: 100% !important;
+        height: 74px !important;
+        min-height: 74px !important;
+        box-sizing: border-box !important;
+        padding: 6px 10px 8px !important;
+        align-items: stretch !important;
+        justify-content: space-around !important;
+        overflow: visible !important;
+        z-index: 10000 !important;
+    }
+
+    #bottom-nav > .nav-btn:not(.fab-btn) {
+        display: flex !important;
+        flex: 1 1 0 !important;
+        width: auto !important;
+        height: auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        line-height: normal !important;
+        white-space: nowrap !important;
+    }
+
+    #bottom-nav > .nav-btn:not(.fab-btn) .nav-icon {
+        display: block !important;
+        flex: 0 0 auto !important;
+        margin: 0 !important;
+        line-height: 1.15 !important;
+    }
+
+    #bottom-nav > .nav-btn:not(.fab-btn) .nav-text {
+        display: block !important;
+        flex: 0 0 auto !important;
+        height: auto !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        line-height: 1.25 !important;
+        white-space: nowrap !important;
+        text-overflow: clip !important;
+    }
+
+    #bottom-nav > .fab-wrapper {
+        display: flex !important;
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        align-self: stretch !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+        position: relative !important;
+        top: -24px !important;
+    }
+
+    #bottom-nav .fab-btn {
+        flex: 0 0 64px !important;
+        width: 64px !important;
+        height: 64px !important;
+        min-width: 64px !important;
+        min-height: 64px !important;
+        max-width: 64px !important;
+        max-height: 64px !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    #bottom-nav .fab-btn .nav-icon {
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+}
+
