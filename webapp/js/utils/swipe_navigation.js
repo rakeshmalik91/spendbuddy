@@ -1,6 +1,11 @@
 /* ══════════════ SWIPE NAVIGATION & PULL-TO-REFRESH ══════════════ */
 
 let switchViewHandler = null;
+let toolReturnView = 'settings';
+
+export function setToolReturnView(viewName) {
+    toolReturnView = ['dashboard', 'settings'].includes(viewName) ? viewName : 'settings';
+}
 export function registerSwitchView(fn) {
     switchViewHandler = fn;
 }
@@ -126,7 +131,7 @@ document.addEventListener('touchmove', e => {
                     if (currentView === 'add') {
                         swipePrevNode = document.getElementById('view-dashboard');
                     } else {
-                        swipePrevNode = document.getElementById('view-settings');
+                        swipePrevNode = document.getElementById('view-' + toolReturnView);
                     }
                     swipeNextNode = null;
                 }
@@ -334,7 +339,7 @@ export function handleSwipeEnd(e) {
         if (currentIndex > 0) {
             swipeTargetName = viewsOrder[currentIndex - 1];
         } else if (currentIndex === -1) {
-            swipeTargetName = currentView === 'add' ? 'dashboard' : 'settings';
+            swipeTargetName = currentView === 'add' ? 'dashboard' : toolReturnView;
         } else {
             swipeTargetName = 'dashboard';
         }

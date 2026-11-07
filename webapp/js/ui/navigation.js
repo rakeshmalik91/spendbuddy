@@ -8,7 +8,7 @@ import { renderTransactions } from "./transactions.js";
 import { state } from "../core/state.js";
 import { updateTimeFilterUI } from "./time_filter.js";
 import { resetForm, prefillLocation } from "./form.js";
-import { registerSwitchView } from "../utils/swipe_navigation.js";
+import { registerSwitchView, setToolReturnView } from "../utils/swipe_navigation.js";
 
 const lastNavSync = {};
 const NAV_SYNC_COOLDOWN = 5 * 60 * 1000;
@@ -100,6 +100,11 @@ export function switchView(viewName, pushStateToHistory = true) {
         scheduledReturnView = ['dashboard', 'settings'].includes(previousViewId)
             ? previousViewId
             : 'settings';
+    }
+
+    if (['balance', 'split', 'activity', 'scheduled'].includes(viewName) &&
+        ['dashboard', 'settings'].includes(previousViewId)) {
+        setToolReturnView(previousViewId);
     }
 
     const leavingAdd = previousViewId === 'add' && viewName !== 'add';
