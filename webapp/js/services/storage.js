@@ -55,7 +55,22 @@ export async function getCsvContent(filename, forceNetwork = false) {
                 const cached = window.Android.readLocalCsv(filename);
                 if (cached && cached.trim().length > 0) {
                     const cachedHash = localStorage.getItem(`expman_hash_${filename}`);
-                    if (cachedHash) state.fileHashes[filePath] = cachedHash;
+                    // A cached hash can itself be stale (another device may have written
+                    // since this cache was populated). Ask Firebase for current metadata
+                    // before trusting cached transaction data as the base for a later write.
+                    const cloudContent = await getCsvContentFromCloud(filename, cachedHash || null);
+                    if (cloudContent === "NOT_MODIFIED") {
+                        state.fileHashes[filePath] = cachedHash;
+                    } else if (cloudContent) {
+                        const cloudHash = state.fileHashes[filePath] || '';
+                        saveToLocalCache(filename, cloudContent, cloudHash);
+                        return cloudContent;
+                    } else if (!cachedHash) {
+                        throw new Error(`Cannot verify cached ${filename} against cloud`);
+                    } else {
+                        // Cloud metadata/download unavailable: don't silently trust stale cache.
+                        throw new Error(`Cannot refresh cached ${filename} from cloud`);
+                    }
                     let content = cached;
                     if (content.startsWith("ENC:")) {
                         if (!state.encryptionKey) throw new Error("Encryption key required");
@@ -73,7 +88,22 @@ export async function getCsvContent(filename, forceNetwork = false) {
                 const cached = localStorage.getItem(`expman_cache_${filename}`);
                 if (cached && cached.trim().length > 0) {
                     const cachedHash = localStorage.getItem(`expman_hash_${filename}`);
-                    if (cachedHash) state.fileHashes[filePath] = cachedHash;
+                    // A cached hash can itself be stale (another device may have written
+                    // since this cache was populated). Ask Firebase for current metadata
+                    // before trusting cached transaction data as the base for a later write.
+                    const cloudContent = await getCsvContentFromCloud(filename, cachedHash || null);
+                    if (cloudContent === "NOT_MODIFIED") {
+                        state.fileHashes[filePath] = cachedHash;
+                    } else if (cloudContent) {
+                        const cloudHash = state.fileHashes[filePath] || '';
+                        saveToLocalCache(filename, cloudContent, cloudHash);
+                        return cloudContent;
+                    } else if (!cachedHash) {
+                        throw new Error(`Cannot verify cached ${filename} against cloud`);
+                    } else {
+                        // Cloud metadata/download unavailable: don't silently trust stale cache.
+                        throw new Error(`Cannot refresh cached ${filename} from cloud`);
+                    }
                     let content = cached;
                     if (content.startsWith("ENC:")) {
                         if (!state.encryptionKey) throw new Error("Encryption key required");
@@ -258,14 +288,15 @@ export async function uploadFile(fileRef, content) {
     try {
         await verifyFileHashBeforeUpload(fileRef);
 
-        // Update local cache synchronously so that if the user refreshes before the background 
-        // cloud sync completes, the JS-side deduplicator sees the newly added transactions immediately.
-        saveToLocalCache(filename, content);
-
+        const cacheContent = content;
         if (state.encryptionEnabled && state.encryptionKey) {
             content = await encryptData(state.encryptionKey, content);
         }
         const uploadResult = await uploadString(fileRef, content);
+
+        // Cache only committed content. A rejected ETag write must never replace
+        // the last known-good cache with an upload that Firebase did not accept.
+        saveToLocalCache(filename, cacheContent);
 
         // Update hash immediately from uploadResult if returned, otherwise fetch via storeFileHash
         if (uploadResult && uploadResult.metadata && uploadResult.metadata.md5Hash) {

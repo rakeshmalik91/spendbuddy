@@ -1,7 +1,7 @@
 import { applyAutoTag } from '../utils/auto_tag.js';
 import { updateUserSettings } from '../services/user_settings.js';
 import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
+import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow, getCsvContent } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
 import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
@@ -209,6 +209,31 @@ export function evaluateExpression(expr) {
     }
 }
 
+async function refreshYearFromCloudForPendingAdd(year, pendingEntry) {
+    const csv = await getCsvContent(`${year}.csv`, true);
+    if (!csv) throw new Error('Unable to refresh latest transactions from cloud');
+
+    const parsed = Papa.parse(csv.trim(), { header: true, skipEmptyLines: true });
+    const cloudRows = parsed.data.map(normalizeRow).filter(Boolean);
+    const cloudExpenses = cloudRows.filter(row => !row.deleted);
+    const cloudTrash = cloudRows.filter(row => row.deleted).map(row => ({ ...row, deleted: true }));
+
+    // Rebase only this year's collection on the latest cloud version. Preserve
+    // other loaded years and then re-apply the transaction the user is adding.
+    state.expenses = (state.expenses || []).filter(row => !row.date || !row.date.startsWith(year))
+        .concat(cloudExpenses);
+    state.trash = (state.trash || []).filter(row => !row.date || !row.date.startsWith(year))
+        .concat(cloudTrash);
+
+    // Avoid duplicating the pending add if the cloud write actually committed
+    // but the client lost the response.
+    const samePending = row => pendingEntry.txnId
+        ? row.txnId && row.txnId === pendingEntry.txnId
+        : row === pendingEntry;
+    if (!state.expenses.some(samePending)) state.expenses.push(pendingEntry);
+    state.expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
 export async function saveYearCSV(year) {
     if (USE_LOCAL_DATA) {
         toast('Running locally: Cloud sync disabled', 'info');
@@ -308,6 +333,13 @@ export function setupForm() {
             state.autoTagEnabled = !state.autoTagEnabled;
             localStorage.setItem('expman_auto_tag_enabled', state.autoTagEnabled ? 'true' : 'false');
             syncFormAutoTagTool();
+            if (!state.autoTagEnabled && $('#input-tag')?.dataset.autoTagPrefill === 'true') {
+                $('#input-tag').value = '';
+                $('#input-tag').dataset.autoTagPrefill = '';
+                syncChips('#tag-suggestions', '');
+            } else {
+                syncAutoTagPrefill();
+            }
             try {
                 await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } });
             } catch (err) {
@@ -505,8 +537,26 @@ export function setupForm() {
         freqInput.addEventListener('change', () => {
             updateRecurrenceFields();
             updateFormActionButtons();
+            syncAutoTagPrefill();
         });
         updateFormActionButtons();
+    }
+
+    const tagInput = $('#input-tag');
+    if (tagInput && !tagInput.dataset.autoTagPrefillListener) {
+        tagInput.dataset.autoTagPrefillListener = 'true';
+        tagInput.addEventListener('input', () => {
+            if (tagInput.dataset.autoTagPrefill === 'true' &&
+                tagInput.value.trim() !== String(state.autoTag || '').trim()) {
+                tagInput.dataset.autoTagPrefill = 'user';
+            }
+        });
+    }
+
+    const dateInput = $('#input-date');
+    if (dateInput && !dateInput.dataset.autoTagPrefillListener) {
+        dateInput.dataset.autoTagPrefillListener = 'true';
+        dateInput.addEventListener('change', syncAutoTagPrefill);
     }
 
     const adjustStartDateFromRecurrence = () => {
@@ -975,11 +1025,30 @@ export function setupForm() {
                         toast('Transaction added!', 'success');
                     } catch (error) {
                         if (error.message === "CONFLICT_DETECTED") {
-                            const addedIdx = state.expenses.indexOf(entry);
-                            if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
-                            renderAll();
-                            toast('Conflict! Data modified on another device. Please refresh.', 'error');
-                            return;
+                            try {
+                                // One safe retry: fetch the latest cloud year, rebase this
+                                // pending add onto it, then retry against the refreshed ETag.
+                                await refreshYearFromCloudForPendingAdd(newYear, entry);
+                                await saveYearCSV(newYear);
+                                try {
+                                    const { recordActivity } = await import("../services/activity.js");
+                                    await recordActivity({action:"added",type:String(entry.source||"").toLowerCase().replace(/[^a-z]/g,"").includes("quickadd")?"quickadd":"txn",source:entry.source || "manual",txn:entry});
+                                } catch (activityError) {
+                                    console.warn('[Form] Transaction saved, but activity history could not be updated:', activityError);
+                                }
+                                toast('Transaction added!', 'success');
+                            } catch (retryError) {
+                                const addedIdx = state.expenses.indexOf(entry);
+                                if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
+                                renderAll();
+                                if (retryError.message === "CONFLICT_DETECTED") {
+                                    toast('Another device changed this file again. Please sync and retry.', 'error');
+                                } else {
+                                    toast('Could not safely merge the latest cloud data. Transaction was not added.', 'error');
+                                    console.error('[Form] ETag conflict recovery failed:', retryError);
+                                }
+                                return;
+                            }
                         } else {
                             const addedIdx = state.expenses.indexOf(entry);
                             if (addedIdx > -1) state.expenses.splice(addedIdx, 1);
@@ -1205,6 +1274,38 @@ function syncFormAutoTagTool() {
     }
 }
 
+function syncAutoTagPrefill() {
+    const input = $('#input-tag');
+    if (!input) return;
+
+    const editIndex = $('#edit-index');
+    const scheduledIndex = $('#edit-scheduled-index');
+    const isNewEntry = (!editIndex || parseInt(editIndex.value, 10) < 0) &&
+        (!scheduledIndex || parseInt(scheduledIndex.value, 10) < 0);
+    const frequency = $('#input-frequency')?.value || 'one-off';
+    const dateValue = $('#input-date')?.value || '';
+    const isFutureDate = !!dateValue && dateValue > getLocalDateString();
+    const eligible = isNewEntry && state.autoTagEnabled && !!String(state.autoTag || '').trim() &&
+        frequency === 'one-off' && !isFutureDate;
+
+    if (!eligible) {
+        if (input.dataset.autoTagPrefill === 'true') {
+            input.value = '';
+            syncChips('#tag-suggestions', '');
+        }
+        return;
+    }
+
+    // Do not overwrite a tag the user has deliberately entered or cleared.
+    if (input.dataset.autoTagPrefill === 'user') return;
+    const configuredTag = String(state.autoTag).trim();
+    if (!input.value.trim() || input.dataset.autoTagPrefill === 'true') {
+        input.value = configuredTag;
+        input.dataset.autoTagPrefill = 'true';
+        syncChips('#tag-suggestions', configuredTag);
+    }
+}
+
 export function resetForm(force = false) {
     // If a suggestion or form input was filled after submission started, skip reset unless forced
     if (!force && (isFormSubmitting || (lastFormFillTime > lastSubmitStartTime && lastSubmitStartTime > 0))) {
@@ -1234,7 +1335,10 @@ export function resetForm(force = false) {
     if ($('#input-note')) $('#input-note').value = '';
     const prevDefaultLoc = typeof getLastLocation === 'function' ? getLastLocation() : '';
     if ($('#input-location')) $('#input-location').value = prevDefaultLoc || '';
-    if ($('#input-tag')) $('#input-tag').value = '';
+    if ($('#input-tag')) {
+        $('#input-tag').value = '';
+        $('#input-tag').dataset.autoTagPrefill = '';
+    }
     if ($('#input-end-date')) {
         $('#input-end-date').type = 'text';
         $('#input-end-date').value = '';
@@ -1296,6 +1400,8 @@ export function resetForm(force = false) {
     isTxnModeManuallyChanged = false;
     isTxnTypeManuallyChanged = false;
 
+    syncAutoTagPrefill();
+
     if (typeof renderSelectedDayTransactions === 'function') {
         renderSelectedDayTransactions();
     }
@@ -1341,7 +1447,10 @@ export async function editEntry(idx) {
     syncChips('#txnmode-chips', e.txnMode);
     $('#input-note').value = e.note;
     if ($('#input-location')) $('#input-location').value = e.location || '';
-    if ($('#input-tag')) $('#input-tag').value = e.tag || '';
+    if ($('#input-tag')) {
+        $('#input-tag').value = e.tag || '';
+        $('#input-tag').dataset.autoTagPrefill = 'user';
+    }
     $$('#tag-suggestions .chip').forEach(c => c.classList.toggle('active', c.dataset.value === (e.tag || '')));
     $('#form-title').textContent = 'Edit Transaction';
     $('#btn-submit').textContent = 'Update Entry';
