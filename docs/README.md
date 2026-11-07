@@ -60,6 +60,9 @@ flowchart TD
 | **Login, Auth & Offline Caching** | [login-and-caching.md](architecture/login-and-caching.md) | Zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag asset revalidation. |
 | **SMS & Email Inbox Analysis** | [sms-email-analysis.md](architecture/sms-email-analysis.md) | Native Android IMAP + SMS reader, ML Kit NLP entity extraction, cross-source deduplication, and approval flows. |
 | **Scheduled Transactions** | [scheduled-transactions.md](architecture/scheduled-transactions.md) | Recurrence scheduler, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
+| **Split Tool** | [split-tool.md](architecture/split-tool.md) | Multi-participant expense splitting, payer/participant roles, share tracking, settlement status, and CSV persistence with JSON participant array. |
+| **Activity History** | [activity-history.md](architecture/activity-history.md) | Full audit trail of user actions (add/edit/delete/restore/import), change tracking, 2000-entry cap, Firebase JSON persistence, and trash recovery integration. |
+| **Trash (Soft Delete)** | [trash-feature.md](architecture/trash-feature.md) | Soft deletion with `deleted` flag in CSV, in-memory trash array, Activity History restore flow, rollback on save failure, and split transaction handling. |
 
 ---
 
