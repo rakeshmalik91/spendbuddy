@@ -616,7 +616,7 @@ export function renderQuickAdd() {
     quickAddTemplates.forEach(st => {
         const amtColor = st.amount < 0 ? 'var(--green)' : 'var(--amount-negative)';
         const displayType = st.amount < 0 ? '+' : '';
-        const amountDisplay = state.hideAmounts ? (displayType === '+' ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : HIDDEN_CURRENCY + HIDDEN_AMOUNT) : `${displayType}₹${Math.abs(st.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+        const amountDisplay = `${displayType}₹${Math.abs(st.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add" data-id="${st.id}" title="Click to instantly log ${escHtml(st.note || st.category)}">
             <span class="qa-note">⚡ ${escHtml(st.note || st.category)}</span>
@@ -645,7 +645,7 @@ pendingSms.forEach((txn, i) => {
         const displayType = isCredit ? '+' : '';
         const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
         const emoji = (txn.source || '').toLowerCase().includes('email') ? '📧' : '💬';
-        const amountDisplay = state.hideAmounts ? (displayType === '+' ? HIDDEN_CURRENCY + HIDDEN_AMOUNT : HIDDEN_CURRENCY + HIDDEN_AMOUNT) : `${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+        const amountDisplay = `${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add sms-quick-add" data-index="${i}" title="Approve: ${escHtml(title)}" style="border: 1px solid var(--accent);">
             <span class="qa-note">${emoji} ${escHtml(title)}</span>
