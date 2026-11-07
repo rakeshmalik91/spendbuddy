@@ -6,6 +6,17 @@ run full test & update docs for new changes
 do not make changes to this file except mark/unmark todo items
 ---------------------
 
+### 2026.11.07
+
+- [ ] BUG: only for android app, footer button list is chopped off at the bottom. to be fixed in android app webview
+- [ ] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history.
+- [ ] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
+- [ ] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
+- [ ] option to permanently delete a deleted txn from activity history
+- [ ] trash cleanup & retaintion settings
+- [ ] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
+- [ ] to connect android app to firebase instead of netlify
+
 ### 2026.10.19
 
 Chores:
@@ -33,10 +44,9 @@ Bugs:
 
 Features:
 - [ ] Ability to add/update/delete/restore txn offline (only for android app)
-  - website needs to cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
+  - website needs to be cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
   - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
   - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.
-- [x] add & manage bills
 - [ ] create txn from bill
 - [ ] To check feasibility of google drive backup implementation without using gcp
 - [x] activate a specific tag to be added to new txns. Configured in settings.
@@ -44,6 +54,7 @@ Features:
   - To be added to any txn from sms/email/quick add.
   - To be prefilled in add form, not update form.
   - Not to be used by txn added from scheduled txn.
+- [x] add & manage bills
 - [x] Split tool (store as json file)
    - add multiple people (option to resuse people from older bills)
    - configure total amount
@@ -67,7 +78,6 @@ Features:
 
 ### Older
 
-- [ ] BUG: to verify default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
 - [x] add an eye button beside "Add entry" button in dashboard to show/hide amount values on the cards on top of the dashboard. hide them with "✦✦✦✦.✦✦". save the state in user info to remember across sessions
 - [x] only for desktop, clicking on Schedule badge in txn page should open the schedule list and highlight that specific schedule
 - [x] for mobile, when in add txn page, + button background is transparent, make it opaque
