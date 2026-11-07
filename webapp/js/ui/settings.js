@@ -189,6 +189,32 @@ export function updateGoogleDriveUI() {
 }
 
 export function setupSettings() {
+    const autoTagSelect = $('#settings-auto-tag');
+    if (autoTagSelect) {
+        const tags = new Set();
+        (state.expenses || []).forEach(txn => String(txn.tag || '').split(',').forEach(tag => { if (tag.trim()) tags.add(tag.trim()); }));
+        (state.keywordMappings || []).forEach(rule => (rule.tags || []).forEach(tag => { if (String(tag).trim()) tags.add(String(tag).trim()); }));
+        if (state.autoTag) tags.add(state.autoTag);
+        autoTagSelect.innerHTML = '<option value="">Select a tag</option>' + Array.from(tags).sort((a,b) => a.localeCompare(b)).map(tag => `<option value="${escHtml(tag)}">${escHtml(tag)}</option>`).join('');
+        autoTagSelect.value = state.autoTag || '';
+        autoTagSelect.addEventListener('change', async (e) => {
+            state.autoTag = e.target.value.trim();
+            localStorage.setItem('expman_auto_tag', state.autoTag);
+            if (!state.autoTag) {
+                state.autoTagEnabled = false;
+                localStorage.setItem('expman_auto_tag_enabled', 'false');
+            }
+            try {
+                await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } });
+                toast(state.autoTag ? `Automatic tag set to “${state.autoTag}”` : 'Automatic tag cleared', 'success');
+            } catch (err) {
+                console.error('Failed to save automatic tag', err);
+                toast('Failed to save automatic tag setting', 'error');
+            }
+            if (typeof window.renderAll === 'function') window.renderAll();
+        });
+    }
+
     // Add category
     $('#btn-add-category').addEventListener('click', async () => {
         const input = $('#new-category-input');
@@ -519,6 +545,18 @@ export function setupSettings() {
         });
     }
 
+    const toggleHideAmounts = $('#toggle-hide-amounts-settings');
+    if (toggleHideAmounts) {
+        toggleHideAmounts.checked = state.hideAmounts;
+        toggleHideAmounts.addEventListener('change', async (e) => {
+            state.hideAmounts = e.target.checked;
+            localStorage.setItem('expman_hide_amounts', state.hideAmounts ? 'true' : 'false');
+            try { await updateUserSettings({ ui: { hideAmounts: state.hideAmounts } }); } catch (err) { console.error('Failed to sync hideAmounts to cloud', err); }
+            if (typeof window.renderAll === 'function') window.renderAll();
+            toast(state.hideAmounts ? 'Amounts hidden' : 'Amounts visible', 'info');
+        });
+    }
+
     const toggleHideSourceTxnId = $('#toggle-hide-source-txnid-settings');
     if (toggleHideSourceTxnId) {
         toggleHideSourceTxnId.checked = state.hideSourceTxnId;
@@ -683,6 +721,17 @@ export function renderSettings() {
     initSortable('#category-tbody', 'category');
     initSortable('#txnmode-tbody', 'txnmode');
 
+    const autoTagSelect = $('#settings-auto-tag');
+    if (autoTagSelect) {
+        const selected = state.autoTag || '';
+        const tags = new Set();
+        (state.expenses || []).forEach(txn => String(txn.tag || '').split(',').forEach(tag => { if (tag.trim()) tags.add(tag.trim()); }));
+        (state.keywordMappings || []).forEach(rule => (rule.tags || []).forEach(tag => { if (String(tag).trim()) tags.add(String(tag).trim()); }));
+        if (selected) tags.add(selected);
+        autoTagSelect.innerHTML = '<option value="">Select a tag</option>' + Array.from(tags).sort((a,b) => a.localeCompare(b)).map(tag => `<option value="${escHtml(tag)}">${escHtml(tag)}</option>`).join('');
+        autoTagSelect.value = selected;
+    }
+
     // Update visibility and display preferences toggles
     const toggleIncome = $('#toggle-hide-income');
     if (toggleIncome) toggleIncome.checked = state.hideIncome;
@@ -694,6 +743,8 @@ export function renderSettings() {
     if (toggleMr) toggleMr.checked = state.mergeRefunds;
     const toggleCompact = $('#toggle-hide-source-txnid-settings');
     if (toggleCompact) toggleCompact.checked = state.hideSourceTxnId;
+    const toggleAmounts = $('#toggle-hide-amounts-settings');
+    if (toggleAmounts) toggleAmounts.checked = state.hideAmounts;
 }
 
 // ── Category CRUD ──

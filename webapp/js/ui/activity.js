@@ -3,19 +3,31 @@ import { loadActivityHistory, restoreTrashedTransaction } from "../services/acti
 import { toast } from "../utils/helpers.js";
 export async function renderActivityHistory() {
  const host=document.getElementById("activity-history-list"); if(!host)return;
- host.innerHTML='<div style="padding:16px;color:var(--text-dim)">Loading…</div>';
- await loadActivityHistory(true);
- const items=state.activityHistory||[];
- if(!items.length){host.innerHTML='<div style="padding:20px;color:var(--text-dim)">No activity recorded yet.</div>';return;}
- host.innerHTML=items.map(a=>`<div class="activity-row" data-id="${a.id}" style="padding:14px;border-bottom:1px solid var(--border-subtle);display:flex;gap:12px;align-items:center;justify-content:space-between">
- <button class="activity-open" data-id="${a.id}" style="text-align:left;background:none;border:0;color:inherit;flex:1;min-width:0;cursor:pointer">
- <div style="font-weight:600">${a.action==='deleted'?'Deleted':a.action==='restored'?'Restored':a.action==='updated'?'Updated':'Added'} · ${a.type==='schedule'?'Scheduled transaction':a.type==='quickadd'?'Quick add':'Transaction'}</div>
- <div style="font-size:.88rem;color:var(--text-dim);overflow-wrap:anywhere">${a.title||'Transaction'}${a.amount!=null?' · ₹'+Number(a.amount).toLocaleString('en-IN'):''}</div>
- <div style="font-size:.78rem;color:var(--text-muted)">${new Date(a.timestamp).toLocaleString()} · ${a.source||'manual'}${(a.changes||[]).map(c=>` · ${c.field}: ${c.from} → ${c.to}`).join('')}</div></button>
- ${a.action==='deleted'&&!a.restored?`<button class="btn btn-sm btn-secondary activity-restore" data-id="${a.id}">Restore</button>`:''}
- </div>`).join('');
- host.querySelectorAll('.activity-open').forEach(b=>b.addEventListener('click',()=>openActivityTarget(b.dataset.id)));
- host.querySelectorAll('.activity-restore').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;try{await restoreTrashedTransaction(b.dataset.id);await renderActivityHistory();}catch(e){console.error(e);toast('Could not restore transaction','error');b.disabled=false;}}));
+ host.innerHTML='<div class="page-loading-state"><span class="loading-spinner" aria-hidden="true"></span><span>Loading activity…</span></div>';
+ try {
+  await loadActivityHistory(false);
+  const items=state.activityHistory||[];
+  if(!items.length){host.innerHTML='<div style="padding:20px;color:var(--text-dim)">No activity recorded yet.</div>';return;}
+  host.classList.add('activity-history-card');
+  host.innerHTML=items.map(a=>`<article class="activity-row" data-id="${a.id}">
+ <button class="activity-open" data-id="${a.id}" aria-label="Open ${a.title||'transaction'} activity" >
+  <span class="activity-heading"><span class="activity-action activity-action-${a.action||'added'}">${a.action==='deleted'?'Deleted':a.action==='restored'?'Restored':a.action==='updated'?'Updated':'Added'}</span><span class="activity-type">${a.type==='schedule'?'Scheduled transaction':a.type==='quickadd'?'Quick add':'Transaction'}</span></span>
+  <span class="activity-title">${a.title||'Transaction'}${a.amount!=null?`<span class="activity-amount">₹${Number(a.amount).toLocaleString('en-IN')}</span>`:''}</span>
+  <span class="activity-meta"><span>${new Date(a.timestamp).toLocaleString()}</span><span class="activity-meta-separator">·</span><span>${a.source||'manual'}</span>${(a.changes||[]).map(c=>`<span class="activity-change">${c.field}: ${c.from} → ${c.to}</span>`).join('')}</span>
+ </button>
+ ${a.action==='deleted'&&!a.restored?`<button type="button" class="btn btn-sm btn-secondary activity-restore" data-id="${a.id}">Restore</button>`:''}
+ </article>`).join('');
+  host.querySelectorAll('.activity-open').forEach(b=>b.addEventListener('click',()=>openActivityTarget(b.dataset.id)));
+  host.querySelectorAll('.activity-restore').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;try{await restoreTrashedTransaction(b.dataset.id);await renderActivityHistory();}catch(e){console.error(e);toast('Could not restore transaction','error');b.disabled=false;}}));
+ } catch (error) {
+  console.error('Failed to load activity history:', error);
+  host.innerHTML=`<div style="padding:20px;color:var(--text-dim)">Could not load activity history. ${error?.message==='Activity history request timed out'?'The storage request timed out.':'Check your connection and storage access.'}<div style="margin-top:12px"><button type="button" class="btn btn-secondary" id="activity-retry">Retry</button></div></div>`;
+  host.querySelector('#activity-retry')?.addEventListener('click', async () => {
+   state.activityLoaded = false;
+   host.innerHTML='<div class="page-loading-state"><span class="loading-spinner" aria-hidden="true"></span><span>Loading activity…</span></div>';
+   await renderActivityHistory();
+  });
+ }
 }
 async function openActivityTarget(id){
  const a=(state.activityHistory||[]).find(x=>x.id===id); if(!a)return;

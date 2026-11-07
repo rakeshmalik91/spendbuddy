@@ -46,6 +46,8 @@ export const state = {
     mergeRefunds: localStorage.getItem('expman_merge_refunds') !== 'false',
     hideSourceTxnId: localStorage.getItem('expman_hide_source_txnid') === 'true',
     hideAmounts: localStorage.getItem('expman_hide_amounts') === 'true',
+    autoTag: localStorage.getItem('expman_auto_tag') || '',
+    autoTagEnabled: localStorage.getItem('expman_auto_tag_enabled') === 'true',
     keywordMappings: (() => {
         try {
             const val = localStorage.getItem('expman_keyword_mappings');

@@ -90,6 +90,12 @@ export function applyUserSettings(settings) {
         }
     }
 
+    if (settings.ui?.hideAmounts !== undefined && settings.ui.hideAmounts !== state.hideAmounts) {
+        state.hideAmounts = !!settings.ui.hideAmounts;
+        localStorage.setItem('expman_hide_amounts', state.hideAmounts ? 'true' : 'false');
+        localChanged = true;
+    }
+
     // Gmail Group
     if (settings.gmail !== undefined && window.Android && typeof window.Android.saveImapCredentials === 'function') {
         const gmail = settings.gmail || {};
@@ -100,6 +106,20 @@ export function applyUserSettings(settings) {
                 window.Android.saveImapCredentials(gmail.email, gmail.pass);
                 console.log("Restored Gmail credentials from user settings");
             }
+        }
+    }
+
+    // Automatically apply a selected tag to newly created transactions only.
+    if (settings.autoTag !== undefined) {
+        const autoTag = settings.autoTag || {};
+        const tag = typeof autoTag.tag === 'string' ? autoTag.tag.trim() : '';
+        const enabled = autoTag.enabled === true;
+        if (state.autoTag !== tag || state.autoTagEnabled !== enabled) {
+            state.autoTag = tag;
+            state.autoTagEnabled = enabled;
+            localStorage.setItem('expman_auto_tag', tag);
+            localStorage.setItem('expman_auto_tag_enabled', enabled ? 'true' : 'false');
+            localChanged = true;
         }
     }
 
@@ -128,7 +148,9 @@ export function normalizeKeywordMappings(rules) {
         keyword: (r.keyword || '').trim(),
         category: r.category ? stripEmojiPrefix(r.category) : null,
         txnType: r.txnType ? normalizeTxnType(r.txnType) : null,
-        txnMode: r.txnMode ? stripEmojiPrefix(r.txnMode) : null
+        txnMode: r.txnMode ? stripEmojiPrefix(r.txnMode) : null,
+        tags: Array.isArray(r.tags) ? r.tags.map(t => String(t).trim()).filter(Boolean) : [],
+        enabled: r.enabled !== false
     }));
 }
 
@@ -184,6 +206,11 @@ export async function updateUserSettings(updates) {
         }
     } else if (current.gmail) {
         merged.gmail = current.gmail;
+    }
+
+    // Merge automatic transaction tag settings.
+    if (current.autoTag || updates.autoTag) {
+        merged.autoTag = { ...(current.autoTag || {}), ...(updates.autoTag || {}) };
     }
 
     // Merge Keyword Mappings

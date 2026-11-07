@@ -268,6 +268,9 @@
     .settings-grid {
         grid-template-columns: 1fr;
     }
+    .about-settings-grid {
+        grid-template-columns: 1fr;
+    }
 
     .global-time-filter {
         flex-direction: column;
@@ -1001,5 +1004,282 @@
 
     #split-editor-card > div:last-child button {
         flex: 1 1 120px;
+    }
+}
+
+
+/* Split Tool and Activity page navigation / group filters */
+.split-view-title-wrap { display:flex; align-items:center; gap:16px; }
+.activity-view-header { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+.split-view-back { border:0; background:transparent; color:var(--text-muted); font-size:1.5rem; line-height:1; padding:4px 2px; cursor:pointer; }
+.split-group-filters { display:flex; flex-wrap:wrap; align-items:flex-start; gap:14px; margin: -8px 0 24px; }
+.split-group-filter { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:64px; padding:0; border:0; background:transparent; color:var(--text-muted); cursor:pointer; }
+.split-group-filter-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border-subtle); background:var(--surface-card, rgba(255,255,255,.04)); color:var(--text-secondary); font-size:1.1rem; font-weight:700; transition:all .18s ease; }
+.split-group-filter.active .split-group-filter-icon { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 14%, transparent); }
+.split-group-filter-label { max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.75rem; }
+@media (min-width: 861px) {
+  #view-split .split-view-back, #view-activity .split-view-back { display:none !important; }
+  #view-split .split-view-title-wrap { cursor:default; }
+}
+
+@media (min-width: 861px) {
+  #view-split .summary-cards.grid-count-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap:14px; }
+  #view-split .summary-cards.grid-count-4 .summary-card { padding:18px 16px; }
+}
+
+
+/* Split participant payment and remove controls */
+#split-participants-table .split-paid-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 88px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color, rgba(255,255,255,.16));
+    border-radius: 999px;
+    background: rgba(255,255,255,.045);
+    color: var(--text-secondary);
+    font-size: .78rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+#split-participants-table .split-paid-toggle-knob {
+    width: 27px;
+    height: 15px;
+    flex: 0 0 27px;
+    position: relative;
+    border-radius: 999px;
+    background: rgba(148,163,184,.42);
+    transition: background .18s ease;
+}
+#split-participants-table .split-paid-toggle-knob::after {
+    content: "";
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    top: 2px;
+    left: 2px;
+    border-radius: 50%;
+    background: white;
+    transition: transform .18s ease;
+}
+#split-participants-table .split-paid-toggle.is-paid {
+    border-color: rgba(34,197,94,.55);
+    background: rgba(34,197,94,.12);
+    color: var(--green, #22c55e);
+}
+#split-participants-table .split-paid-toggle.is-paid .split-paid-toggle-knob {
+    background: var(--green, #22c55e);
+}
+#split-participants-table .split-paid-toggle.is-paid .split-paid-toggle-knob::after {
+    transform: translateX(12px);
+}
+#split-participants-table .split-person-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 5px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+#split-participants-table .split-person-remove:active { transform: scale(.94); }
+
+@media (max-width: 860px) {
+    #split-participants-table tbody tr {
+        grid-template-columns: minmax(0, 1fr) 88px 40px !important;
+        column-gap: 8px !important;
+    }
+    #split-participants-table tbody td:nth-child(5),
+    #split-participants-table tbody td:nth-child(6) {
+        grid-row: 5;
+        min-height: 40px;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 0;
+    }
+    #split-participants-table tbody td:nth-child(5) { grid-column: 2; width: 88px !important; }
+    #split-participants-table tbody td:nth-child(6) { grid-column: 3; width: 40px !important; }
+    #split-participants-table tbody td:nth-child(5)::before,
+    #split-participants-table tbody td:nth-child(6)::before {
+        display: none !important;
+    }
+    #split-participants-table .split-paid-toggle {
+        width: 88px;
+        min-width: 88px;
+        max-width: 88px;
+        min-height: 36px;
+        box-sizing: border-box;
+        justify-content: center;
+        padding: 5px 6px;
+        gap: 5px;
+        white-space: nowrap;
+    }
+    #split-participants-table .split-person-remove {
+        min-width: 38px;
+        min-height: 38px;
+        font-size: 1.25rem;
+    }
+}
+
+/* Activity history: clearer hierarchy and comfortable touch targets */
+#activity-history-list.activity-history-card {
+    padding: 8px 18px;
+}
+#activity-history-list .activity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+#activity-history-list .activity-row:last-child { border-bottom: 0; }
+#activity-history-list .activity-open {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    min-width: 0;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+#activity-history-list .activity-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.35;
+}
+#activity-history-list .activity-action {
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: .015em;
+}
+#activity-history-list .activity-action-deleted { color: #f0a0a0; }
+#activity-history-list .activity-action-restored { color: #83cba1; }
+#activity-history-list .activity-action-updated { color: #8db9ef; }
+#activity-history-list .activity-action-added { color: var(--accent); }
+#activity-history-list .activity-type {
+    color: var(--text-muted);
+    font-size: .8rem;
+    font-weight: 500;
+}
+#activity-history-list .activity-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--text-main);
+    font-size: 1.04rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+#activity-history-list .activity-amount {
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+#activity-history-list .activity-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: .82rem;
+    line-height: 1.5;
+}
+#activity-history-list .activity-change {
+    flex-basis: 100%;
+    color: var(--text-dim);
+    margin-top: 2px;
+}
+#activity-history-list .activity-restore {
+    flex: 0 0 auto;
+    min-width: 104px;
+    min-height: 42px;
+    padding: 8px 16px;
+    font-size: .9rem;
+    font-weight: 650;
+}
+#activity-history-list .activity-open:focus-visible,
+#activity-history-list .activity-restore:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+@media (max-width: 600px) {
+    #activity-history-list.activity-history-card { padding: 4px 12px; }
+    #activity-history-list .activity-row { gap: 10px; padding: 17px 4px; }
+    #activity-history-list .activity-open { gap: 6px; }
+    #activity-history-list .activity-title { font-size: .98rem; gap: 7px; }
+    #activity-history-list .activity-meta { font-size: .76rem; }
+    #activity-history-list .activity-restore { min-width: 88px; min-height: 40px; padding: 7px 12px; }
+}
+
+
+@media (max-width: 860px) {
+  #view-transactions .filter-panel.expanded,
+  #view-transactions .filters-panel.expanded,
+  #view-transactions .txn-filters.expanded,
+  #view-transactions .filter-content.expanded { padding-bottom: 8px !important; margin-bottom: 8px !important; }
+  #view-transactions .filter-panel.expanded > :last-child,
+  #view-transactions .filters-panel.expanded > :last-child,
+  #view-transactions .txn-filters.expanded > :last-child { margin-bottom: 0 !important; }
+}
+
+
+/* Keep the mobile navigation anchored to the viewport while the page scrolls.
+   The explicit iOS override also protects against layout rules inherited from
+   dynamically rendered views. */
+@media (max-width: 860px) {
+    #bottom-nav.bottom-nav {
+        position: fixed !important;
+        inset-inline: 0 !important;
+        inset-block-end: 0 !important;
+        top: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        box-sizing: border-box;
+        z-index: 10000 !important;
+        flex-shrink: 0;
+    }
+
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+        #bottom-nav.bottom-nav {
+            padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        }
+    }
+}
+
+
+/* Selected-date transaction cards have no visible action column on mobile.
+   Remove the reserved grid track so the content and divider use full width. */
+@media (max-width: 768px) {
+    #selected-day-tbody tr:not(.month-separator):not(.month-header):not(.day-separator) {
+        grid-template-areas:
+            "category amount"
+            "note note" !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        column-gap: 10px !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #selected-day-tbody tr:not(.month-separator):not(.month-header):not(.day-separator) > td[data-label="Actions"] {
+        display: none !important;
     }
 }

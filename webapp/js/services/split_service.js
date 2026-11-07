@@ -115,77 +115,78 @@ export function getKnownPeople() {
 export function calculateSplit(billData) {
     const bill = { ...billData };
     const participants = (bill.participants || []).map(p => ({ ...p }));
-
-    // 1. Calculate Total Bill Base Amount
-    let totalBase = 0;
-    const totalAmountExpr = (bill.totalAmountExpr !== undefined && bill.totalAmountExpr !== null) 
-        ? String(bill.totalAmountExpr).trim() 
+    const totalAmountExpr = (bill.totalAmountExpr !== undefined && bill.totalAmountExpr !== null)
+        ? String(bill.totalAmountExpr).trim()
         : String(bill.totalAmount || 0);
-
-    const evaluatedTotalAmount = evaluateExpression(totalAmountExpr);
-    bill.totalAmount = roundAmount(evaluatedTotalAmount);
-
-    const splitMethod = bill.splitMethod || 'equal'; // 'equal' | 'expression'
-    const taxSplitMethod = bill.taxSplitMethod || 'percentage'; // 'percentage' | 'equal'
+    const inclusiveTotal = roundAmount(evaluateExpression(totalAmountExpr));
+    const splitMethod = bill.splitMethod || 'equal';
+    const taxSplitMethod = bill.taxSplitMethod || 'percentage';
     const count = participants.length;
 
-    // 2. Calculate Base Share for each participant
+    // The entered bill amount is the final payable amount (tax-inclusive).
+    const taxExpr = (bill.taxExpr !== undefined && bill.taxExpr !== null) ? String(bill.taxExpr).trim() : '0';
+    let totalTax = 0;
+    if (taxExpr.includes('%')) {
+        const pct = parseFloat(taxExpr.replace('%', '').trim()) || 0;
+        // Extract tax from an inclusive total: inclusive = base * (1 + rate).
+        totalTax = pct >= 0 ? roundAmount(inclusiveTotal * pct / (100 + pct)) : 0;
+    } else {
+        totalTax = roundAmount(evaluateExpression(taxExpr));
+    }
+    totalTax = Math.max(0, Math.min(inclusiveTotal, totalTax));
+    const baseTotal = roundAmount(inclusiveTotal - totalTax);
+
+    let allocatedBase = 0;
     if (splitMethod === 'equal') {
-        const equalShare = count > 0 ? bill.totalAmount / count : 0;
-        participants.forEach(p => {
-            p.expression = count > 0 ? (Math.round(equalShare * 100) / 100).toString() : '0';
-            p.baseAmount = roundAmount(equalShare);
-            totalBase += p.baseAmount;
+        const equalShare = count > 0 ? baseTotal / count : 0;
+        participants.forEach((p, idx) => {
+            p.expression = count > 0 ? roundAmount(equalShare).toString() : '0';
+            p.baseAmount = idx === count - 1
+                ? roundAmount(baseTotal - allocatedBase)
+                : roundAmount(equalShare);
+            allocatedBase += p.baseAmount;
         });
     } else {
         participants.forEach(p => {
             const expr = p.expression ? String(p.expression).trim() : '0';
             p.baseAmount = roundAmount(evaluateExpression(expr));
-            totalBase += p.baseAmount;
+            allocatedBase += p.baseAmount;
         });
     }
 
-    // 3. Calculate Total Tax
-    const taxExpr = (bill.taxExpr !== undefined && bill.taxExpr !== null) ? String(bill.taxExpr).trim() : '0';
-    let totalTax = 0;
-    if (taxExpr.includes('%')) {
-        const pct = parseFloat(taxExpr.replace('%', '')) || 0;
-        totalTax = roundAmount((bill.totalAmount * pct) / 100);
-    } else {
-        totalTax = roundAmount(evaluateExpression(taxExpr));
-    }
-    bill.taxAmount = totalTax;
-
-    // 4. Distribute Tax to Participants
-    participants.forEach(p => {
-        // If participant has explicit individual tax expression, respect it
+    let allocatedTax = 0;
+    participants.forEach((p, idx) => {
         if (p.taxExpression && String(p.taxExpression).trim()) {
             p.taxAmount = roundAmount(evaluateExpression(String(p.taxExpression).trim()));
         } else if (totalTax > 0 && count > 0) {
             if (taxSplitMethod === 'equal') {
-                p.taxAmount = roundAmount(totalTax / count);
+                p.taxAmount = idx === count - 1
+                    ? roundAmount(totalTax - allocatedTax)
+                    : roundAmount(totalTax / count);
             } else {
-                // Percentage / Proportional to base share
-                const ratio = totalBase > 0 ? (p.baseAmount / totalBase) : (1 / count);
-                p.taxAmount = roundAmount(totalTax * ratio);
+                const ratio = baseTotal > 0 ? (p.baseAmount / baseTotal) : (1 / count);
+                p.taxAmount = idx === count - 1
+                    ? roundAmount(totalTax - allocatedTax)
+                    : roundAmount(totalTax * ratio);
             }
         } else {
             p.taxAmount = 0;
         }
-
-        // 5. Store the final End Amount for each user
+        allocatedTax += p.taxAmount;
         p.endAmount = roundAmount(p.baseAmount + p.taxAmount);
     });
 
+    bill.taxInclusive = true;
+    bill.totalAmount = inclusiveTotal;
+    bill.baseAmountTotal = baseTotal;
+    bill.taxAmount = totalTax;
     bill.participants = participants;
-    bill.allocatedBase = roundAmount(totalBase);
-    bill.remainingBase = roundAmount(bill.totalAmount - totalBase);
-    const allocatedTax = participants.reduce((sum, p) => sum + (Number(p.taxAmount) || 0), 0);
+    bill.allocatedBase = roundAmount(allocatedBase);
+    bill.remainingBase = roundAmount(baseTotal - allocatedBase);
     bill.allocatedTax = roundAmount(allocatedTax);
-    bill.remainingTax = roundAmount(bill.taxAmount - allocatedTax);
-    bill.grandTotal = roundAmount(bill.totalAmount + bill.taxAmount);
+    bill.remainingTax = roundAmount(totalTax - allocatedTax);
+    bill.grandTotal = inclusiveTotal;
     bill.remainingInclusive = roundAmount(bill.remainingBase + bill.remainingTax);
-
     return bill;
 }
 

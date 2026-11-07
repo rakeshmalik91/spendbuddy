@@ -182,11 +182,11 @@
     <link rel="stylesheet" href="css/components/buttons.css?v=11">
     <link rel="stylesheet" href="css/components/cards.css?v=11">
     <link rel="stylesheet" href="css/components/tables.css?v=61">
-    <link rel="stylesheet" href="css/components/forms.css?v=15">
+    <link rel="stylesheet" href="css/components/forms.css?v=16">
     <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=14">
-    <link rel="stylesheet" href="css/views/settings.css?v=5">
-    <link rel="stylesheet" href="css/layout/responsive.css?v=49">
+    <link rel="stylesheet" href="css/views/settings.css?v=6">
+    <link rel="stylesheet" href="css/layout/responsive.css?v=50">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
 
@@ -659,6 +659,11 @@
 
                 <div class="card form-card">
                     <form id="expense-form" autocomplete="off" novalidate>
+                        <div id="form-auto-tag-tool" class="form-auto-tag-tool" hidden>
+                            <span class="form-auto-tag-label">🏷️ Auto Tagging</span>
+                            <span class="form-auto-tag-name" id="form-auto-tag-name"></span>
+                            <button type="button" id="form-auto-tag-toggle" class="form-auto-tag-toggle" aria-pressed="false">OFF</button>
+                        </div>
                         <input type="hidden" id="edit-index" value="-1">
                         <input type="hidden" id="edit-scheduled-index" value="-1">
 
@@ -724,36 +729,41 @@
                                 <input type="hidden" id="input-txn-type">
                                 <div id="txnmode-chips" class="chip-group"></div>
                             </div>
-                            <div class="form-group full-width">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                    <label for="input-location" style="margin-bottom: 0;">Location</label>
-                                    <button type="button" id="btn-detect-location" class="btn-detect-location" title="Detect Current Location" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px;">
-                                        <span>📍 Detect</span>
-                                    </button>
+                            <details id="form-extra-options" class="form-extra-options full-width">
+                                <summary><span>Tags, location & scheduling</span><span class="extra-options-hint">Tap to expand</span></summary>
+                                <div class="form-extra-options-content">
+                                    <div class="form-group full-width">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <label for="input-location" style="margin-bottom: 0;">Location</label>
+                                            <button type="button" id="btn-detect-location" class="btn-detect-location" title="Detect Current Location" style="background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px;">
+                                                <span>📍 Detect</span>
+                                            </button>
+                                        </div>
+                                        <div id="location-suggestions" class="chip-group note-suggestions"></div>
+                                        <input type="text" id="input-location" placeholder="e.g. Gurugram">
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label for="input-tag">Tag</label>
+                                        <div id="tag-suggestions" class="chip-group note-suggestions"></div>
+                                        <input type="text" id="input-tag" placeholder="e.g. Vacation, Project, Tax">
+                                    </div>
+                                    <div class="form-group full-width" id="frequency-group">
+                                        <label for="input-frequency">Frequency (For Scheduled Txns)</label>
+                                        <select id="input-frequency" style="display: none;">
+                                            <option value="one-off" selected>One-off</option>
+                                            <option value="instant">Instant (Quick Add)</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="biweekly">Biweekly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="bimonthly">Bimonthly</option>
+                                            <option value="quarterly">Quarterly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                        <div id="frequency-chips" class="frequency-selector-grid"></div>
+                                    </div>
                                 </div>
-                                <div id="location-suggestions" class="chip-group note-suggestions"></div>
-                                <input type="text" id="input-location" placeholder="e.g. Gurugram">
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="input-tag">Tag</label>
-                                <div id="tag-suggestions" class="chip-group note-suggestions"></div>
-                                <input type="text" id="input-tag" placeholder="e.g. Vacation, Project, Tax">
-                            </div>
-                            <div class="form-group full-width" id="frequency-group">
-                                <label for="input-frequency">Frequency (For Scheduled Txns)</label>
-                                <select id="input-frequency" style="display: none;">
-                                    <option value="one-off" selected>One-off</option>
-                                    <option value="instant">Instant (Quick Add)</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="biweekly">Biweekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="bimonthly">Bimonthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
-                                <div id="frequency-chips" class="frequency-selector-grid"></div>
-                            </div>
+                            </details>
 
                             <div class="form-group full-width" id="freq-options-wrapper"
                                 style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; display: none;">
@@ -1205,12 +1215,26 @@
                         </div>
                         <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
                     </div>
+
+                    <!-- Auto Tagging uses the same grid cell sizing as the other settings buttons -->
+                    <div class="card"
+                        style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:20px;"
+                        onclick="window.switchView('auto-tagging')">
+                        <div style="display:flex; align-items:center; gap:16px; min-width:0;">
+                            <span style="font-size:1.8rem; flex:0 0 auto;">🏷️</span>
+                            <div style="min-width:0;">
+                                <div style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Auto Tagging</div>
+                                <div style="font-size:0.85rem; color:var(--text-dim); margin-top:4px;">Choose a tag to apply automatically to new transactions</div>
+                            </div>
+                        </div>
+                        <span style="color:var(--text-muted); font-size:1.2rem; flex:0 0 auto;">❯</span>
+                    </div>
                 </div>
 
                 <!-- Section 2: Tools -->
                 <div class="hide-on-desktop" style="margin-bottom:28px;">
                     <h2 class="settings-section-heading" style="font-size:1.15rem;font-weight:700;color:var(--text-secondary);margin:0 0 14px 4px;display:flex;align-items:center;gap:8px;"><span>🛠️</span> Tools</h2>
-                    <div class="settings-grid">
+                    <div class="settings-grid about-settings-grid">
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('balance')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">💰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Balance Tracker</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Track account balances and net worth</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
@@ -1222,7 +1246,7 @@
                     <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
                         <span>ℹ️</span> About
                     </h2>
-                    <div class="settings-grid" style="margin-bottom: 24px;">
+                    <div class="settings-grid about-settings-grid" style="margin-bottom: 24px;">
                         <div class="card"
                             style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
                             onclick="window.switchView('about')">
@@ -1322,16 +1346,19 @@
                             </label>
                         </div>
 
-                        <!-- Compact View Toggle -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0;">
-                            <div>
-                                <div style="font-weight: 500; color: var(--text-main);">Compact View</div>
-                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes for a clean display</div>
-                            </div>
-                            <label class="toggle-switch" title="Toggle compact view (shortened source &amp; txn ID, emoji mode)">
-                                <input type="checkbox" id="toggle-hide-source-txnid-settings">
-                                <span class="toggle-slider"></span>
-                            </label>
+                    </div>
+
+                    <!-- Display Preferences Card -->
+                    <div class="card">
+                        <h2 class="chart-title" style="display:flex;align-items:center;gap:8px;"><span>🖥️</span> Display Preferences</h2>
+                        <p style="color:var(--text-dim);margin-bottom:20px;font-size:0.9rem;">Control how transaction details and amounts are displayed.</p>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-subtle);">
+                            <div><div style="font-weight:500;color:var(--text-main);">Compact View</div><div style="font-size:0.85rem;color:var(--text-dim);margin-top:2px;">Shortened source badges, compact transaction IDs, and emoji-only transaction modes</div></div>
+                            <label class="toggle-switch"><input type="checkbox" id="toggle-hide-source-txnid-settings"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;">
+                            <div><div style="font-weight:500;color:var(--text-main);">Hide Amounts</div><div style="font-size:0.85rem;color:var(--text-dim);margin-top:2px;">Mask transaction amounts and dashboard totals</div></div>
+                            <label class="toggle-switch"><input type="checkbox" id="toggle-hide-amounts-settings"><span class="toggle-slider"></span></label>
                         </div>
                     </div>
 
@@ -1357,6 +1384,32 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── AUTO TAGGING VIEW ── -->
+            <section class="view" id="view-auto-tagging">
+                <div class="view-header-with-back"
+                    style="display:flex; align-items:center; gap:16px; margin-bottom:24px; cursor:pointer;"
+                    onclick="window.switchView('settings')">
+                    <span style="font-size:1.5rem; color:var(--text-muted);">❮</span>
+                    <h1 class="view-title" style="margin-bottom:0;">Auto Tagging</h1>
+                </div>
+                <div class="card auto-tagging-card">
+                    <div class="auto-tagging-heading">
+                        <span class="auto-tagging-icon" aria-hidden="true">🏷️</span>
+                        <div class="auto-tagging-title-group">
+                            <div class="auto-tagging-title">Auto Tagging</div>
+                            <div class="auto-tagging-description">Choose a tag to apply automatically to new transactions.</div>
+                        </div>
+                    </div>
+                    <div class="auto-tagging-settings">
+                        <label for="settings-auto-tag">Tag to apply to new transactions</label>
+                        <select id="settings-auto-tag" aria-describedby="settings-auto-tag-help">
+                            <option value="">Select a tag</option>
+                        </select>
+                        <div id="settings-auto-tag-help" class="auto-tagging-help">Applies to manual, Quick Add, SMS and email transactions. Existing transactions and scheduled transactions are not changed.</div>
                     </div>
                 </div>
             </section>
@@ -1397,6 +1450,8 @@
                                         <th data-col="category">Category</th>
                                         <th data-col="txntype">Txn Type</th>
                                         <th data-col="txnmode">Txn Mode</th>
+                                        <th data-col="tags">Tags</th>
+                                        <th data-col="status">Status</th>
                                         <th data-col="actions" style="text-align: right;">Actions</th>
                                     </tr>
                                 </thead>
@@ -1780,16 +1835,16 @@
 
             <!-- ── SPLIT TOOL VIEW ── -->
             <section class="view" id="view-activity">
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><button class="btn btn-secondary" onclick="window.goBackView()">← Back</button><h1 class="view-title" style="margin:0;">Activity History</h1></div>
+              <div class="view-header-with-back activity-view-header"><button type="button" class="split-view-back" onclick="window.goBackView()" aria-label="Go back">❮</button><h1 class="view-title" style="margin:0;">Activity History</h1></div>
               <div id="activity-history-list" class="card"><div class="text-muted">Loading activity…</div></div>
             </section>
 
             <section class="view" id="view-split">
                 <div class="view-header-with-back"
                     style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-                    <div style="display: flex; align-items: center; gap: 16px; cursor: pointer;" onclick="window.goBackView ? window.goBackView() : window.switchView('dashboard')">
-                        <span style="font-size: 1.5rem; color: var(--text-muted);">❮</span>
-                        <h1 class="view-title" style="margin-bottom: 0;">Split Tool</h1>
+                    <div class="split-view-title-wrap">
+                        <button type="button" class="split-view-back" onclick="window.goBackView ? window.goBackView() : window.switchView('dashboard')" aria-label="Go back">❮</button>
+                        <h1 class="view-title" style="margin: 0;">Split Tool</h1>
                     </div>
                     <button type="button" class="btn btn-primary" id="btn-create-split" style="display: inline-flex; align-items: center; gap: 6px;">
                         <span>➕</span> New Split Bill
@@ -1797,7 +1852,7 @@
                 </div>
 
                 <!-- Stat Cards -->
-                <div class="summary-cards" style="margin-bottom: 24px;">
+                <div class="summary-cards grid-count-4" style="margin-bottom: 24px;">
                     <div class="card summary-card card-balance">
                         <div class="card-label">Total Bills Split</div>
                         <div class="card-value" id="split-stat-count">0</div>
@@ -1810,7 +1865,13 @@
                         <div class="card-label">Active People</div>
                         <div class="card-value" id="split-stat-people">0</div>
                     </div>
+                    <div class="card summary-card card-balance">
+                        <div class="card-label">My Total Share</div>
+                        <div class="card-value" id="split-stat-my-share">₹0.00</div>
+                    </div>
                 </div>
+
+                <div id="split-group-filters" class="split-group-filters" aria-label="Filter bills by group"></div>
 
                 <!-- Split Builder / Editor Card -->
                 <div class="card" id="split-editor-card" style="display: none; margin-bottom: 28px; padding: 24px; border: 1px solid var(--border-focus);">
@@ -1821,31 +1882,36 @@
                         <button type="button" class="close-btn" onclick="window.closeSplitEditor()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-bottom: 18px; min-width: 0;">
                         <div>
                             <label for="split-input-title" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Bill Title / Description</label>
                             <input type="text" id="split-input-title" class="form-control" placeholder="e.g. Dinner with Friends" style="width: 100%;" />
                         </div>
                         <div>
+                            <label for="split-input-group" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Group (Optional)</label>
+                            <input type="text" id="split-input-group" class="form-control" list="split-known-groups-list" placeholder="e.g. Kashmir Trip, Flatmates" style="width: 100%;" />
+                            <datalist id="split-known-groups-list"></datalist>
+                        </div>
+                        <div style="min-width: 0; max-width: 240px;">
                             <label for="split-input-date" style="display: block; font-weight: 500; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-secondary);">Date</label>
-                            <input type="date" id="split-input-date" class="form-control" style="width: 100%;" />
+                            <input type="date" id="split-input-date" class="form-control" style="width: 210px; max-width: 100%; min-width: 0; box-sizing: border-box;" />
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
                         <div>
                             <label for="split-input-total" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
-                                Bill Amount (tax exclusive; supports + - * / and ()) <span style="color: var(--red);">*</span>
+                                Bill Amount (tax inclusive; supports + - * / and ()) <span style="color: var(--red);">*</span>
                             </label>
                             <input type="text" id="split-input-total" class="form-control" placeholder="e.g. 1500 or (350*3)+450" style="width: 100%;" />
-                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the amount before tax; tax / tip / surcharge is added to calculate the tax-inclusive total</small>
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the final amount payable, including tax. The tax amount below is extracted from this total.</small>
                         </div>
                         <div>
                             <label for="split-input-tax" style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
-                                Tax / Tip / Surcharge (Optional)
+                                Tax included (Optional)
                             </label>
                             <input type="text" id="split-input-tax" class="form-control" placeholder="e.g. 18% or 180 or 120+60" style="width: 100%;" />
-                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Supports flat amounts, expressions, or percentage (e.g. 18%)</small>
+                            <small style="color: var(--text-dim); font-size: 0.78rem; display: block; margin-top: 4px;">Enter the tax already included in the bill, as a flat amount or rate (e.g. 18%).</small>
                         </div>
                     </div>
 
@@ -2140,6 +2206,14 @@
                         </select>
                     </div>
 
+                    <div>
+                        <label for="kw-input-tags" style="display:block;font-weight:500;font-size:0.9rem;margin-bottom:6px;color:var(--text-main);">Tags (comma separated)</label>
+                        <input type="text" id="kw-input-tags" class="form-control" placeholder="e.g. groceries, recurring" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.95rem;">
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <label for="kw-input-enabled" style="font-weight:500;color:var(--text-main);">Enable this rule</label>
+                        <input type="checkbox" id="kw-input-enabled" checked>
+                    </div>
                     <div>
                         <label for="kw-input-txnmode" style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-main);">
                             Transaction Mode Override
@@ -2527,6 +2601,24 @@
         })();
     </script>
     <script type="module" src="app.js?v=427"></script>
+
+    <script>
+        // Keep the mobile footer outside view containers so iOS Safari can
+        // anchor it to the viewport rather than a scrolling/transformed pane.
+        (() => {
+            const keepBottomNavFixed = () => {
+                const nav = document.getElementById('bottom-nav');
+                if (nav && nav.parentElement !== document.body) {
+                    document.body.appendChild(nav);
+                }
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', keepBottomNavFixed, { once: true });
+            } else {
+                keepBottomNavFixed();
+            }
+        })();
+    </script>
 </body>
 
 </html>

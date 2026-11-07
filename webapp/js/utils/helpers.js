@@ -170,6 +170,8 @@ export async function editScheduledTransaction(idx) {
 
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = idx;
     $('#edit-index').value = -1;
+    const extraOptions = $('#form-extra-options');
+    if (extraOptions) extraOptions.open = true; // Keep scheduling controls visible while editing a schedule.
 
     // Show expression if it exists, otherwise show the calculated amount
     $('#input-amount').value = st.amountExpression || amountToStr(Math.abs(st.amount));

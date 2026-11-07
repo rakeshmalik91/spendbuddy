@@ -28,6 +28,17 @@ export function isExcludedSuggestionSource(e) {
     return s.includes('refund') || s.includes('schedule') || s.includes('quick add');
 }
 
+/* Avoid moving focus into text inputs when selecting suggestion chips on
+   touch-first/mobile layouts. Users can still tap the input directly to edit. */
+function focusSuggestionInputOnDesktop(input) {
+    if (!input) return;
+    const touchFirst = (window.matchMedia &&
+        (window.matchMedia('(pointer: coarse)').matches ||
+         window.matchMedia('(hover: none)').matches)) ||
+        window.innerWidth <= 860;
+    if (!touchFirst) input.focus();
+}
+
 /* ══════════════ FORM DROPDOWNS ══════════════ */
 
 /**
@@ -322,7 +333,7 @@ export function populateNoteSuggestions() {
                 noteInput.value = val;
             }
             noteInput.dispatchEvent(new Event('input'));
-            noteInput.focus();
+            focusSuggestionInputOnDesktop(noteInput);
         });
     });
 }
@@ -402,7 +413,7 @@ export function populateLocationSuggestions() {
                 chip.classList.add('active');
                 locInput.value = val;
             }
-            locInput.focus();
+            focusSuggestionInputOnDesktop(locInput);
         });
     });
 }
@@ -472,7 +483,7 @@ export function populateTagSuggestions() {
                 chip.classList.add('active');
                 tagInput.value = val;
             }
-            tagInput.focus();
+            focusSuggestionInputOnDesktop(tagInput);
         });
     });
 }

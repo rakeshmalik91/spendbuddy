@@ -64,7 +64,8 @@ export function renderKeywordMappings(filterText = '') {
             (m.keyword || '').toLowerCase().includes(filterText) ||
             (m.category || '').toLowerCase().includes(filterText) ||
             (m.txnType || '').toLowerCase().includes(filterText) ||
-            (m.txnMode || '').toLowerCase().includes(filterText)
+            (m.txnMode || '').toLowerCase().includes(filterText) ||
+            (Array.isArray(m.tags) && m.tags.join(' ').toLowerCase().includes(filterText))
         );
     }
 
@@ -72,7 +73,7 @@ export function renderKeywordMappings(filterText = '') {
         if (state.keywordMappings.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 28px 16px;">
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 28px 16px;">
                         No custom keyword rules configured yet.<br>
                         Click <strong>"+ Add Rule"</strong> to override default category, type, or mode for specific merchants/keywords.
                     </td>
@@ -80,7 +81,7 @@ export function renderKeywordMappings(filterText = '') {
         } else {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 16px;">
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 24px 16px;">
                         No keyword rules match "${escHtml(filterText)}".
                     </td>
                 </tr>`;
@@ -117,6 +118,8 @@ export function renderKeywordMappings(filterText = '') {
                 <td data-label="Category">${categoryDisplay}</td>
                 <td data-label="Txn Type">${txnTypeBadge}</td>
                 <td data-label="Txn Mode">${txnModeDisplay}</td>
+                <td data-label="Tags">${(rule.tags || []).map(t => `<span class="badge">${escHtml(t)}</span>`).join(' ') || '—'}</td>
+                <td data-label="Status"><button class="row-btn" onclick="window.toggleKeywordMapping(${origIndex})" title="Toggle rule">${rule.enabled === false ? '⏸️' : '✅'}</button></td>
                 <td data-label="Actions">
                     <div class="row-actions">
                         <button class="row-btn run-btn" onclick="window.runKeywordMappingOnExisting(${origIndex})" title="Run rule on existing transactions">⚡</button>
@@ -143,6 +146,8 @@ export function openKeywordMappingModal(index = -1) {
     const selectCategory = $('#kw-input-category');
     const selectTxnType = $('#kw-input-txntype');
     const selectTxnMode = $('#kw-input-txnmode');
+    const inputTags = $('#kw-input-tags');
+    const inputEnabled = $('#kw-input-enabled');
 
     // Populate category dropdown
     selectCategory.innerHTML = `<option value="">-- No Category Override --</option>` +
@@ -178,6 +183,9 @@ export function openKeywordMappingModal(index = -1) {
             selectTxnType.value = '';
         }
 
+        if (inputTags) inputTags.value = (rule.tags || []).join(', ');
+        if (inputEnabled) inputEnabled.checked = rule.enabled !== false;
+
         if (rule.txnMode) {
             const cleanMode = stripEmojiPrefix(rule.txnMode).toLowerCase();
             const opt = Array.from(selectTxnMode.options).find(o => stripEmojiPrefix(o.value).toLowerCase() === cleanMode);
@@ -191,6 +199,8 @@ export function openKeywordMappingModal(index = -1) {
         selectCategory.value = '';
         selectTxnType.value = '';
         selectTxnMode.value = '';
+        if (inputTags) inputTags.value = '';
+        if (inputEnabled) inputEnabled.checked = true;
     }
 
     overlay.style.display = 'flex';
@@ -223,6 +233,8 @@ export async function saveKeywordMapping() {
     const category = selectCategory?.value || '';
     const txnType = selectTxnType?.value || '';
     const txnMode = selectTxnMode?.value || '';
+    const tags = ($('#kw-input-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean);
+    const enabled = $('#kw-input-enabled')?.checked !== false;
 
     if (!keyword) {
         toast('Please enter a keyword', 'error');
@@ -230,7 +242,7 @@ export async function saveKeywordMapping() {
         return;
     }
 
-    if (!category && !txnType && !txnMode) {
+    if (!category && !txnType && !txnMode && tags.length === 0) {
         toast('Please select at least one override (Category, Txn Type, or Txn Mode)', 'error');
         return;
     }
@@ -254,7 +266,9 @@ export async function saveKeywordMapping() {
         keyword,
         category: category ? stripEmojiPrefix(category) : null,
         txnType: txnType ? normalizeTxnType(txnType) : null,
-        txnMode: txnMode ? stripEmojiPrefix(txnMode) : null
+        txnMode: txnMode ? stripEmojiPrefix(txnMode) : null,
+        tags,
+        enabled
     };
 
     if (currentEditingIndex >= 0) {
@@ -411,6 +425,11 @@ export async function executeRulesOnExpenses(rules) {
             }
         }
 
+        if (Array.isArray(matchedRule.tags) && matchedRule.tags.length) {
+            const nextTag = matchedRule.tags.join(', ');
+            if (e.tag !== nextTag) { e.tag = nextTag; changed = true; }
+        }
+
         if (changed) {
             totalUpdated++;
             if (e.date && e.date.length >= 4) {
@@ -524,6 +543,19 @@ export async function syncKeywordMappingsOnEntityChange(entityType, action, oldN
 window.openKeywordMappingModal = openKeywordMappingModal;
 window.editKeywordMapping = openKeywordMappingModal;
 window.deleteKeywordMapping = deleteKeywordMapping;
+
+export async function toggleKeywordMapping(index) {
+    const rule = state.keywordMappings?.[index];
+    if (!rule) return;
+    rule.enabled = rule.enabled === false;
+    localStorage.setItem('expman_keyword_mappings', JSON.stringify(state.keywordMappings));
+    try { await updateUserSettings({ keywordMappings: state.keywordMappings }); }
+    catch (err) { console.error('Failed to sync keyword mapping status:', err); }
+    renderKeywordMappings();
+    toast(rule.enabled ? 'Keyword rule enabled' : 'Keyword rule disabled', 'info');
+}
+
+window.toggleKeywordMapping = toggleKeywordMapping;
 window.renderKeywordMappings = renderKeywordMappings;
 window.runKeywordMappingOnExisting = runKeywordMappingOnExisting;
 window.runAllKeywordMappingsOnExisting = runAllKeywordMappingsOnExisting;

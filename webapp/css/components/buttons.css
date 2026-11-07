@@ -93,6 +93,20 @@
     font-weight: 500;
 }
 
+.btn-quick-add.auto-tag-tool {
+    border-color: var(--border);
+    background: var(--bg-card);
+}
+
+.btn-quick-add.auto-tag-tool.active {
+    border-color: var(--green);
+    background: color-mix(in srgb, var(--green) 12%, var(--bg-card));
+}
+
+.btn-quick-add.auto-tag-tool.active .qa-amount {
+    color: var(--green);
+}
+
 .btn-quick-add:hover {
     background: var(--bg-card-hover);
     transform: translateY(-2px);

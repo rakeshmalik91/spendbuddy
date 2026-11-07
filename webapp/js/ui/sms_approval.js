@@ -1,3 +1,4 @@
+import { applyAutoTag } from '../utils/auto_tag.js';
 import { state } from "../core/state.js";
 import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, findMatchingKeywordRule, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
@@ -578,7 +579,7 @@ export function setupSmsApproval() {
                 }
                 const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
 
-                state.expenses.unshift({
+                const approvedEntry = applyAutoTag({
                     date: txn.date,
                     amount: finalAmount,
                     currency: txn.currency || 'INR',
@@ -590,6 +591,7 @@ export function setupSmsApproval() {
                     txnId: txn.transactionId || '',
                     location: detectedLocation
                 });
+                state.expenses.unshift(approvedEntry);
                 modifiedYears.add(txn.date.slice(0, 4));
             });
 

@@ -1,3 +1,5 @@
+import { applyAutoTag } from '../utils/auto_tag.js';
+import { updateUserSettings } from '../services/user_settings.js';
 import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
@@ -291,6 +293,31 @@ export async function bulkUpdateCSVs(field, oldValue, newValue) {
 
 export function setupForm() {
     const form = $('#expense-form');
+    setupAddFormChipScrollbars();
+    syncFormExtraOptionsForViewport();
+    if (!window.__formExtraOptionsResizeBound) {
+        window.__formExtraOptionsResizeBound = true;
+        window.addEventListener('resize', syncFormExtraOptionsForViewport, { passive: true });
+    }
+
+    const autoTagToggle = $('#form-auto-tag-toggle');
+    if (autoTagToggle && !autoTagToggle.dataset.bound) {
+        autoTagToggle.dataset.bound = 'true';
+        autoTagToggle.addEventListener('click', async () => {
+            if (!state.autoTag) return;
+            state.autoTagEnabled = !state.autoTagEnabled;
+            localStorage.setItem('expman_auto_tag_enabled', state.autoTagEnabled ? 'true' : 'false');
+            syncFormAutoTagTool();
+            try {
+                await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } });
+            } catch (err) {
+                console.error('Failed to sync auto tagging setting', err);
+                toast('Could not sync auto tagging setting', 'error');
+            }
+            toast(state.autoTagEnabled ? `Auto tagging enabled for “${state.autoTag}”` : 'Auto tagging disabled', 'info');
+        });
+    }
+    syncFormAutoTagTool();
 
     // Restrict amount input to numbers and math operators
     $('#input-amount')?.addEventListener('input', function(e) {
@@ -935,6 +962,7 @@ export function setupForm() {
                         }
                     }
                 } else {
+                    applyAutoTag(entry, { isUpdate: false });
                     state.expenses.unshift(entry);
                     state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const newYear = entry.date.split('-')[0];
@@ -1086,6 +1114,97 @@ export function prefillLocation(options = {}) {
     });
 }
 
+function syncFormExtraOptionsForViewport() {
+    const details = $('#form-extra-options');
+    if (!details) return;
+    // Keep advanced fields permanently visible on desktop. On compact screens
+    // they remain in the user-controlled disclosure, collapsed by default.
+    const compactLayout = window.matchMedia
+        ? window.matchMedia('(max-width: 1024px)').matches
+        : window.innerWidth <= 1024;
+    details.open = !compactLayout;
+}
+
+function setupAddFormChipScrollbars() {
+    const form = $('#expense-form');
+    if (!form || form.dataset.chipScrollbarsReady === 'true') return;
+    form.dataset.chipScrollbarsReady = 'true';
+
+    const refresh = (shell) => {
+        const group = shell.querySelector('.chip-group');
+        const bar = shell.querySelector('.chip-scrollbar');
+        const thumb = shell.querySelector('.chip-scrollbar-thumb');
+        if (!group || !bar || !thumb) return;
+
+        const maxScroll = group.scrollWidth - group.clientWidth;
+        const overflowing = maxScroll > 2 && group.clientWidth > 0 &&
+            getComputedStyle(group).display !== 'none';
+        bar.classList.toggle('visible', overflowing);
+        if (!overflowing) return;
+
+        const ratio = group.clientWidth / group.scrollWidth;
+        const thumbWidth = Math.max(18, bar.clientWidth * ratio);
+        const travel = Math.max(0, bar.clientWidth - thumbWidth);
+        const progress = maxScroll > 0 ? group.scrollLeft / maxScroll : 0;
+        thumb.style.width = `${thumbWidth}px`;
+        thumb.style.transform = `translateX(${travel * progress}px)`;
+    };
+
+    const attach = (group) => {
+        if (group.closest('.chip-scroll-shell')) return;
+        const shell = document.createElement('div');
+        shell.className = 'chip-scroll-shell';
+        group.parentNode.insertBefore(shell, group);
+        shell.appendChild(group);
+
+        const bar = document.createElement('div');
+        bar.className = 'chip-scrollbar';
+        bar.setAttribute('aria-hidden', 'true');
+        const thumb = document.createElement('span');
+        thumb.className = 'chip-scrollbar-thumb';
+        bar.appendChild(thumb);
+        shell.appendChild(bar);
+
+        group.addEventListener('scroll', () => refresh(shell), { passive: true });
+        if (typeof ResizeObserver !== 'undefined') {
+            const resizeObserver = new ResizeObserver(() => refresh(shell));
+            resizeObserver.observe(group);
+            resizeObserver.observe(shell);
+        } else {
+            window.addEventListener('resize', () => refresh(shell), { passive: true });
+        }
+        if (typeof MutationObserver !== 'undefined') {
+            const mutationObserver = new MutationObserver(() => requestAnimationFrame(() => refresh(shell)));
+            mutationObserver.observe(group, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+        }
+        refresh(shell);
+    };
+
+    form.querySelectorAll('.chip-group').forEach(attach);
+    requestAnimationFrame(() => form.querySelectorAll('.chip-scroll-shell').forEach(refresh));
+}
+
+function syncFormAutoTagTool() {
+    const tool = $('#form-auto-tag-tool');
+    const name = $('#form-auto-tag-name');
+    const toggle = $('#form-auto-tag-toggle');
+    const editIndex = $('#edit-index');
+    const scheduledIndex = $('#edit-scheduled-index');
+    const isNewEntry = (!editIndex || parseInt(editIndex.value, 10) < 0) &&
+        (!scheduledIndex || parseInt(scheduledIndex.value, 10) < 0);
+    const configured = !!String(state.autoTag || '').trim();
+
+    if (!tool) return;
+    tool.hidden = !(configured && isNewEntry);
+    if (name) name.textContent = state.autoTag || '';
+    if (toggle) {
+        toggle.textContent = state.autoTagEnabled ? 'ON' : 'OFF';
+        toggle.classList.toggle('active', !!state.autoTagEnabled);
+        toggle.setAttribute('aria-pressed', state.autoTagEnabled ? 'true' : 'false');
+        toggle.title = state.autoTagEnabled ? 'Disable automatic tagging' : 'Enable automatic tagging';
+    }
+}
+
 export function resetForm(force = false) {
     // If a suggestion or form input was filled after submission started, skip reset unless forced
     if (!force && (isFormSubmitting || (lastFormFillTime > lastSubmitStartTime && lastSubmitStartTime > 0))) {
@@ -1137,6 +1256,8 @@ export function resetForm(force = false) {
     
     if ($('#edit-index')) $('#edit-index').value = -1;
     if ($('#edit-scheduled-index')) $('#edit-scheduled-index').value = -1;
+    syncFormAutoTagTool();
+    syncFormExtraOptionsForViewport();
     if ($('#form-title')) $('#form-title').textContent = 'Add New Entry';
     if ($('#btn-submit')) {
         $('#btn-submit').textContent = 'Add Entry';
@@ -1201,6 +1322,8 @@ export async function editEntry(idx) {
     }
 
     $('#edit-index').value = idx;
+    syncFormAutoTagTool();
+    syncFormExtraOptionsForViewport();
     $('#input-date').value = e.date;
     $('#input-date').dispatchEvent(new Event('change'));
     state.calViewDate = new Date(e.date);

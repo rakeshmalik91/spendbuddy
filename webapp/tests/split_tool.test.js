@@ -74,7 +74,7 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.taxAmount).toBe(0);
             expect(result.grandTotal).toBe(1500);
 
-            expect(result.participants[0].baseAmount).toBe(500);
+            expect(result.participants[0].baseAmount).toBe(450);
             expect(result.participants[0].taxAmount).toBe(0);
             expect(result.participants[0].endAmount).toBe(500);
 
@@ -106,7 +106,7 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.participants[0].endAmount).toBe(400);
 
             expect(result.participants[1].baseAmount).toBe(600);
-            expect(result.participants[1].endAmount).toBe(600);
+            expect(result.participants[1].endAmount).toBe(500);
 
             expect(result.participants[2].baseAmount).toBe(500);
             expect(result.participants[2].endAmount).toBe(500);
@@ -120,8 +120,8 @@ describe('Split Tool & Expression Calculations', () => {
                 splitMethod: 'expression',
                 taxSplitMethod: 'percentage', // proportional
                 participants: [
-                    { id: '1', name: 'Alice', expression: '600' }, // 40% of 1500
-                    { id: '2', name: 'Bob', expression: '900' }    // 60% of 1500
+                    { id: '1', name: 'Alice', expression: '528' }, // 40% of the 1320 pre-tax amount
+                    { id: '2', name: 'Bob', expression: '792' }    // 60% of the 1320 pre-tax amount
                 ]
             };
 
@@ -129,23 +129,38 @@ describe('Split Tool & Expression Calculations', () => {
 
             expect(result.totalAmount).toBe(1500);
             expect(result.taxAmount).toBe(180);
-            expect(result.grandTotal).toBe(1680);
+            expect(result.grandTotal).toBe(1500);
             expect(result.remainingBase).toBe(0);
             expect(result.remainingTax).toBe(0);
             expect(result.remainingInclusive).toBe(0);
 
             // Alice gets 40% of 180 = 72
-            expect(result.participants[0].baseAmount).toBe(600);
+            expect(result.participants[0].baseAmount).toBe(528);
             expect(result.participants[0].taxAmount).toBe(72);
-            expect(result.participants[0].endAmount).toBe(672);
+            expect(result.participants[0].endAmount).toBe(600);
 
             // Bob gets 60% of 180 = 108
-            expect(result.participants[1].baseAmount).toBe(900);
+            expect(result.participants[1].baseAmount).toBe(792);
             expect(result.participants[1].taxAmount).toBe(108);
-            expect(result.participants[1].endAmount).toBe(1008);
+            expect(result.participants[1].endAmount).toBe(900);
 
             // Sum of end amounts equals grand total
-            expect(result.participants[0].endAmount + result.participants[1].endAmount).toBe(1680);
+            expect(result.participants[0].endAmount + result.participants[1].endAmount).toBe(1500);
+        });
+
+        it('keeps a tax-inclusive entered total unchanged and extracts flat tax', () => {
+            const result = calculateSplit({
+                totalAmountExpr: '1000',
+                taxExpr: '230',
+                splitMethod: 'equal',
+                taxSplitMethod: 'equal',
+                participants: [{ id: '1', name: 'Alice' }, { id: '2', name: 'Bob' }]
+            });
+            expect(result.totalAmount).toBe(1000);
+            expect(result.baseAmountTotal).toBe(770);
+            expect(result.taxAmount).toBe(230);
+            expect(result.grandTotal).toBe(1000);
+            expect(result.participants[0].endAmount + result.participants[1].endAmount).toBe(1000);
         });
 
         it('reports remaining amounts both tax-exclusive and tax-inclusive', () => {
@@ -157,10 +172,11 @@ describe('Split Tool & Expression Calculations', () => {
                 participants: [{ id: '1', name: 'Alice', expression: '400' }]
             });
 
-            expect(result.grandTotal).toBe(1180);
-            expect(result.remainingBase).toBe(600);
-            expect(result.remainingTax).toBe(108);
-            expect(result.remainingInclusive).toBe(708);
+            expect(result.grandTotal).toBe(1000);
+            expect(result.taxAmount).toBe(152.54);
+            expect(result.remainingBase).toBe(447.46);
+            expect(result.remainingTax).toBe(80.54);
+            expect(result.remainingInclusive).toBe(528);
         });
 
         it('distributes tax equally among participants', () => {
@@ -178,13 +194,13 @@ describe('Split Tool & Expression Calculations', () => {
 
             const result = calculateSplit(bill);
 
-            expect(result.participants[0].baseAmount).toBe(1000);
+            expect(result.participants[0].baseAmount).toBe(900);
             expect(result.participants[0].taxAmount).toBe(100);
-            expect(result.participants[0].endAmount).toBe(1100);
+            expect(result.participants[0].endAmount).toBe(1000);
 
-            expect(result.participants[1].baseAmount).toBe(1000);
+            expect(result.participants[1].baseAmount).toBe(900);
             expect(result.participants[1].taxAmount).toBe(100);
-            expect(result.participants[1].endAmount).toBe(1100);
+            expect(result.participants[1].endAmount).toBe(1000);
         });
 
         it('supports percentage tax expression string (e.g. 18%)', () => {
@@ -203,35 +219,35 @@ describe('Split Tool & Expression Calculations', () => {
             const result = calculateSplit(bill);
 
             expect(result.totalAmount).toBe(1000);
-            expect(result.taxAmount).toBe(180);
-            expect(result.grandTotal).toBe(1180);
-            expect(result.participants[0].taxAmount).toBe(90);
-            expect(result.participants[0].endAmount).toBe(590);
-            expect(result.participants[1].endAmount).toBe(590);
+            expect(result.taxAmount).toBe(152.54);
+            expect(result.grandTotal).toBe(1000);
+            expect(result.participants[0].taxAmount).toBe(76.27);
+            expect(result.participants[0].endAmount).toBe(500);
+            expect(result.participants[1].endAmount).toBe(500);
         });
 
         it('supports individual custom tax expressions per participant if provided', () => {
             const bill = {
                 title: 'Custom Tax Dinner',
                 totalAmountExpr: '1000',
-                taxExpr: '0',
+                taxExpr: '150',
                 splitMethod: 'expression',
                 taxSplitMethod: 'percentage',
                 participants: [
-                    { id: '1', name: 'Alice', expression: '500', taxExpression: '50' },
-                    { id: '2', name: 'Bob', expression: '500', taxExpression: '100' }
+                    { id: '1', name: 'Alice', expression: '450', taxExpression: '50' },
+                    { id: '2', name: 'Bob', expression: '400', taxExpression: '100' }
                 ]
             };
 
             const result = calculateSplit(bill);
 
-            expect(result.participants[0].baseAmount).toBe(500);
+            expect(result.participants[0].baseAmount).toBe(450);
             expect(result.participants[0].taxAmount).toBe(50);
-            expect(result.participants[0].endAmount).toBe(550);
+            expect(result.participants[0].endAmount).toBe(500);
 
-            expect(result.participants[1].baseAmount).toBe(500);
+            expect(result.participants[1].baseAmount).toBe(400);
             expect(result.participants[1].taxAmount).toBe(100);
-            expect(result.participants[1].endAmount).toBe(600);
+            expect(result.participants[1].endAmount).toBe(500);
         });
     });
 
@@ -268,7 +284,7 @@ describe('Split Tool & Expression Calculations', () => {
             const saved = await addOrUpdateSplitBill(billData);
 
             expect(saved.id).toBeDefined();
-            expect(saved.grandTotal).toBe(660);
+            expect(saved.grandTotal).toBe(600);
             expect(state.splitBills.length).toBe(1);
             expect(state.splitBills[0].title).toBe('Movie night');
 

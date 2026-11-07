@@ -1,3 +1,5 @@
+import { applyAutoTag } from '../utils/auto_tag.js';
+import { updateUserSettings } from '../services/user_settings.js';
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
 import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
@@ -405,6 +407,9 @@ export function renderRecentTransactions() {
                         <button class="action-dropdown-item" onclick="editEntry(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">✏️</span> Edit
                         </button>
+                        <button class="action-dropdown-item" onclick="startInlineEdit(${realIdx}); closeAllActionDropdowns();">
+                            <span class="action-icon">⚡</span> Quick Edit
+                        </button>
                         <button class="action-dropdown-item delete" onclick="openDeleteModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🗑️</span> Delete
                         </button>
@@ -547,6 +552,9 @@ export function renderSelectedDayTransactions() {
                         <button class="action-dropdown-item" onclick="editEntry(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">✏️</span> Edit
                         </button>
+                        <button class="action-dropdown-item" onclick="startInlineEdit(${realIdx}); closeAllActionDropdowns();">
+                            <span class="action-icon">⚡</span> Quick Edit
+                        </button>
                         <button class="action-dropdown-item delete" onclick="openDeleteModal(${realIdx}); closeAllActionDropdowns();">
                             <span class="action-icon">🗑️</span> Delete
                         </button>
@@ -588,7 +596,7 @@ export function renderQuickAdd() {
     const todayPendingSms = pendingSms.filter(txn => txn.date === todayStr);
     const olderPendingSms = pendingSms.filter(txn => txn.date !== todayStr);
 
-    if (quickAddTemplates.length === 0 && todayPendingSms.length === 0 && olderPendingSms.length === 0 && pendingScheduled.length === 0) {
+    if (quickAddTemplates.length === 0 && todayPendingSms.length === 0 && olderPendingSms.length === 0 && pendingScheduled.length === 0 && !state.autoTag) {
         container.style.display = 'none';
         return;
     }
@@ -646,7 +654,24 @@ pendingSms.forEach((txn, i) => {
         `;
     });
 
+    if (state.autoTag) {
+        html += `<button class="btn-quick-add auto-tag-tool ${state.autoTagEnabled ? 'active' : ''}" type="button" title="${state.autoTagEnabled ? 'Disable' : 'Enable'} automatic tag"><span class="qa-note">🏷️ ${escHtml(state.autoTag)}</span><span class="qa-amount">${state.autoTagEnabled ? 'ON' : 'OFF'}</span></button>`;
+    }
+
     container.innerHTML = html;
+
+    const autoTagBtn = container.querySelector('.auto-tag-tool');
+    if (autoTagBtn) autoTagBtn.addEventListener('click', async () => {
+        state.autoTagEnabled = !state.autoTagEnabled;
+        localStorage.setItem('expman_auto_tag_enabled', state.autoTagEnabled ? 'true' : 'false');
+        autoTagBtn.classList.toggle('active', state.autoTagEnabled);
+        const status = autoTagBtn.querySelector('.qa-amount');
+        if (status) status.textContent = state.autoTagEnabled ? 'ON' : 'OFF';
+        autoTagBtn.title = `${state.autoTagEnabled ? 'Disable' : 'Enable'} automatic tag`;
+        try { await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } }); }
+        catch (err) { console.error('Failed to sync automatic tag setting', err); toast('Could not sync automatic tag setting', 'error'); }
+        toast(state.autoTagEnabled ? `Automatic tag “${state.autoTag}” enabled` : 'Automatic tag disabled', 'info');
+    });
 
     const schedReviewBtn = $('.scheduled-review-all');
     if (schedReviewBtn) {
@@ -669,7 +694,7 @@ pendingSms.forEach((txn, i) => {
             if (!template) return;
 
             const today = getLocalDateString();
-            const entry = {
+            const entry = applyAutoTag({
                 date: today,
                 amount: template.amount,
                 currency: template.currency,
@@ -680,7 +705,7 @@ pendingSms.forEach((txn, i) => {
                 source: 'Quick Add',
                 txnId: '',
                 location: template.location || await getCurrentLocationTag()
-            };
+            });
 
             if (entry.location) {
                 localStorage.setItem('expman_last_location', entry.location);
@@ -729,7 +754,7 @@ pendingSms.forEach((txn, i) => {
 
             const today = getLocalDateString();
 
-            const entry = {
+            const entry = applyAutoTag({
                 date: txn.date || today,
                 amount: finalAmount,
                 currency: txn.currency || 'INR',
@@ -740,7 +765,7 @@ pendingSms.forEach((txn, i) => {
                 source: txn.source || 'SMS',
                 txnId: txn.transactionId || '',
                 location: await getCurrentLocationTag()
-            };
+            });
 
             if (entry.location) {
                 localStorage.setItem('expman_last_location', entry.location);

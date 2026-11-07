@@ -6,6 +6,7 @@ import { loadSplitBills, saveSplitBills, getKnownPeople, calculateSplit, addOrUp
 
 let activeBill = null;
 let isInitialized = false;
+let selectedBillGroup = 'all';
 
 /**
  * Initializes listeners for Split Tool controls.
@@ -80,9 +81,16 @@ export function initSplitTool() {
 export async function renderSplitTool() {
     initSplitTool();
 
-    // Ensure data is loaded
+    // Keep the view visibly busy while the first cloud/cache read is in progress.
+    const historyHost = $('#split-history-list');
+    const emptyState = $('#split-empty-state');
+    if (!state.splitBillsLoaded) {
+        if (historyHost) historyHost.innerHTML = '<div class="page-loading-state"><span class="loading-spinner" aria-hidden="true"></span><span>Loading split bills…</span></div>';
+        if (emptyState) emptyState.style.display = 'none';
+    }
     await loadSplitBills();
 
+    renderSplitGroupFilters();
     renderSplitStats();
     renderSplitHistory();
 
@@ -97,19 +105,65 @@ export async function renderSplitTool() {
 /**
  * Renders summary metrics for bills.
  */
-function renderSplitStats() {
+function getBillsForSelectedGroup() {
     const bills = state.splitBills || [];
+    if (selectedBillGroup === 'all') return bills;
+    if (selectedBillGroup === 'ungrouped') return bills.filter(b => !(b.group || '').trim());
+    return bills.filter(b => (b.group || '').trim() === selectedBillGroup);
+}
+
+function renderSplitStats() {
+    const bills = getBillsForSelectedGroup();
     const totalCount = bills.length;
     const totalVolume = bills.reduce((sum, b) => sum + (Number(b.grandTotal) || Number(b.totalAmount) || 0), 0);
-    const uniquePeople = getKnownPeople().length;
+    const uniquePeople = new Set(bills.flatMap(b => (b.participants || []).map(p => (p.name || '').trim()).filter(Boolean))).size;
+    const myShare = bills.reduce((sum, b) => sum + (b.participants || []).filter(p => (p.name || '').trim().toLowerCase() === 'you').reduce((v, p) => v + (Number(p.endAmount) || 0), 0), 0);
 
     const countEl = $('#split-stat-count');
     const volumeEl = $('#split-stat-volume');
     const peopleEl = $('#split-stat-people');
-
+    const myShareEl = $('#split-stat-my-share');
     if (countEl) countEl.textContent = totalCount.toString();
     if (volumeEl) volumeEl.textContent = `₹${Math.round(totalVolume).toLocaleString('en-IN')}`;
     if (peopleEl) peopleEl.textContent = uniquePeople.toString();
+    if (myShareEl) myShareEl.textContent = `₹${roundAmount(myShare).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+}
+
+function renderSplitGroupFilters() {
+    const host = $('#split-group-filters');
+    if (!host) return;
+    const groups = [...new Set((state.splitBills || []).map(b => (b.group || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const groupList = $('#split-known-groups-list');
+    if (groupList) groupList.innerHTML = groups.map(group => `<option value="${escHtml(group)}"></option>`).join('');
+    const items = [
+        { id: 'all', label: 'All', icon: '✦' },
+        { id: 'ungrouped', label: 'Ungrouped', icon: '○' },
+        ...groups.map(group => ({ id: group, label: group, icon: group.trim().charAt(0).toUpperCase() || '•' }))
+    ];
+    if (selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && !groups.includes(selectedBillGroup)) selectedBillGroup = 'all';
+    host.innerHTML = items.map(item => `
+        <button type="button" class="split-group-filter ${selectedBillGroup === item.id ? 'active' : ''}" data-group="${escHtml(item.id)}" title="${escHtml(item.label)}" aria-pressed="${selectedBillGroup === item.id}">
+            <span class="split-group-filter-icon">${escHtml(item.icon)}</span><span class="split-group-filter-label">${escHtml(item.label)}</span>
+        </button>`).join('');
+    host.querySelectorAll('.split-group-filter').forEach(button => button.addEventListener('click', () => {
+        selectedBillGroup = button.dataset.group;
+
+        // While creating a new split bill, choosing a named group in the
+        // top group filters should also populate the editor's Group field.
+        // Do not alter an existing bill when the user is only filtering history.
+        if (activeBill && !activeBill.id) {
+            const groupName = selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped'
+                ? selectedBillGroup
+                : '';
+            activeBill.group = groupName;
+            const groupInput = $('#split-input-group');
+            if (groupInput) groupInput.value = groupName;
+        }
+
+        renderSplitGroupFilters();
+        renderSplitStats();
+        renderSplitHistory();
+    }));
 }
 
 /**
@@ -120,7 +174,7 @@ function renderSplitHistory() {
     const emptyState = $('#split-empty-state');
     if (!listContainer) return;
 
-    const bills = state.splitBills || [];
+    const bills = getBillsForSelectedGroup();
     if (bills.length === 0) {
         listContainer.innerHTML = '';
         if (emptyState) emptyState.style.display = 'block';
@@ -130,7 +184,7 @@ function renderSplitHistory() {
     if (emptyState) emptyState.style.display = 'none';
 
     listContainer.innerHTML = bills.map((b) => {
-        const grandTotal = b.grandTotal || (b.totalAmount + (b.taxAmount || 0));
+        const grandTotal = b.taxInclusive === true ? (b.totalAmount || b.grandTotal || 0) : (b.grandTotal || (b.totalAmount + (b.taxAmount || 0)));
         const participants = b.participants || [];
         const dateStr = b.date ? formatDate(b.date) : 'Recently';
         const methodBadge = b.splitMethod === 'expression' 
@@ -167,6 +221,7 @@ function renderSplitHistory() {
                             <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text-main);">${escHtml(b.title || 'Untitled Split Bill')}</h3>
                             ${methodBadge}
                             ${taxBadge}
+                            ${b.group && b.group.trim() ? `<span class="badge-tag split-bill-group-badge">${escHtml(b.group.trim())}</span>` : ''}
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
                             <span>📅 ${dateStr}</span> &bull; <span>${participants.length} participant${participants.length === 1 ? '' : 's'}</span>
@@ -211,11 +266,27 @@ export function openSplitEditor(billId = null) {
         const existing = (state.splitBills || []).find(b => b.id === billId);
         if (existing) {
             activeBill = JSON.parse(JSON.stringify(existing));
+            // Older saved bills stored the pre-tax base in totalAmount. Convert them
+            // to the new inclusive-input model when opened for editing.
+            if (activeBill.taxInclusive !== true) {
+                const legacyInclusive = Number(activeBill.grandTotal);
+                if (Number.isFinite(legacyInclusive) && legacyInclusive > 0) {
+                    activeBill.totalAmountExpr = String(legacyInclusive);
+                } else {
+                    activeBill.totalAmountExpr = String((Number(activeBill.totalAmount) || 0) + (Number(activeBill.taxAmount) || 0));
+                }
+                activeBill.taxInclusive = true;
+            }
         } else {
             activeBill = createDefaultBill();
         }
     } else {
         activeBill = createDefaultBill();
+        // When creating from a named group, carry that group into the new bill.
+        // "All" and "Ungrouped" are filters, not actual group names.
+        if (selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped') {
+            activeBill.group = selectedBillGroup;
+        }
     }
 
     renderSplitEditor();
@@ -239,6 +310,7 @@ function createDefaultBill() {
     return {
         id: null,
         title: '',
+        group: '',
         date: getLocalDateString(),
         totalAmount: 0,
         totalAmountExpr: '',
@@ -268,6 +340,8 @@ function renderSplitEditor() {
     const taxInput = $('#split-input-tax');
 
     if (titleInput) titleInput.value = activeBill.title || '';
+    const groupInput = $('#split-input-group');
+    if (groupInput) groupInput.value = activeBill.group || '';
     if (dateInput) dateInput.value = activeBill.date || getLocalDateString();
     if (totalInput) totalInput.value = activeBill.totalAmountExpr || (activeBill.totalAmount ? String(activeBill.totalAmount) : '');
     if (taxInput) taxInput.value = activeBill.taxExpr || '';
@@ -285,9 +359,21 @@ function renderSplitEditor() {
  */
 function renderPersonReuseChips() {
     const container = $('#split-people-reuse-container');
-    if (!container) return;
-
     const knownPeople = getKnownPeople();
+
+    // Native suggestions work directly from every participant name field.
+    const editor = $('#split-editor-card');
+    if (editor) {
+        let datalist = editor.querySelector('#split-known-people-list');
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = 'split-known-people-list';
+            editor.appendChild(datalist);
+        }
+        datalist.innerHTML = knownPeople.map(name => `<option value="${escHtml(name)}"></option>`).join('');
+    }
+
+    if (!container) return;
     const currentNames = new Set((activeBill?.participants || []).map(p => (p.name || '').trim().toLowerCase()));
     const candidates = knownPeople.filter(name => !currentNames.has(name.toLowerCase()));
 
@@ -297,12 +383,14 @@ function renderPersonReuseChips() {
         return;
     }
 
-    container.style.display = 'flex';
+    // Keep the section in normal block flow: making the outer container a
+    // flex row places the heading and chips side-by-side on wide screens.
+    container.style.display = 'block';
     container.innerHTML = `
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; width: 100%;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
             Reuse People from previous bills:
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
             ${candidates.map(name => `
                 <button type="button" class="chip" onclick="window.addKnownPersonToSplit('${escHtml(name)}')" style="font-size: 0.8rem; padding: 4px 10px;">
                     + ${escHtml(name)}
@@ -380,7 +468,7 @@ function recalculateAndRenderParticipants() {
         return `
             <tr data-person-idx="${idx}">
                 <td data-label="Person" style="padding: 8px 6px;">
-                    <input type="text" class="form-control split-person-name" data-idx="${idx}" value="${escHtml(p.name)}" placeholder="Person Name" style="width: 100%; min-width: 100px; padding: 6px 10px; font-size: 0.9rem;" />
+                    <input type="text" class="form-control split-person-name" data-idx="${idx}" list="split-known-people-list" autocomplete="off" value="${escHtml(p.name)}" placeholder="Person Name" style="width: 100%; min-width: 100px; padding: 6px 10px; font-size: 0.9rem;" />
                 </td>
                 <td data-label="Base Share" style="padding: 8px 6px;">
                     <div style="position: relative;">
@@ -395,10 +483,13 @@ function recalculateAndRenderParticipants() {
                     <span style="font-weight: 700; color: var(--accent); font-size: 1rem;">₹${roundAmount(p.endAmount)}</span>
                 </td>
                 <td data-label="Paid" style="padding: 8px 6px; text-align: center;">
-                    <input type="checkbox" class="split-person-paid" data-idx="${idx}" ${p.isPaid ? 'checked' : ''} title="Mark Paid" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
+                    <button type="button" class="split-paid-toggle ${p.isPaid ? 'is-paid' : ''}" data-idx="${idx}" aria-pressed="${p.isPaid ? 'true' : 'false'}" title="${p.isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
+                        <span class="split-paid-toggle-knob"></span>
+                        <span class="split-paid-toggle-label">${p.isPaid ? 'Paid' : 'Unpaid'}</span>
+                    </button>
                 </td>
                 <td data-label="Remove" style="padding: 8px 4px; text-align: right;">
-                    <button type="button" class="btn btn-sm btn-ghost" onclick="window.removePersonFromSplit(${idx})" title="Remove person" style="color: var(--text-muted); padding: 4px 6px; line-height: 1;">&times;</button>
+                    <button type="button" class="split-person-remove" onclick="window.removePersonFromSplit(${idx})" title="Remove person" aria-label="Remove person">❌</button>
                 </td>
             </tr>
         `;
@@ -415,21 +506,45 @@ function recalculateAndRenderParticipants() {
     });
 
     tableBody.querySelectorAll('.split-person-expr').forEach(input => {
+        input.addEventListener('focus', () => {
+            // Select the existing expression so a new value can be typed immediately.
+            input.select();
+        });
         input.addEventListener('input', (e) => {
             const idx = parseInt(e.target.dataset.idx);
-            if (activeBill.participants[idx]) {
-                activeBill.participants[idx].expression = e.target.value;
-                recalculateAndRenderParticipants();
+            if (!activeBill.participants[idx]) return;
+
+            activeBill.participants[idx].expression = e.target.value;
+
+            // Recalculate in place. Rebuilding tableBody here interrupts key-repeat
+            // (notably long-press Backspace on mobile) and can drop input events.
+            activeBill = calculateSplit(activeBill);
+            const row = e.target.closest('tr');
+            const participant = activeBill.participants[idx];
+            if (row && participant) {
+                const baseValue = row.querySelector('[data-label="Base Share"] div > div');
+                if (baseValue) baseValue.textContent = `= ₹${roundAmount(participant.baseAmount)}`;
+                const taxCell = row.querySelector('[data-label="Tax Share"]');
+                if (taxCell) taxCell.textContent = `₹${roundAmount(participant.taxAmount)}`;
+                const total = row.querySelector('[data-label="Total"] span');
+                if (total) total.textContent = `₹${roundAmount(participant.endAmount)}`;
             }
+            updateAllocationSummaryBar();
         });
     });
 
-    tableBody.querySelectorAll('.split-person-paid').forEach(chk => {
-        chk.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            if (activeBill.participants[idx]) {
-                activeBill.participants[idx].isPaid = e.target.checked;
-            }
+    tableBody.querySelectorAll('.split-paid-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const idx = parseInt(toggle.dataset.idx, 10);
+            const participant = activeBill.participants[idx];
+            if (!participant) return;
+            participant.isPaid = !participant.isPaid;
+            const paid = participant.isPaid;
+            toggle.classList.toggle('is-paid', paid);
+            toggle.setAttribute('aria-pressed', paid ? 'true' : 'false');
+            toggle.title = paid ? 'Mark as unpaid' : 'Mark as paid';
+            const label = toggle.querySelector('.split-paid-toggle-label');
+            if (label) label.textContent = paid ? 'Paid' : 'Unpaid';
         });
     });
 
@@ -454,13 +569,13 @@ function recalculateAndRenderParticipants() {
 function updateAllocationSummaryBar() {
     if (!activeBill) return;
 
-    const baseTotal = Number(activeBill.totalAmount) || 0;
+    const baseTotal = Number(activeBill.baseAmountTotal) || 0;
     const allocated = Number(activeBill.allocatedBase) || 0;
     const remainingExclusive = roundAmount(baseTotal - allocated);
     const taxTotal = Number(activeBill.taxAmount) || 0;
     const allocatedTax = roundAmount((activeBill.participants || []).reduce((sum, p) => sum + (Number(p.taxAmount) || 0), 0));
     const remainingTax = roundAmount(taxTotal - allocatedTax);
-    const grandTotal = roundAmount(baseTotal + taxTotal);
+    const grandTotal = roundAmount(Number(activeBill.totalAmount) || (baseTotal + taxTotal));
     const remainingInclusive = roundAmount(remainingExclusive + remainingTax);
 
     const indicator = $('#split-balance-indicator');
@@ -513,6 +628,7 @@ async function saveCurrentSplit() {
 
     activeBill.title = (titleInput?.value || '').trim() || 'Split Bill';
     activeBill.date = dateInput?.value || getLocalDateString();
+    activeBill.group = ($('#split-input-group')?.value || '').trim();
     activeBill.totalAmountExpr = (totalInput?.value || '').trim();
     activeBill.taxExpr = (taxInput?.value || '').trim();
 
@@ -533,12 +649,14 @@ async function saveCurrentSplit() {
         await addOrUpdateSplitBill(activeBill);
         toast(`Split bill "${activeBill.title}" saved!`, 'success');
         closeSplitEditor();
+        renderSplitGroupFilters();
         renderSplitStats();
         renderSplitHistory();
     } catch (err) {
         console.error('Error saving split bill:', err);
         toast('Saved locally (cloud sync error)', 'warning');
         closeSplitEditor();
+        renderSplitGroupFilters();
         renderSplitStats();
         renderSplitHistory();
     } finally {
@@ -564,6 +682,7 @@ export function confirmDeleteSplitBill(billId) {
             await deleteSplitBill(billId);
             hideLoader();
             toast('Split bill deleted', 'info');
+            renderSplitGroupFilters();
             renderSplitStats();
             renderSplitHistory();
         }
@@ -581,7 +700,7 @@ export function copySplitBreakdown(billId) {
     const lines = [];
     lines.push(`🧾 Split Bill: ${bill.title || 'Untitled Bill'}`);
     lines.push(`📅 Date: ${bill.date || 'N/A'}`);
-    lines.push(`💵 Total Bill (tax inclusive): ₹${bill.grandTotal || (bill.totalAmount + (bill.taxAmount || 0))} | Base (tax exclusive): ₹${bill.totalAmount} | Tax: ₹${bill.taxAmount || 0}`);
+    lines.push(`💵 Total Bill (tax inclusive): ₹${bill.grandTotal ?? bill.totalAmount} | Base (tax exclusive): ₹${bill.baseAmountTotal ?? bill.totalAmount} | Tax included: ₹${bill.taxAmount || 0}`);
     lines.push(`----------------------------------`);
     (bill.participants || []).forEach(p => {
         lines.push(`• ${p.name}: ₹${roundAmount(p.endAmount)} ${p.taxAmount > 0 ? `(Base: ₹${p.baseAmount} + Tax: ₹${p.taxAmount})` : ''} [${p.isPaid ? 'PAID' : 'PENDING'}]`);

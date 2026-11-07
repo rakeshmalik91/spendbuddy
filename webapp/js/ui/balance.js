@@ -213,12 +213,14 @@ export function renderBalanceTracker() {
         tbody.innerHTML = `<tr><td style="text-align: center; color: var(--text-muted); padding: 24px;">No balance data yet.</td></tr>`;
         if (addCard) {
             addCard.style.setProperty('display', 'block', 'important');
+            addCard.classList.add('is-empty-balance-state');
         }
         return;
     }
     
     if (addCard) {
         addCard.style.removeProperty('display');
+        addCard.classList.remove('is-empty-balance-state');
     }
 
     // Build bipartite graph for both mobile and desktop

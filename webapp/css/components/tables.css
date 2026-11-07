@@ -1188,4 +1188,11 @@ td.month-header-total .amount-positive {
 td.day-separator-total .amount-negative,
 td.month-header-total .amount-negative {
     color: rgba(52, 211, 153, 0.85) !important;
-}
+}
+
+
+/* Keep transaction action menus above sticky table headers. */
+.action-dropdown-wrap { position: relative; z-index: 30; }
+.action-dropdown-menu { z-index: 1200 !important; }
+.data-table tr:has(.action-dropdown-menu.show),
+.data-table tr:has(.action-dropdown-wrap:focus-within) { position: relative; z-index: 31; }

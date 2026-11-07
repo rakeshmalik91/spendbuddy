@@ -123,7 +123,7 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName !== 'add') state.previousView = viewName;
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$(`.nav-btn[data-view="${viewName}"]`).forEach(b => b.classList.add('active'));
-    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings', 'activity'].includes(viewName)) {
+    if (['about', 'account', 'backups', 'syncing', 'scheduled', 'categories', 'txnmodes', 'locations', 'visibility', 'keyword-mappings', 'auto-tagging', 'activity'].includes(viewName)) {
         $$('.bottom-nav .nav-btn[data-view="settings"]').forEach(b => b.classList.add('active'));
     }
     if (viewName === 'split' || viewName === 'balance' || viewName === 'activity') {
@@ -181,13 +181,13 @@ export function switchView(viewName, pushStateToHistory = true) {
     if (viewName === 'dashboard') renderDashboard();
     if (viewName === 'charts') renderChartsPage();
     if (viewName === 'transactions') renderTransactions();
-    if (['settings', 'categories', 'txnmodes', 'locations', 'backups', 'keyword-mappings'].includes(viewName)) {
+    if (['settings', 'categories', 'txnmodes', 'locations', 'backups', 'keyword-mappings', 'auto-tagging'].includes(viewName)) {
         renderSettings();
         if (viewName === 'keyword-mappings') {
             renderKeywordMappings();
         }
         if (typeof window.syncCloudDataInBackground === 'function') {
-            if (['settings', 'backups', 'keyword-mappings'].includes(viewName) && previousViewId !== viewName) {
+            if (['settings', 'backups', 'keyword-mappings', 'auto-tagging'].includes(viewName) && previousViewId !== viewName) {
                 if (shouldSyncOnNav('user_settings.json')) {
                     window.syncCloudDataInBackground(['user_settings.json']);
                 }
@@ -212,19 +212,27 @@ export function switchView(viewName, pushStateToHistory = true) {
     }
     if (viewName === 'balance') {
         if (!state.balanceLoaded) {
-            import('../services/storage.js').then(async (s) => {
+            const tbody = document.getElementById('balance-table-body');
+            const addCard = document.querySelector('.add-data-point-card');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8"><div class="page-loading-state"><span class="loading-spinner" aria-hidden="true"></span><span>Loading balance data…</span></div></td></tr>';
+            if (addCard) addCard.style.setProperty('display', 'none', 'important');
+            import('../services/storage.js').then(async (storage) => {
                 const loader = document.getElementById('loader');
                 const loaderText = document.getElementById('loader-text');
                 if (loader && loaderText) {
-                    loaderText.textContent = 'Loading balance data...';
+                    loaderText.innerHTML = '<span class="loading-spinner" aria-hidden="true"></span><span>Loading balance data…</span>';
                     loader.style.display = 'flex';
                 }
-                await s.loadBalanceCSV();
-                if (loader) loader.style.display = 'none';
-                import('./balance.js?v=4').then(m => m.renderBalanceTracker());
-                
-                // Now that it's loaded, trigger a background sync so it fetches updates from the cloud if any
-                s.syncCloudDataInBackground(['balance.csv']);
+                try {
+                    await storage.loadBalanceCSV();
+                    import('./balance.js?v=4').then(m => m.renderBalanceTracker());
+                    storage.syncCloudDataInBackground(['balance.csv']);
+                } catch (error) {
+                    console.error('Failed to load balance data:', error);
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="8"><div class="page-loading-state">Could not load balance data. Please retry.</div></td></tr>';
+                } finally {
+                    if (loader) loader.style.display = 'none';
+                }
             });
         } else {
             import('./balance.js?v=4').then(m => m.renderBalanceTracker());

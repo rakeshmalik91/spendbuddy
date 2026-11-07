@@ -10,17 +10,16 @@ do not make changes to this file except mark/unmark todo items
 
 Chores:
 - [x] Hook firebase auto deploy on commit
-- [x] remove git repo variable use for secret/credentials. move firebase secret/credentials to seperate file and add it to git crypt.
 - [x] disable netlify deploy on commit
 - [x] add netlify auto deploy as github workflow
 - [ ] link android app to firebase instead of netlify
 - [ ] squash whole repo changes to single commit to make it public on github.
 
 Bugs:
+- [ ] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least startup should completely refresh whole website if possible
 - [x] keyword mapping  
    - [x] support to update tags. support for enable/disable.
    - [x] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
-- [ ] any refund are getting added as income from dashboard sms suggestion - TO BE VERIFIED
 - [x] visibility prefs > compact view toggle button layout broken. Compact view shouldnt be under hide data. Add hide amount config here too
 - [x] when a tag/note is selected on add or batch update form, focus on the textbox but for touch devices dont open keyboard, unless explicitly tapped on the textbox
 - [x] in dashboard, quick edit button for refunds dont work. Make it work and add the same button for normal txns too
@@ -39,6 +38,14 @@ Features:
   - website needs to cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
   - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
   - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.
+- [x] add & manage bills
+- [ ] create txn from bill
+- [ ] To check feasibility of google drive backup implementation without using gcp
+- [x] activate a specific tag to be added to new txns. Configured in settings.
+  - To be shown on dashboard as a tool
+  - To be added to any txn from sms/email/quick add.
+  - To be prefilled in add form, not update form.
+  - Not to be used by txn added from scheduled txn.
 - [x] Split tool (store as json file)
    - add multiple people (option to resuse people from older bills)
    - configure total amount
@@ -54,18 +61,10 @@ Features:
   - Stored as new field in txn csvs.
   - Any txn delete moves to trash.
   - Activity history for any delete should show restore option if the txn was not restored already. 
-- [ ] activate a specific tag to be added to new txns. Configured in settings.
-  - To be shown on dashboard.
-  - To be added to any txn from sms/email/quick add.
-  - To be prefilled in add form, not update form.
-  - Not to be used by txn added from scheduled txn.
-- [ ] add & manage bills, create txn from bill
 - [x] only for mobile, in dashboard, below cards add a row of tools, with round icons with text below it.
   - tools to show (whichever is implemented): balance tracker, split tool, bill tracker, activity history. (divide setting menu in 3 sections: settings, tools, about)
   - for mobile only: these same tools shoud available inside settings menu as well
   - for non mobile only: these same tools should be available in left side panel
-- [ ] To check feasibility of google drive backup implementation without using gcp
-- [ ] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least pull down to refresh should completely refresh whole website
 
 
 ### Older

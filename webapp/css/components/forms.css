@@ -497,3 +497,241 @@ input:checked+.toggle-slider:before {
 .cal-day.today.active {
     color: white;
 }
+
+
+/* SpendBuddy page loading states */
+.page-loading-state {
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px 20px;
+    color: var(--text-muted, var(--text-dim));
+    text-align: center;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 34px;
+    height: 34px;
+    border: 3px solid rgba(128, 145, 180, 0.22);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spendbuddy-spin .8s linear infinite;
+}
+@keyframes spendbuddy-spin { to { transform: rotate(360deg); } }
+
+.split-bill-group-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(99, 132, 255, .12);
+    border: 1px solid rgba(99, 132, 255, .28);
+    color: var(--accent);
+}
+
+/* Prevent intrinsic input widths from forcing the balance form columns to overlap. */
+.balance-form-row,
+.balance-form-row .form-group {
+    min-width: 0;
+    width: 100%;
+}
+.balance-form-row input,
+.balance-form-row select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+@media (min-width: 800px) {
+    .balance-form-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1.35fr) minmax(0, .9fr) minmax(120px, auto);
+        column-gap: 14px;
+        row-gap: 14px;
+    }
+    .balance-form-row button[type="submit"] {
+        min-width: 120px;
+        max-width: 100%;
+        white-space: nowrap;
+    }
+}
+@media (min-width: 800px) and (max-width: 1150px) {
+    .balance-form-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .balance-form-row button[type="submit"] {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}
+
+/* Additional transaction fields: compact disclosure on mobile, unchanged desktop flow. */
+.form-extra-options {
+    min-width: 0;
+}
+.form-extra-options > summary {
+    display: none;
+}
+.form-extra-options-content {
+    display: contents;
+}
+
+/* Keep chip rows usable on narrow screens without wrapping into tall stacks. */
+@media (max-width: 1024px) {
+    .form-extra-options {
+        display: block;
+        grid-column: 1 / -1 !important;
+        justify-self: stretch;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md, 12px);
+        background: var(--bg-card, transparent);
+        padding: 0 12px;
+        min-width: 0;
+    }
+    .form-extra-options > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 44px;
+        cursor: pointer;
+        list-style: none;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        font-weight: 700;
+        user-select: none;
+    }
+    .form-extra-options > summary::-webkit-details-marker { display: none; }
+    .form-extra-options > summary::after {
+        content: '＋';
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+    .form-extra-options[open] > summary::after { content: '−'; }
+    .extra-options-hint {
+        margin-left: auto;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 500;
+    }
+    .form-extra-options-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 4px 0 12px;
+    }
+    .form-extra-options:not([open]) .form-extra-options-content { display: none; }
+
+    #expense-form .chip-scroll-shell {
+        position: relative;
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding-bottom: 10px;
+        box-sizing: border-box;
+    }
+    #expense-form .chip-group {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 2px 1px 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        overscroll-behavior-x: contain;
+    }
+    #expense-form .chip-group::-webkit-scrollbar { display: none; }
+    #expense-form .chip-scrollbar {
+        display: none;
+        position: absolute;
+        left: 1px;
+        right: 1px;
+        bottom: 2px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--border-subtle);
+        pointer-events: none;
+        overflow: hidden;
+    }
+    #expense-form .chip-scrollbar-thumb {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        min-width: 18px;
+        border-radius: inherit;
+        background: var(--text-muted);
+        opacity: .9;
+        will-change: transform, width;
+    }
+    #expense-form .chip-scrollbar.visible { display: block; }
+    #expense-form .chip-group > .chip {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}
+
+
+/* Auto Tagging quick toggle on the Add Transaction form */
+.form-auto-tag-tool {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    background: var(--bg-card);
+}
+.form-auto-tag-tool[hidden] { display: none !important; }
+.form-auto-tag-label { color: var(--text-primary); font-weight: 650; }
+.form-auto-tag-name {
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow-wrap: anywhere;
+    flex: 1;
+}
+.form-auto-tag-toggle {
+    min-width: 58px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    background: var(--bg-card-hover);
+    font-weight: 700;
+    cursor: pointer;
+}
+.form-auto-tag-toggle.active {
+    color: white;
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+
+/* Desktop: the advanced transaction fields are always visible; only compact
+   layouts use the collapsible disclosure controlled by the form script. */
+@media (min-width: 1025px) {
+    #form-extra-options {
+        display: block;
+        grid-column: 1 / -1;
+    }
+    #form-extra-options > summary {
+        display: none !important;
+    }
+    #form-extra-options > .form-extra-options-content {
+        display: contents !important;
+    }
+}
