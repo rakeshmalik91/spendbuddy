@@ -13,7 +13,7 @@ export async function renderActivityHistory() {
  <button class="activity-open" data-id="${a.id}" aria-label="Open ${a.title||'transaction'} activity" >
   <span class="activity-heading"><span class="activity-action activity-action-${a.action||'added'}">${a.action==='deleted'?'Deleted':a.action==='restored'?'Restored':a.action==='updated'?'Updated':'Added'}</span><span class="activity-type">${a.type==='schedule'?'Scheduled transaction':a.type==='quickadd'?'Quick add':'Transaction'}</span></span>
   <span class="activity-title">${a.title||'Transaction'}${a.amount!=null?`<span class="activity-amount">₹${Number(a.amount).toLocaleString('en-IN')}</span>`:''}</span>
-  <span class="activity-meta"><span>${new Date(a.timestamp).toLocaleString()}</span><span class="activity-meta-separator">·</span><span>${a.source||'manual'}</span>${(a.changes||[]).map(c=>`<span class="activity-change">${c.field}: ${c.from} → ${c.to}</span>`).join('')}</span>
+  <span class="activity-meta"><span>${new Date(a.timestamp).toLocaleString()}</span><span class="activity-meta-separator">·</span><span>${a.source||'manual'}</span>${(a.changes||[]).filter(c=>String(c.from ?? '')!==String(c.to ?? '')).map(c=>`<span class="activity-change">${c.field}: ${c.from} → ${c.to}</span>`).join('')}</span>
  </button>
  ${a.action==='deleted'&&!a.restored?`<div class="activity-actions"><button type="button" class="btn btn-sm btn-secondary activity-restore" data-id="${a.id}">Restore</button><button type="button" class="btn btn-sm btn-danger activity-permanent-delete" data-id="${a.id}">Delete permanently</button></div>`:''}
  </article>`).join('');
