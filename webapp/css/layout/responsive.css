@@ -111,13 +111,13 @@
         height: 100%;
         cursor: pointer;
         transition: var(--transition);
-        padding: 0;
-        margin-top: 10px;
+        padding: 0 0 6px;
+        margin-top: 0;
     }
 
     .bottom-nav .nav-icon {
         font-size: 1.4rem;
-        margin-bottom: 4px;
+        margin-bottom: 1px;
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
