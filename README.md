@@ -183,3 +183,4 @@ Comprehensive architectural specifications and decision records are maintained i
 
 MIT — free for personal and commercial use.
 
+The MIT License applies to the software source code and documentation. Personal backup data, including encrypted CSV and JSON files, is excluded from the license and is not authorized for redistribution.
