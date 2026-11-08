@@ -546,7 +546,9 @@ export function setupForm() {
     if (tagInput && !tagInput.dataset.autoTagPrefillListener) {
         tagInput.dataset.autoTagPrefillListener = 'true';
         tagInput.addEventListener('input', () => {
-            if (tagInput.dataset.autoTagPrefill === 'true' &&
+            // Any deliberate change to the tag field takes precedence over auto-tagging,
+            // including replacing or clearing the automatically prefilled value.
+            if (state.autoTagEnabled &&
                 tagInput.value.trim() !== String(state.autoTag || '').trim()) {
                 tagInput.dataset.autoTagPrefill = 'user';
             }
@@ -1012,7 +1014,10 @@ export function setupForm() {
                         }
                     }
                 } else {
-                    applyAutoTag(entry, { isUpdate: false });
+                    applyAutoTag(entry, {
+                        isUpdate: false,
+                        respectManualTag: $('#input-tag')?.dataset.autoTagPrefill === 'user'
+                    });
                     state.expenses.unshift(entry);
                     state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const newYear = entry.date.split('-')[0];

@@ -16,7 +16,7 @@ do not make changes to this file except mark/unmark todo items
 - [x] trash cleanup & retaintion settings
 - [x] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
 - [ ] to connect android app to firebase instead of netlify
-- [ ] BUG: when autotag is on, manually changing the tag in add form is setting 2 tags. stop that
+- [x] BUG: when autotag is on, manually changing the tag in add form is setting 2 tags. stop that
 
 ### 2026.10.19
 

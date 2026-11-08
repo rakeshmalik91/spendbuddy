@@ -483,6 +483,11 @@ export function populateTagSuggestions() {
                 chip.classList.add('active');
                 tagInput.value = val;
             }
+            // A chip selection is an explicit user choice, so do not append the
+            // configured automatic tag when the transaction is submitted.
+            if (state.autoTagEnabled && tagInput.value.trim() !== String(state.autoTag || '').trim()) {
+                tagInput.dataset.autoTagPrefill = 'user';
+            }
             focusSuggestionInputOnDesktop(tagInput);
         });
     });
