@@ -8,8 +8,8 @@ do not make changes to this file except mark/unmark todo items
 
 ### 2026.11.07
 
-- [ ] BUG: only for android app, footer button list is chopped off at the bottom. to be fixed in android app webview
-- [x] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history.
+- [x] BUG: only for android app, footer button list is chopped off at the bottom
+- [x] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history
 - [ ] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
 - [x] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
 - [x] option to permanently delete a deleted txn from activity history

@@ -209,6 +209,44 @@ export function evaluateExpression(expr) {
     }
 }
 
+async function refreshYearFromCloudForPendingEdit(oldYear, newYear, oldEntry, updatedEntry) {
+    const years = [...new Set([oldYear, newYear])];
+    const cloudByYear = new Map();
+
+    // Fetch every affected year before changing local state. This also refreshes
+    // the ETags used by the subsequent uploads.
+    for (const year of years) {
+        const csv = await getCsvContent(`${year}.csv`, true);
+        if (!csv) throw new Error(`Unable to refresh latest transactions for ${year}`);
+        const parsed = Papa.parse(csv.trim(), { header: true, skipEmptyLines: true });
+        cloudByYear.set(year, parsed.data.map(normalizeRow).filter(Boolean));
+    }
+
+    // Rebase only the affected years, retaining unrelated transactions and
+    // changes made by other devices.
+    for (const year of years) {
+        const rows = cloudByYear.get(year);
+        state.expenses = (state.expenses || []).filter(row => !row.date || !row.date.startsWith(year))
+            .concat(rows.filter(row => !row.deleted));
+        state.trash = (state.trash || []).filter(row => !row.date || !row.date.startsWith(year))
+            .concat(rows.filter(row => row.deleted).map(row => ({ ...row, deleted: true })));
+    }
+
+    const sameTransaction = row => oldEntry.txnId
+        ? row.txnId && row.txnId === oldEntry.txnId
+        : row.id != null && oldEntry.id != null && String(row.id) === String(oldEntry.id);
+
+    // Remove the old version from its original year and upsert the edited
+    // version in the destination year. This is safe to repeat if an earlier
+    // upload committed but its response was lost.
+    state.expenses = (state.expenses || []).filter(row => !sameTransaction(row));
+    state.trash = (state.trash || []).filter(row => !sameTransaction(row));
+    if (!(state.expenses || []).some(row => sameTransaction(row))) {
+        state.expenses.push(updatedEntry);
+    }
+    state.expenses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
 async function refreshYearFromCloudForPendingAdd(year, pendingEntry) {
     const csv = await getCsvContent(`${year}.csv`, true);
     if (!csv) throw new Error('Unable to refresh latest transactions from cloud');
@@ -1003,12 +1041,30 @@ export function setupForm() {
                         return;
                     } catch (error) {
                         if (error.message === "CONFLICT_DETECTED") {
-                            const currentIdx = state.expenses.indexOf(entry);
-                            if (currentIdx > -1) state.expenses[currentIdx] = oldEntry;
-                            state.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
-                            renderAll();
-                            toast('Conflict! Data modified on another device. Please refresh.', 'error');
-                            return;
+                            try {
+                                // Rebase the edit on the latest cloud data and retry once.
+                                // This also repairs a cross-year edit if the first year
+                                // uploaded successfully but the second year conflicted.
+                                await refreshYearFromCloudForPendingEdit(oldYear, newYear, oldEntry, entry);
+                                await saveYearCSV(oldYear);
+                                if (newYear !== oldYear) await saveYearCSV(newYear);
+                                const { recordActivity } = await import("../services/activity.js");
+                                await recordActivity({action:"updated",type:"txn",source:entry.source || "manual",txn:entry,changes:{
+                                    amount:{from:oldEntry.amount,to:entry.amount}, note:{from:oldEntry.note,to:entry.note}, date:{from:oldEntry.date,to:entry.date}
+                                }});
+                                toast('Transaction updated!', 'success');
+                                resetForm(true);
+                                state.editOriginView = null;
+                                renderAll();
+                                switchView(state.previousView || 'dashboard');
+                                return;
+                            } catch (retryError) {
+                                console.error('[Form] ETag edit conflict recovery failed:', retryError);
+                                toast(retryError.message === "CONFLICT_DETECTED"
+                                    ? 'Another device changed this transaction again. Please sync and retry.'
+                                    : 'Could not safely merge the latest cloud data. Please refresh before retrying.', 'error');
+                                return;
+                            }
                         } else {
                             toast('Error saving to cloud', 'error');
                         }

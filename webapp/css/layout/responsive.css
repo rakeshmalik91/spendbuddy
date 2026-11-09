@@ -1320,6 +1320,7 @@
         align-items: center !important;
         justify-content: center !important;
         gap: 2px !important;
+        transform: translateY(4px) !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
@@ -1356,7 +1357,7 @@
         justify-content: center !important;
         overflow: visible !important;
         position: relative !important;
-        top: -24px !important;
+        top: -20px !important;
     }
 
     #bottom-nav .fab-btn {
