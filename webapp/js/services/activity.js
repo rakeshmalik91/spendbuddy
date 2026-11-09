@@ -118,10 +118,12 @@ export async function permanentlyDeleteActivityEntry(activityId) {
  return true;
 }
 
-/** Apply the browser-selected trash retention policy. A value of 0 disables cleanup. */
+/** Apply the browser-selected data retention policy to trash and activity history. */
 export async function cleanupExpiredTrash() {
- const days=Number(localStorage.getItem("expman_trash_retention_days") || 0);
- if(!Number.isFinite(days) || days<=0) return 0;
+ const storedDays=Number(localStorage.getItem("expman_trash_retention_days"));
+ const days=[30,60,90].includes(storedDays)?storedDays:90;
+ // Enforce the 90-day maximum even for stale or manually edited local settings.
+ if(storedDays!==days) localStorage.setItem("expman_trash_retention_days",String(days));
  const cutoff=Date.now()-days*86400000;
  const deletionTimes=new Map((state.activityHistory||[]).filter(a=>a.action==="deleted").map(a=>[a.targetId,Date.parse(a.timestamp)||0]));
  const expired=(state.trash||[]).filter(t=>{
@@ -130,13 +132,25 @@ export async function cleanupExpiredTrash() {
   const deletedAt=Date.parse(t.deletedAt||t.deleted_at||t.updatedAt||"")||deletionTimes.get(target)||Date.parse(t.date||"")||0;
   return deletedAt>0 && deletedAt<cutoff;
  });
- if(!expired.length) return 0;
+ const expiredActivity=(state.activityHistory||[]).filter(a=>{
+  const timestamp=Date.parse(a.timestamp||"");
+  return timestamp>0 && timestamp<cutoff;
+ });
+ const expiredSet=new Set(expiredActivity.map(a=>a.id));
+ // Also remove matching deletion entries when a transaction expires, even if
+ // an older activity record has no usable timestamp.
  const ids=new Set(expired.map(t=>t.txnId).filter(Boolean));
+ const expiredTargets=new Set(expired.map(t=>t.txnId||`${t.date||""}|${t.amount??""}|${t.note||""}`));
  const years=new Set(expired.map(t=>(t.date||"").slice(0,4)).filter(Boolean));
  state.trash=(state.trash||[]).filter(t=>!expired.includes(t));
- state.activityHistory=(state.activityHistory||[]).filter(a=>!(a.action==="deleted" && (ids.has(a.targetId) || expired.some(t=>`${t.date||""}|${t.amount??""}|${t.note||""}`===a.targetId))));
- const {saveYearCSV}=await import("../ui/form.js");
- for(const year of years) await saveYearCSV(year);
- if(state.activityLoaded) await saveActivityHistory();
+ state.activityHistory=(state.activityHistory||[]).filter(a=>
+  !expiredSet.has(a.id) && !(a.action==="deleted" && (ids.has(a.targetId)||expiredTargets.has(a.targetId)))
+ );
+ if(expired.length) {
+  const {saveYearCSV}=await import("../ui/form.js");
+  for(const year of years) await saveYearCSV(year);
+ }
+ // Persist history cleanup even when no trashed transactions expired.
+ if(state.activityLoaded && (expired.length || expiredActivity.length)) await saveActivityHistory();
  return expired.length;
 }

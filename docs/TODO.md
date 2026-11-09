@@ -8,7 +8,7 @@ do not make changes to this file except mark/unmark todo items
 
 ### 2026.11.09
 
-- [ ] Change the trash cleanup setting to cleanup activity history as well. Rename the setting with a suitable name. Make the setting to have max 90 days retention, Remove ‘never’ too. Default 90 days.
+- [x] Change the trash cleanup setting to cleanup activity history as well. Rename the setting with a suitable name. Make the setting to have max 90 days retention, Remove ‘never’ too. Default 90 days.
 
 ### 2026.11.07
 

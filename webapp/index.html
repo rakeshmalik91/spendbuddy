@@ -1221,6 +1221,7 @@
                         </div>
                         <span style="color:var(--text-muted); font-size:1.2rem; flex:0 0 auto;">❯</span>
                     </div>
+                    <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('trash-retention')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🗑️</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Data cleanup & retention</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Automatically remove old deleted transactions and activity history</div></div></div><span>❯</span></div>
                 </div>
 
                 <!-- Section 2: Tools -->
@@ -1231,8 +1232,7 @@
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
                         <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('scheduled')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">⏰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Scheduled Transactions</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Manage recurring transactions</div></div></div><span>❯</span></div>
-                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('trash-retention')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🗑️</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Trash cleanup & retention</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Configure automatic deletion of trashed transactions</div></div></div><span>❯</span></div>
-                    </div>
+                        </div>
 
                 </div>
 
@@ -1265,20 +1265,17 @@
                     style="display:flex;align-items:center;gap:16px;margin-bottom:24px;cursor:pointer;"
                     onclick="window.switchView('settings')">
                     <span style="font-size:1.5rem;color:var(--text-muted);">❮</span>
-                    <h1 class="view-title" style="margin-bottom:0;">Trash cleanup & retention</h1>
+                    <h1 class="view-title" style="margin-bottom:0;">Data cleanup & retention</h1>
                 </div>
                 <div class="card" style="margin:0 0 28px 0;padding:18px;max-width:640px;">
-                    <p style="color:var(--text-dim);font-size:.88rem;margin:6px 0 12px;">Automatically and permanently remove deleted transactions after the selected period. This also removes their deletion activity entries.</p>
-                    <label for="select-trash-retention" style="display:block;margin-bottom:6px;">Keep deleted transactions for</label>
+                    <p style="color:var(--text-dim);font-size:.88rem;margin:6px 0 12px;">Automatically and permanently remove deleted transactions and activity history entries older than the selected retention period.</p>
+                    <label for="select-trash-retention" style="display:block;margin-bottom:6px;">Retain deleted transactions and activity history for</label>
                     <select id="select-trash-retention" class="form-input" style="max-width:240px;">
-                        <option value="0">Never automatically delete</option>
                         <option value="30">30 days</option>
                         <option value="60">60 days</option>
                         <option value="90">90 days</option>
-                        <option value="180">180 days</option>
-                        <option value="365">1 year</option>
                     </select>
-                    <div style="margin-top:12px;"><button type="button" class="btn btn-secondary" id="btn-cleanup-trash-now">Clean up expired trash now</button></div>
+                    <div style="margin-top:12px;"><button type="button" class="btn btn-secondary" id="btn-cleanup-trash-now">Clean up expired data now</button></div>
                 </div>
             </section>
 

@@ -787,18 +787,23 @@ export function renderSettings() {
 
     const trashRetention = $('#select-trash-retention');
     if (trashRetention) {
-        trashRetention.value = localStorage.getItem('expman_trash_retention_days') || '0';
+        const storedRetention = Number(localStorage.getItem('expman_trash_retention_days'));
+        const retentionDays = [30, 60, 90].includes(storedRetention) ? storedRetention : 90;
+        trashRetention.value = String(retentionDays);
+        localStorage.setItem('expman_trash_retention_days', String(retentionDays));
         trashRetention.onchange = async () => {
-            localStorage.setItem('expman_trash_retention_days', trashRetention.value);
-            try { const removed = await cleanupExpiredTrash(); toast(removed ? `Permanently removed ${removed} expired transaction(s)` : 'Trash retention updated', 'success'); }
-            catch (error) { console.error('Trash cleanup failed:', error); toast('Retention saved, but cleanup failed', 'error'); }
+            const selectedDays = [30, 60, 90].includes(Number(trashRetention.value)) ? Number(trashRetention.value) : 90;
+            trashRetention.value = String(selectedDays);
+            localStorage.setItem('expman_trash_retention_days', String(selectedDays));
+            try { const removed = await cleanupExpiredTrash(); toast(removed ? `Permanently removed ${removed} expired transaction(s) and old activity history` : 'Data retention updated', 'success'); }
+            catch (error) { console.error('Data cleanup failed:', error); toast('Retention saved, but cleanup failed', 'error'); }
         };
     }
     const cleanupButton = $('#btn-cleanup-trash-now');
     if (cleanupButton) cleanupButton.onclick = async () => {
-        if (!window.confirm('Permanently delete all transactions older than the selected retention period?')) return;
+        if (!window.confirm('Permanently delete transactions and activity history older than the selected retention period?')) return;
         cleanupButton.disabled = true;
-        try { const removed = await cleanupExpiredTrash(); toast(`Cleanup complete: ${removed} transaction(s) removed`, 'success'); }
+        try { const removed = await cleanupExpiredTrash(); toast(`Cleanup complete: ${removed} expired transaction(s) removed along with old activity history`, 'success'); }
         catch (error) { console.error(error); toast('Trash cleanup failed', 'error'); }
         finally { cleanupButton.disabled = false; }
     };
