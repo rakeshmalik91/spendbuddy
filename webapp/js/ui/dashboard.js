@@ -655,7 +655,7 @@ pendingSms.forEach((txn, i) => {
         `;
     });
 
-    if (state.autoTag) {
+    if (state.autoTag && state.autoTagEnabled) {
         html += `<button class="btn-quick-add auto-tag-tool ${state.autoTagEnabled ? 'active' : ''}" type="button" title="${state.autoTagEnabled ? 'Disable' : 'Enable'} automatic tag"><span class="qa-note">🏷️ ${escHtml(state.autoTag)}</span><span class="qa-amount">${state.autoTagEnabled ? 'ON' : 'OFF'}</span></button>`;
     }
 

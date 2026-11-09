@@ -753,3 +753,22 @@ input:checked+.toggle-slider:before {
         display: contents !important;
     }
 }
+
+/* Auto-tagging enable control on the dedicated settings screen */
+.auto-tagging-enable-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color, var(--border));
+}
+.auto-tagging-enable-row > span {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.auto-tagging-enable-row .form-auto-tag-toggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

@@ -198,6 +198,34 @@ export function setupSettings() {
         if (state.autoTag) tags.add(state.autoTag);
         autoTagSelect.innerHTML = '<option value="">Select a tag</option>' + Array.from(tags).sort((a,b) => a.localeCompare(b)).map(tag => `<option value="${escHtml(tag)}">${escHtml(tag)}</option>`).join('');
         autoTagSelect.value = state.autoTag || '';
+        const autoTagToggle = $('#settings-auto-tag-toggle');
+        const syncAutoTagToggle = () => {
+            if (!autoTagToggle) return;
+            const enabled = !!(state.autoTagEnabled && String(state.autoTag || '').trim());
+            autoTagToggle.textContent = enabled ? 'ON' : 'OFF';
+            autoTagToggle.classList.toggle('active', enabled);
+            autoTagToggle.disabled = !String(state.autoTag || '').trim();
+            autoTagToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            autoTagToggle.title = enabled ? 'Turn automatic tagging off' : 'Turn automatic tagging on';
+        };
+        if (autoTagToggle && !autoTagToggle.dataset.bound) {
+            autoTagToggle.dataset.bound = 'true';
+            autoTagToggle.addEventListener('click', async () => {
+                if (!String(state.autoTag || '').trim()) return;
+                state.autoTagEnabled = !state.autoTagEnabled;
+                localStorage.setItem('expman_auto_tag_enabled', state.autoTagEnabled ? 'true' : 'false');
+                syncAutoTagToggle();
+                try {
+                    await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } });
+                    toast(state.autoTagEnabled ? 'Automatic tagging enabled' : 'Automatic tagging disabled', 'success');
+                } catch (err) {
+                    console.error('Failed to save automatic tagging setting', err);
+                    toast('Failed to save automatic tagging setting', 'error');
+                }
+                if (typeof window.renderAll === 'function') window.renderAll();
+            });
+        }
+        syncAutoTagToggle();
         autoTagSelect.addEventListener('change', async (e) => {
             state.autoTag = e.target.value.trim();
             localStorage.setItem('expman_auto_tag', state.autoTag);
@@ -205,6 +233,7 @@ export function setupSettings() {
                 state.autoTagEnabled = false;
                 localStorage.setItem('expman_auto_tag_enabled', 'false');
             }
+            syncAutoTagToggle();
             try {
                 await updateUserSettings({ autoTag: { tag: state.autoTag, enabled: state.autoTagEnabled } });
                 toast(state.autoTag ? `Automatic tag set to “${state.autoTag}”` : 'Automatic tag cleared', 'success');
@@ -731,6 +760,15 @@ export function renderSettings() {
         if (selected) tags.add(selected);
         autoTagSelect.innerHTML = '<option value="">Select a tag</option>' + Array.from(tags).sort((a,b) => a.localeCompare(b)).map(tag => `<option value="${escHtml(tag)}">${escHtml(tag)}</option>`).join('');
         autoTagSelect.value = selected;
+        const autoTagToggle = $('#settings-auto-tag-toggle');
+        if (autoTagToggle) {
+            const enabled = !!(state.autoTagEnabled && selected);
+            autoTagToggle.textContent = enabled ? 'ON' : 'OFF';
+            autoTagToggle.classList.toggle('active', enabled);
+            autoTagToggle.disabled = !selected;
+            autoTagToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            autoTagToggle.title = enabled ? 'Turn automatic tagging off' : 'Turn automatic tagging on';
+        }
     }
 
     // Update visibility and display preferences toggles

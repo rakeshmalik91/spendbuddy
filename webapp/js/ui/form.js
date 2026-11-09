@@ -1328,7 +1328,7 @@ function syncFormAutoTagTool() {
     const configured = !!String(state.autoTag || '').trim();
 
     if (!tool) return;
-    tool.hidden = !(configured && isNewEntry);
+    tool.hidden = !(configured && state.autoTagEnabled && isNewEntry);
     if (name) name.textContent = state.autoTag || '';
     if (toggle) {
         toggle.textContent = state.autoTagEnabled ? 'ON' : 'OFF';
