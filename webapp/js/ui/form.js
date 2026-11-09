@@ -1252,7 +1252,10 @@ function syncFormExtraOptionsForViewport() {
     const compactLayout = window.matchMedia
         ? window.matchMedia('(max-width: 1024px)').matches
         : window.innerWidth <= 1024;
-    details.open = !compactLayout;
+    // On compact layouts, preserve the user's disclosure state. Mobile
+    // keyboards can trigger resize events; forcing `open = false` here
+    // collapses the section while a Location/Tag input is being focused.
+    if (!compactLayout) details.open = true;
 }
 
 function setupAddFormChipScrollbars() {

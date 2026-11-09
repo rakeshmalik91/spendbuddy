@@ -625,8 +625,26 @@ input:checked+.toggle-slider:before {
     .form-extra-options-content {
         display: flex;
         flex-direction: column;
+        align-items: stretch;
         gap: 16px;
+        width: 100%;
+        min-width: 0;
         padding: 4px 0 12px;
+        box-sizing: border-box;
+    }
+    #expense-form .form-extra-options-content > .form-group {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    #expense-form .form-extra-options-content input,
+    #expense-form .form-extra-options-content select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     .form-extra-options:not([open]) .form-extra-options-content { display: none; }
 
