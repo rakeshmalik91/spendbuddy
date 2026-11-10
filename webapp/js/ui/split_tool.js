@@ -595,9 +595,7 @@ function updateAllocationSummaryBar() {
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; font-size: 0.9rem; flex-wrap: wrap; gap: 8px;">
             <span style="color: ${color}; font-weight: 600;">${statusText}</span>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                <span style="color: var(--text-muted);">Remaining (excl. tax): <strong>₹${remainingExclusive}</strong></span>
-                <span style="color: var(--text-muted);">Remaining (incl. tax): <strong>₹${remainingInclusive}</strong></span>
-                <span style="color: var(--text-muted);">Tax remaining: <strong>₹${remainingTax}</strong></span>
+                <span style="color: var(--text-muted);">Remaining: <strong>₹${remainingInclusive}</strong></span>
                 <span style="color: var(--accent); font-weight: 800;">Total Bill (incl. tax): ₹${grandTotal}</span>
             </div>
         </div>
