@@ -7,7 +7,9 @@
       "http://192.168.29.83:8080",
       "https://spend-buddy.netlify.app",
       "https://expense-manager-iq.web.app",
-      "https://expense-manager-iq.firebaseapp.com"
+      "https://expense-manager-iq.firebaseapp.com",
+      "https://spendbuddy.web.app",
+      "https://spendbuddy.firebaseapp.com"
     ],
     "method": [
       "GET",

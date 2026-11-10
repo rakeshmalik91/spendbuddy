@@ -1,4 +1,3 @@
-
 name: Deploy to Firebase Hosting
 
 on:
@@ -8,6 +7,8 @@ on:
       - main
     paths:
       - 'webapp/**'
+      - 'firebase.json'
+      - '.firebaserc'
   workflow_dispatch:
 
 permissions:
@@ -29,3 +30,4 @@ jobs:
           projectId: expense-manager-iq
           entryPoint: .
           channelId: live
+          target: spendbuddy

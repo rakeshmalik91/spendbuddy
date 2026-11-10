@@ -2,8 +2,8 @@
   {
     "origin": [
       "https://spend-buddy.netlify.app",
-      "https://expense-manager-iq.web.app",
-      "https://expense-manager-iq.firebaseapp.com"
+      "https://spendbuddy.web.app",
+      "https://spendbuddy.firebaseapp.com"
     ],
     "method": [
       "GET",

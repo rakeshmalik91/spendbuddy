@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "expense-manager-iq"
+  },
+  "targets": {
+    "expense-manager-iq": {
+      "hosting": {
+        "spendbuddy": [
+          "spendbuddy"
+        ]
+      }
+    }
+  }
+}

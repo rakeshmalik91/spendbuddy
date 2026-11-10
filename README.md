@@ -4,7 +4,7 @@ A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and J
 
 ![Hosting](https://img.shields.io/badge/Hosting-Netlify-00C7B7?style=flat-square) ![Database](https://img.shields.io/badge/Storage-Firebase-FFCA28?style=flat-square)
 
-🌐 **Live:** [https://spend-buddy.netlify.app/](https://spend-buddy.netlify.app/)
+🌐 **Live:** [spendbuddy.web.app](https://spendbuddy.web.app) | [spend-buddy.netlify.app](https://spend-buddy.netlify.app/)
 
 📱 **Android App (Testing):** [Google Play Store](https://play.google.com/store/apps/details?id=com.rakeshmalik.expenseiq&hl=en-US&ah=PWeYC0blBt-9ARFtnYGBJPYcB-4)
 
