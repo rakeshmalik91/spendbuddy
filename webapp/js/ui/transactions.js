@@ -93,6 +93,8 @@ export async function saveInlineEdit(realIdx) {
     const finalExpression = hasOperators ? rawAmount : '';
     const finalCategory = catSelect ? catSelect.value.trim() : targetTxn.category;
     const finalNote = noteInput ? noteInput.value.trim() : targetTxn.note;
+    // Keep the pre-edit values for the activity-history change record.
+    const previousTxn = { ...targetTxn };
 
     targetTxn.category = finalCategory;
     targetTxn.amount = finalAmount;
@@ -106,6 +108,20 @@ export async function saveInlineEdit(realIdx) {
     try {
         const year = (targetTxn.date || '').split('-')[0] || new Date().getFullYear().toString();
         await saveYearCSV(year);
+        // Match the standard edit flow: record the update only after the
+        // transaction has been successfully persisted.
+        const { recordActivity } = await import("../services/activity.js");
+        await recordActivity({
+            action: 'updated',
+            type: 'txn',
+            source: targetTxn.source || 'manual',
+            txn: targetTxn,
+            changes: {
+                amount: { from: previousTxn.amount, to: targetTxn.amount },
+                note: { from: previousTxn.note, to: targetTxn.note },
+                date: { from: previousTxn.date, to: targetTxn.date }
+            }
+        });
         toast('Transaction updated!', 'success');
         renderTransactions();
 

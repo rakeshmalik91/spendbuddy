@@ -2,6 +2,11 @@ import { state } from '../js/core/state.js';
 import { startInlineEdit, saveInlineEdit, cancelInlineEdit, isInlineEditModified, renderTransactions } from '../js/ui/transactions.js';
 import { openQuickEditModal } from '../js/ui/quick_edit_modal.js';
 import { saveYearCSV, editEntry } from '../js/ui/form.js';
+import { recordActivity } from '../js/services/activity.js';
+
+jest.mock('../js/services/activity.js', () => ({
+    recordActivity: jest.fn().mockResolvedValue({ id: 'activity-test' })
+}));
 
 jest.mock('../js/ui/form.js', () => {
     const actual = jest.requireActual('../js/ui/form.js');
@@ -187,6 +192,16 @@ describe('Desktop Inline Quick Edit', () => {
 
         // Cloud save invoked
         expect(saveYearCSV).toHaveBeenCalledWith('2026');
+        expect(recordActivity).toHaveBeenCalledWith(expect.objectContaining({
+            action: 'updated',
+            type: 'txn',
+            source: 'SMS: HDFC Bank',
+            txn: updated,
+            changes: expect.objectContaining({
+                amount: { from: 250, to: 350 },
+                note: { from: 'Lunch with team', to: 'Updated shopping note' }
+            })
+        }));
 
         // Exits edit mode
         expect(state.inlineEditTxnIdx).toBeNull();
