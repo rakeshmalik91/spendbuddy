@@ -232,3 +232,20 @@ When modifying or extending the scheduled transactions subsystem, preserve these
 4. **ETag Conflict Rollback**: In-memory state mutations must always be reverted if CSV upload encounters `CONFLICT_DETECTED`.
 5. **Expression Continuity**: Carry forward `amountExpression` into both `state.expenses` and `scheduled_transaction.csv`.
 6. **Month-End Clamping**: Never set a day beyond the valid days of the month (e.g. day 31 in Feb must clamp to 28/29).
+
+
+---
+
+## 8. Activity History Integration
+
+Scheduled definition lifecycle events and generated transaction events are distinct:
+
+- Creating a schedule records `added` with `type: "schedule"` and `source: "schedule"`.
+- Editing a schedule records `updated` with `type: "schedule"` and before/after values for amount, note, and start date.
+- Deleting/restoring a schedule records `deleted` / `restored` schedule events; deletion snapshots support recovery.
+- When an occurrence is actually committed to the transaction ledger, `executeScheduledCommit()` records one `added` event with `type: "txn"` for each committed transaction. The source is the committed entry's source label, defaulting to `Schedule`.
+- Candidates discarded or left unapproved are not added to transaction history because no ledger transaction is created.
+
+The transaction CSV save precedes the generated-transaction activity event. Activity-history synchronization is secondary to the ledger commit and must not roll back a successfully saved transaction.
+
+Regression coverage: `webapp/tests/activity_capture.test.js` verifies that the scheduler commit path records each committed occurrence.

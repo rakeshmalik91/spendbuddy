@@ -719,6 +719,8 @@ pendingSms.forEach((txn, i) => {
             toast('Quick Add saving...', 'info');
             try {
                 await saveYearCSV(newYear);
+                const { recordActivity } = await import("../services/activity.js");
+                await recordActivity({ action: 'added', type: 'quickadd', source: 'Quick Add', txn: entry });
                 toast(`Quick Add: ₹${Math.abs(entry.amount)} logged!`, 'success');
             } catch (err) {
                 toast('Error saving to cloud', 'error');
@@ -784,6 +786,8 @@ pendingSms.forEach((txn, i) => {
 
             try {
                 await saveYearCSV(newYear);
+                const { recordActivity } = await import("../services/activity.js");
+                await recordActivity({ action: 'added', type: 'txn', source: entry.source || displaySource, txn: entry });
 
                 consumeRawSmsTransaction(txn);
 

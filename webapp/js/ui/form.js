@@ -1563,6 +1563,8 @@ export async function generateRefund(idx) {
     try {
         const yr = e.date.slice(0, 4);
         await saveYearCSV(yr);
+        const { recordActivity } = await import("../services/activity.js");
+        await recordActivity({ action: 'added', type: 'txn', source: 'Refund Action', txn: refundTxn });
         toast('Refund generated and linked!', 'success');
         renderAll();
     } catch (err) {

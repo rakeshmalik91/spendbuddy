@@ -3,6 +3,7 @@ import { $, $$, showLoader, hideLoader } from "../core/init.js";
 import { toast, escHtml, getLocalDateString, formatDate } from "../utils/helpers.js";
 import { openModal } from "./modal.js";
 import { loadSplitBills, saveSplitBills, getKnownPeople, calculateSplit, addOrUpdateSplitBill, deleteSplitBill, restoreSplitBill, permanentlyDeleteSplitBill, roundAmount } from "../services/split_service.js";
+import { cleanupExpiredTrash } from "../services/activity.js";
 
 let activeBill = null;
 let isInitialized = false;
@@ -90,6 +91,16 @@ export async function renderSplitTool() {
     }
     await loadSplitBills();
 
+    // The global cleanup can run before Split Tool data is loaded during app
+    // startup. Run it again here so expired split bills are evaluated against
+    // the same configured transaction-trash retention policy.
+    try {
+        await cleanupExpiredTrash();
+    } catch (error) {
+        // Cleanup must never prevent the Split Tool from rendering.
+        console.warn('Could not clean up expired split bills:', error);
+    }
+
     renderSplitGroupFilters();
     renderSplitStats();
     renderSplitHistory();
@@ -142,12 +153,14 @@ function renderSplitGroupFilters() {
     const items = [
         { id: 'all', label: 'All', icon: '✦' },
         { id: 'ungrouped', label: 'Ungrouped', icon: '○' },
-        ...groups.map(group => ({ id: group, label: group, icon: group.trim().charAt(0).toUpperCase() || '•' })),
-        { id: 'trash', label: `Trash${trashCount ? ` (${trashCount})` : ''}`, icon: '🗑️' }
+        // Keep Trash next to the built-in filters so it remains easy to find,
+        // regardless of how many user-defined groups exist.
+        { id: 'trash', label: `Trash${trashCount ? ` (${trashCount})` : ''}`, icon: '🗑️' },
+        ...groups.map(group => ({ id: group, label: group, icon: group.trim().charAt(0).toUpperCase() || '•' }))
     ];
     if (selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && selectedBillGroup !== 'trash' && !groups.includes(selectedBillGroup)) selectedBillGroup = 'all';
     host.innerHTML = items.map(item => `
-        <button type="button" class="split-group-filter ${selectedBillGroup === item.id ? 'active' : ''}" data-group="${escHtml(item.id)}" title="${escHtml(item.label)}" aria-pressed="${selectedBillGroup === item.id}">
+        <button type="button" class="split-group-filter ${item.id === 'trash' ? 'split-group-filter-trash' : ''} ${selectedBillGroup === item.id ? 'active' : ''}" data-group="${escHtml(item.id)}" title="${escHtml(item.label)}" aria-label="${escHtml(item.label)}" aria-pressed="${selectedBillGroup === item.id}">
             <span class="split-group-filter-icon">${escHtml(item.icon)}</span><span class="split-group-filter-label">${escHtml(item.label)}</span>
         </button>`).join('');
     host.querySelectorAll('.split-group-filter').forEach(button => button.addEventListener('click', () => {
@@ -157,7 +170,7 @@ function renderSplitGroupFilters() {
         // top group filters should also populate the editor's Group field.
         // Do not alter an existing bill when the user is only filtering history.
         if (activeBill && !activeBill.id) {
-            const groupName = selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped'
+            const groupName = selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && selectedBillGroup !== 'trash'
                 ? selectedBillGroup
                 : '';
             activeBill.group = groupName;
@@ -182,7 +195,18 @@ function renderSplitHistory() {
     const bills = getBillsForSelectedGroup();
     if (bills.length === 0) {
         listContainer.innerHTML = '';
-        if (emptyState) emptyState.style.display = 'block';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+            const heading = emptyState.querySelector('h3');
+            const message = emptyState.querySelector('p');
+            if (selectedBillGroup === 'trash') {
+                if (heading) heading.textContent = 'Trash is Empty';
+                if (message) message.textContent = 'Split bills you move to Trash will appear here until the configured retention period expires.';
+            } else {
+                if (heading) heading.textContent = 'No Split Bills Yet';
+                if (message) message.textContent = 'Create a split bill to see it here.';
+            }
+        }
         return;
     }
 

@@ -167,22 +167,15 @@ On save, this array is serialized to JSON and stored on the payer row's `split_p
 
 ---
 
-## Activity History Integration
+## Split Bill Trash & Retention
 
-Every split create/edit/delete records an activity:
+Split Tool bills are stored independently in `split_bills.json`; their Trash lifecycle is separate from transaction Activity History.
 
-```javascript
-await recordActivity({
-  action: "added" | "edited" | "deleted",
-  type: "txn",
-  source: "split",
-  txn: payerRow  // includes split_id, split_participants
-});
-```
-
-Restoring a deleted split transaction from trash restores all participant rows.
-
----
+- Moving a bill to Trash sets `deleted: true` and `deletedAt` (ISO timestamp), then persists the full bill list.
+- The group filter row includes a Trash filter with a count. Active group filters and normal history exclude trashed bills.
+- Trashed bills can be restored or permanently deleted from the Trash view.
+- `cleanupExpiredTrash()` applies the shared `expman_trash_retention_days` preference (30, 60, or 90 days; default 90) to trashed split bills as well as transaction trash and activity history.
+- Expired split bills are removed from local storage and Firebase Storage `split_bills.json`.
 
 ## CSV Persistence
 

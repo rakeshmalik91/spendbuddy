@@ -283,9 +283,11 @@ When a split transaction is deleted:
 
 | Aspect | Behavior |
 |--------|----------|
-| Trash size | Unbounded (limited by CSV storage quota) |
-| Auto-purge | None (manual restore or permanent delete only) |
-| Cross-device sync | Via Firebase Storage CSV sync |
+| Transaction trash size | Bounded by the configured retention cleanup; storage quota also applies |
+| Retention policy | 30, 60, or 90 days; default 90 days; maximum 90 days |
+| Automatic cleanup | Removes expired transaction trash and old activity-history entries |
+| Split Tool bills | Uses `deleted` / `deletedAt` in `split_bills.json`; same retention policy and cleanup pass |
+| Cross-device sync | Via Firebase Storage CSV sync and `split_bills.json` |
 | Activity history cap | 2000 entries (older deletions lose restore button) |
 
 ---
@@ -309,7 +311,6 @@ When a split transaction is deleted:
 
 1. **Dedicated Trash View**: Browse/restore without Activity History
 2. **Permanent Delete**: "Empty Trash" with confirmation
-3. **Auto-Purge**: Configurable retention (e.g., 30 days)
 4. **Trash Search**: Filter trash by date, category, amount
 5. **Bulk Restore**: Select multiple trash items
 6. **Trash Indicator**: Show trash count in nav/status bar
