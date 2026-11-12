@@ -6,6 +6,8 @@ import {
     getKnownPeople,
     addOrUpdateSplitBill,
     deleteSplitBill,
+    restoreSplitBill,
+    permanentlyDeleteSplitBill,
     loadSplitBills
 } from '../js/services/split_service.js';
 
@@ -293,7 +295,7 @@ describe('Split Tool & Expression Calculations', () => {
             expect(stored[0].title).toBe('Movie night');
         });
 
-        it('deletes a bill by id and updates storage', async () => {
+        it('moves a bill to trash and supports restore and permanent deletion', async () => {
             state.splitBills = [
                 { id: 'b1', title: 'Bill 1' },
                 { id: 'b2', title: 'Bill 2' }
@@ -301,12 +303,21 @@ describe('Split Tool & Expression Calculations', () => {
 
             const deleted = await deleteSplitBill('b1');
             expect(deleted).toBe(true);
-            expect(state.splitBills.length).toBe(1);
-            expect(state.splitBills[0].id).toBe('b2');
+            expect(state.splitBills.length).toBe(2);
+            expect(state.splitBills.find(b => b.id === 'b1').deleted).toBe(true);
+            expect(state.splitBills.find(b => b.id === 'b1').deletedAt).toBeDefined();
 
-            const stored = JSON.parse(localStorage.getItem('expman_split_bills'));
-            expect(stored.length).toBe(1);
-            expect(stored[0].id).toBe('b2');
+            let stored = JSON.parse(localStorage.getItem('expman_split_bills'));
+            expect(stored).toHaveLength(2);
+            expect(stored.find(b => b.id === 'b1').deleted).toBe(true);
+
+            expect(await restoreSplitBill('b1')).toBe(true);
+            expect(state.splitBills.find(b => b.id === 'b1').deleted).toBeUndefined();
+            expect(await deleteSplitBill('b1')).toBe(true);
+            expect(await permanentlyDeleteSplitBill('b1')).toBe(true);
+            expect(state.splitBills.map(b => b.id)).toEqual(['b2']);
+            stored = JSON.parse(localStorage.getItem('expman_split_bills'));
+            expect(stored.map(b => b.id)).toEqual(['b2']);
         });
     });
 });

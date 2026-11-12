@@ -132,6 +132,7 @@ export async function cleanupExpiredTrash() {
   const deletedAt=Date.parse(t.deletedAt||t.deleted_at||t.updatedAt||"")||deletionTimes.get(target)||Date.parse(t.date||"")||0;
   return deletedAt>0 && deletedAt<cutoff;
  });
+ const expiredSplitBills=(state.splitBills||[]).filter(b=>b.deleted && (Date.parse(b.deletedAt||"")||0)>0 && Date.parse(b.deletedAt||"")<cutoff);
  const expiredActivity=(state.activityHistory||[]).filter(a=>{
   const timestamp=Date.parse(a.timestamp||"");
   return timestamp>0 && timestamp<cutoff;
@@ -143,6 +144,11 @@ export async function cleanupExpiredTrash() {
  const expiredTargets=new Set(expired.map(t=>t.txnId||`${t.date||""}|${t.amount??""}|${t.note||""}`));
  const years=new Set(expired.map(t=>(t.date||"").slice(0,4)).filter(Boolean));
  state.trash=(state.trash||[]).filter(t=>!expired.includes(t));
+ if(expiredSplitBills.length) {
+  state.splitBills=(state.splitBills||[]).filter(b=>!expiredSplitBills.includes(b));
+  const {saveSplitBills}=await import("./split_service.js");
+  await saveSplitBills();
+ }
  state.activityHistory=(state.activityHistory||[]).filter(a=>
   !expiredSet.has(a.id) && !(a.action==="deleted" && (ids.has(a.targetId)||expiredTargets.has(a.targetId)))
  );
@@ -152,5 +158,5 @@ export async function cleanupExpiredTrash() {
  }
  // Persist history cleanup even when no trashed transactions expired.
  if(state.activityLoaded && (expired.length || expiredActivity.length)) await saveActivityHistory();
- return expired.length;
+ return expired.length + expiredSplitBills.length;
 }

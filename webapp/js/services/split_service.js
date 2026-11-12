@@ -236,11 +236,32 @@ export async function addOrUpdateSplitBill(bill) {
  */
 export async function deleteSplitBill(billId) {
     if (!Array.isArray(state.splitBills)) return false;
-    const initialLen = state.splitBills.length;
-    state.splitBills = state.splitBills.filter(b => b.id !== billId);
-    if (state.splitBills.length !== initialLen) {
-        await saveSplitBills();
-        return true;
-    }
-    return false;
+    const bill = state.splitBills.find(b => b.id === billId && !b.deleted);
+    if (!bill) return false;
+    bill.deleted = true;
+    bill.deletedAt = new Date().toISOString();
+    bill.updatedAt = Date.now();
+    await saveSplitBills();
+    return true;
+}
+
+/** Restore a split bill from trash. */
+export async function restoreSplitBill(billId) {
+    const bill = (state.splitBills || []).find(b => b.id === billId && b.deleted);
+    if (!bill) return false;
+    delete bill.deleted;
+    delete bill.deletedAt;
+    bill.updatedAt = Date.now();
+    await saveSplitBills();
+    return true;
+}
+
+/** Permanently remove a split bill from trash. */
+export async function permanentlyDeleteSplitBill(billId) {
+    if (!Array.isArray(state.splitBills)) return false;
+    const before = state.splitBills.length;
+    state.splitBills = state.splitBills.filter(b => !(b.id === billId && b.deleted));
+    if (state.splitBills.length === before) return false;
+    await saveSplitBills();
+    return true;
 }
