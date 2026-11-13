@@ -605,7 +605,7 @@ export function setupSmsApproval() {
                     category: chosenCategory,
                     txnType: computedType,
                     txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                    note: txn.merchant || '',
+                    note: (txn.merchant || '').slice(0, 20),
                     source: txn.source,
                     txnId: txn.transactionId || '',
                     location: detectedLocation
@@ -713,6 +713,10 @@ export function showSmsApprovalModal(txns) {
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
         const emoji = isEmail ? '📧' : '💬';
         const sourceStr = txn.merchant || txn.source || (isEmail ? 'Email' : 'SMS');
+        const displaySourceStr = sourceStr.length > 20 ? `${sourceStr.slice(0, 20)}…` : sourceStr;
+        const displayMerchant = txn.merchant && txn.merchant.length > 20
+            ? `${txn.merchant.slice(0, 20)}…`
+            : txn.merchant;
 
         const div = document.createElement('div');
         div.className = 'sms-card';
@@ -723,7 +727,7 @@ export function showSmsApprovalModal(txns) {
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${emoji} ${escHtml(sourceStr)}</div>
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${emoji} ${escHtml(displaySourceStr)}</div>
                             <div style="font-weight: 700; color: ${amountColor}; font-size: 1.1rem; white-space: nowrap; text-align: right;">
                                 ${amountPrefix}₹${amountToStr(Math.abs(txn.amount))}
                             </div>
@@ -737,7 +741,7 @@ export function showSmsApprovalModal(txns) {
                             </div>
                             ${txn.merchant ? `
                             <div style="display: flex; align-items: flex-start; gap: 6px;">
-                                <span>🏪</span> <span style="font-weight: 500; color: var(--text-main); line-height: 1.3; word-break: break-word; text-align: left;">${escHtml(txn.merchant)}</span>
+                                <span>🏪</span> <span style="font-weight: 500; color: var(--text-main); line-height: 1.3; word-break: break-word; text-align: left;">${escHtml(displayMerchant)}</span>
                             </div>
                             ` : ''}
                             <div style="display: flex; align-items: flex-start; gap: 6px;">

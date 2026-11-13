@@ -626,7 +626,10 @@ export function renderQuickAdd() {
         `;
     });
 
-    if (olderPendingSms.length > 0) {
+    // Keep the dashboard compact when the inbox has more than three items.
+    // In that case, show only the bulk approval entry point.
+    const showSmsApprovalOnly = pendingSms.length > 3;
+    if (showSmsApprovalOnly || olderPendingSms.length > 0) {
         html += `
         <button class="btn-quick-add sms-review-all" title="Review all pending SMS & Email transactions" style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--accent); color: var(--text-primary);">
             <span class="qa-note">📋 SMS/Email Txns (${pendingSms.length})</span>
@@ -635,9 +638,10 @@ export function renderQuickAdd() {
         `;
     }
 
-pendingSms.forEach((txn, i) => {
+if (!showSmsApprovalOnly) pendingSms.forEach((txn, i) => {
         if (txn.date !== todayStr) return;
         const title = txn.merchant || txn.source || 'SMS';
+        const displayTitle = title.length > 20 ? `${title.slice(0, 20)}…` : title;
         const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
         const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
         const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
@@ -649,7 +653,7 @@ pendingSms.forEach((txn, i) => {
         const amountDisplay = `${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add sms-quick-add" data-index="${i}" title="Approve: ${escHtml(title)}" style="border: 1px solid var(--accent);">
-            <span class="qa-note">${emoji} ${escHtml(title)}</span>
+            <span class="qa-note">${emoji} ${escHtml(displayTitle)}</span>
             <span class="qa-amount" style="color: ${amtColor}">${amountDisplay}</span>
         </button>
         `;
@@ -764,7 +768,7 @@ pendingSms.forEach((txn, i) => {
                 category: bestMatch,
                 txnType: computedType,
                 txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                note: txn.merchant || '',
+                note: (txn.merchant || '').slice(0, 20),
                 source: txn.source || 'SMS',
                 txnId: txn.transactionId || '',
                 location: await getCurrentLocationTag()

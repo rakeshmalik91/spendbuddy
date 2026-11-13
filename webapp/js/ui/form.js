@@ -4,7 +4,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow, getCsvContent } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType, escHtml } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -1608,10 +1608,14 @@ export function renderSmsSuggestions() {
         div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;';
 
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
+        const suggestionTitle = txn.merchant || 'Unknown';
+        const shortSuggestionTitle = suggestionTitle.length > 20
+            ? `${suggestionTitle.slice(0, 19)}…`
+            : suggestionTitle;
 
         div.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 4px;">
-                <div style="font-weight: 600; color: var(--text-main);">${txn.merchant || 'Unknown'}</div>
+                <div style="font-weight: 600; color: var(--text-main);" title="${escHtml(suggestionTitle)}">${escHtml(shortSuggestionTitle)}</div>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">${txn.source} &bull; ${mappedMode}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1678,7 +1682,11 @@ export function renderSmsSuggestions() {
             const fillAmount = (effectiveType === 'Income' || effectiveType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             $('#input-amount').value = fillAmount;
 
-            $('#input-note').value = txn.merchant || '';
+            // Keep the suggestion note preview compact on the add-transaction form.
+            const suggestionNote = txn.merchant || '';
+            $('#input-note').value = suggestionNote.length > 20
+                ? `${suggestionNote.slice(0, 19)}…`
+                : suggestionNote;
             currentSuggestionSource = txn.source;
             currentSuggestionTxnId = txn.transactionId || '';
             currentSelectedSuggestionTxn = txn;
