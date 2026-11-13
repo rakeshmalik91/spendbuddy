@@ -292,6 +292,7 @@ export function openRefundLinkingModal(txnIdx) {
     };
 
     overlay.querySelector('#btn-save-rl')?.addEventListener('click', async () => {
+        const beforeTxnIds = new Map((state.expenses || []).map(txn => [txn, txn.txnId]));
         const modifiedYears = new Set([targetTxn.date.slice(0, 4)]);
 
         if (isTargetRefund) {
@@ -348,6 +349,12 @@ export function openRefundLinkingModal(txnIdx) {
         try {
             for (const year of modifiedYears) {
                 await saveYearCSV(year);
+            }
+            const { recordActivity } = await import("../services/activity.js");
+            for (const [txn, previousTxnId] of beforeTxnIds) {
+                if (previousTxnId !== txn.txnId) {
+                    await recordActivity({ action: 'updated', type: 'txn', source: txn.source || 'manual', txn, changes: { txnId: { from: previousTxnId, to: txn.txnId } } });
+                }
             }
             toast('Transaction links updated!', 'success');
             closeModal();

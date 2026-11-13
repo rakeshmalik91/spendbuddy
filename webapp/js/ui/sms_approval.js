@@ -573,6 +573,7 @@ export function setupSmsApproval() {
                 localStorage.setItem('expman_last_location', detectedLocation);
             }
             let modifiedYears = new Set();
+            const approvedEntries = [];
             checkboxes.forEach(cb => {
                 const idx = cb.dataset.index;
                 const txn = snapshot[idx];
@@ -604,12 +605,13 @@ export function setupSmsApproval() {
                     category: chosenCategory,
                     txnType: computedType,
                     txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                    note: txn.merchant || '',
+                    note: (txn.merchant || '').slice(0, 50),
                     source: txn.source,
                     txnId: txn.transactionId || '',
                     location: detectedLocation
                 });
                 state.expenses.unshift(approvedEntry);
+                approvedEntries.push(approvedEntry);
                 modifiedYears.add(txn.date.slice(0, 4));
             });
 
@@ -617,6 +619,10 @@ export function setupSmsApproval() {
 
             for (const year of modifiedYears) {
                 await saveYearCSV(year);
+            }
+            const { recordActivity } = await import("../services/activity.js");
+            for (const entry of approvedEntries) {
+                await recordActivity({ action: 'added', type: 'txn', source: entry.source || 'SMS', txn: entry });
             }
 
             toast(`Added ${checkboxes.length} transactions from SMS`, 'success');

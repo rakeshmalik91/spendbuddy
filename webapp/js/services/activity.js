@@ -26,7 +26,7 @@ export async function loadActivityHistory(force = false) {
  }
 }
 export async function recordActivity({action,type="txn",source="manual",id,txn,changes={}}) {
- const item={id:`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,timestamp:new Date().toISOString(),action,type,source,targetId:id||txn?.txnId||txn?.id||(txn?`${txn.date||txn.start_date||""}|${txn.amount??""}|${txn.note||""}`:""),title:txn?.note||txn?.category||"Transaction",date:txn?.date||txn?.start_date||"",amount:txn?.amount??null,changes:Object.entries(changes).filter(([f,v])=>["amount","note","date"].includes(f) && String(v?.from ?? "")!==String(v?.to ?? "")).map(([field,v])=>({field,from:v.from,to:v.to})),restored:false,snapshot:(action==="deleted"?JSON.parse(JSON.stringify(txn||{})):undefined)};
+ const item={id:`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,timestamp:new Date().toISOString(),action,type,source,targetId:id||txn?.txnId||txn?.id||(txn?`${txn.date||txn.start_date||""}|${txn.amount??""}|${txn.note||""}`:""),title:txn?.note||txn?.category||"Transaction",date:txn?.date||txn?.start_date||"",amount:txn?.amount??null,changes:Object.entries(changes).filter(([f,v])=>["amount","note","date","category","txnType","txnMode","txnId","location","tag","currency"].includes(f) && String(v?.from ?? "")!==String(v?.to ?? "")).map(([field,v])=>({field,from:v.from,to:v.to})),restored:false,snapshot:(action==="deleted"?JSON.parse(JSON.stringify(txn||{})):undefined)};
  state.activityHistory=state.activityHistory||[]; state.activityHistory.unshift(item); state.activityHistory=state.activityHistory.slice(0,2000);
  // Activity logging is secondary to the transaction commit. Never let an activity
  // history conflict make the caller report a successfully-saved transaction as failed.
@@ -132,6 +132,7 @@ export async function cleanupExpiredTrash() {
   const deletedAt=Date.parse(t.deletedAt||t.deleted_at||t.updatedAt||"")||deletionTimes.get(target)||Date.parse(t.date||"")||0;
   return deletedAt>0 && deletedAt<cutoff;
  });
+ const expiredSplitBills=(state.splitBills||[]).filter(b=>b.deleted && (Date.parse(b.deletedAt||"")||0)>0 && Date.parse(b.deletedAt||"")<cutoff);
  const expiredActivity=(state.activityHistory||[]).filter(a=>{
   const timestamp=Date.parse(a.timestamp||"");
   return timestamp>0 && timestamp<cutoff;
@@ -143,6 +144,11 @@ export async function cleanupExpiredTrash() {
  const expiredTargets=new Set(expired.map(t=>t.txnId||`${t.date||""}|${t.amount??""}|${t.note||""}`));
  const years=new Set(expired.map(t=>(t.date||"").slice(0,4)).filter(Boolean));
  state.trash=(state.trash||[]).filter(t=>!expired.includes(t));
+ if(expiredSplitBills.length) {
+  state.splitBills=(state.splitBills||[]).filter(b=>!expiredSplitBills.includes(b));
+  const {saveSplitBills}=await import("./split_service.js");
+  await saveSplitBills();
+ }
  state.activityHistory=(state.activityHistory||[]).filter(a=>
   !expiredSet.has(a.id) && !(a.action==="deleted" && (ids.has(a.targetId)||expiredTargets.has(a.targetId)))
  );
@@ -152,5 +158,5 @@ export async function cleanupExpiredTrash() {
  }
  // Persist history cleanup even when no trashed transactions expired.
  if(state.activityLoaded && (expired.length || expiredActivity.length)) await saveActivityHistory();
- return expired.length;
+ return expired.length + expiredSplitBills.length;
 }

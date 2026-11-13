@@ -795,15 +795,15 @@ export function renderSettings() {
             const selectedDays = [30, 60, 90].includes(Number(trashRetention.value)) ? Number(trashRetention.value) : 90;
             trashRetention.value = String(selectedDays);
             localStorage.setItem('expman_trash_retention_days', String(selectedDays));
-            try { const removed = await cleanupExpiredTrash(); toast(removed ? `Permanently removed ${removed} expired transaction(s) and old activity history` : 'Data retention updated', 'success'); }
+            try { const removed = await cleanupExpiredTrash(); toast(removed ? `Permanently removed ${removed} expired item(s) and old activity history` : 'Data retention updated', 'success'); }
             catch (error) { console.error('Data cleanup failed:', error); toast('Retention saved, but cleanup failed', 'error'); }
         };
     }
     const cleanupButton = $('#btn-cleanup-trash-now');
     if (cleanupButton) cleanupButton.onclick = async () => {
-        if (!window.confirm('Permanently delete transactions and activity history older than the selected retention period?')) return;
+        if (!window.confirm('Permanently delete expired transactions, split bills, and activity history older than the selected retention period?')) return;
         cleanupButton.disabled = true;
-        try { const removed = await cleanupExpiredTrash(); toast(`Cleanup complete: ${removed} expired transaction(s) removed along with old activity history`, 'success'); }
+        try { const removed = await cleanupExpiredTrash(); toast(`Cleanup complete: ${removed} expired item(s) removed along with old activity history`, 'success'); }
         catch (error) { console.error(error); toast('Trash cleanup failed', 'error'); }
         finally { cleanupButton.disabled = false; }
     };

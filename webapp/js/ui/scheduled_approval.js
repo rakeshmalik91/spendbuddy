@@ -63,13 +63,14 @@ let modalSimulation = [];
  */
 export async function executeScheduledCommit({ approvedCandidates = [], simulationData = [] }) {
     const modifiedYears = new Set();
+    const committedEntries = [];
     const scheduledSnapshot = JSON.parse(JSON.stringify(state.scheduledTransactions));
     const expensesSnapshot = [...state.expenses];
 
     // 1. Add approved candidates to state.expenses
     if (approvedCandidates && approvedCandidates.length > 0) {
         for (const item of approvedCandidates) {
-            state.expenses.unshift({
+            const committedEntry = {
                 date: item.date,
                 amount: item.amount,
                 amountExpression: item.amountExpression || '',
@@ -82,7 +83,9 @@ export async function executeScheduledCommit({ approvedCandidates = [], simulati
                 txnId: item.txnId,
                 location: item.location || '',
                 tag: item.tag || ''
-            });
+            };
+            state.expenses.unshift(committedEntry);
+            committedEntries.push(committedEntry);
             modifiedYears.add(item.date.slice(0, 4));
         }
         state.expenses.sort((a, b) => b.date.localeCompare(a.date));
@@ -126,13 +129,24 @@ export async function executeScheduledCommit({ approvedCandidates = [], simulati
         }
     }
 
+    // Record generated transactions after their year files have committed.
+    // A later schedule-save failure must not erase the audit event for a
+    // transaction that has already been persisted successfully.
+    if (committedEntries.length > 0) {
+        const { recordActivity } = await import("../services/activity.js");
+        for (const committed of committedEntries) {
+            await recordActivity({ action: 'added', type: 'txn', source: committed.source || 'Schedule', txn: committed });
+        }
+    }
+
     // 4. Save scheduled CSV
     if (modifiedScheduled) {
         try {
             await saveScheduledCSV();
         } catch (e) {
+            // Transaction year files may already be committed; only roll back
+            // the schedule mutation here, not the persisted generated expenses.
             state.scheduledTransactions = scheduledSnapshot;
-            state.expenses = expensesSnapshot;
             throw e;
         }
     }

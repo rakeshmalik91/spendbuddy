@@ -2,7 +2,8 @@ import { state } from "../core/state.js";
 import { $, $$, showLoader, hideLoader } from "../core/init.js";
 import { toast, escHtml, getLocalDateString, formatDate } from "../utils/helpers.js";
 import { openModal } from "./modal.js";
-import { loadSplitBills, saveSplitBills, getKnownPeople, calculateSplit, addOrUpdateSplitBill, deleteSplitBill, roundAmount } from "../services/split_service.js";
+import { loadSplitBills, saveSplitBills, getKnownPeople, calculateSplit, addOrUpdateSplitBill, deleteSplitBill, restoreSplitBill, permanentlyDeleteSplitBill, roundAmount } from "../services/split_service.js";
+import { cleanupExpiredTrash } from "../services/activity.js";
 
 let activeBill = null;
 let isInitialized = false;
@@ -90,6 +91,16 @@ export async function renderSplitTool() {
     }
     await loadSplitBills();
 
+    // The global cleanup can run before Split Tool data is loaded during app
+    // startup. Run it again here so expired split bills are evaluated against
+    // the same configured transaction-trash retention policy.
+    try {
+        await cleanupExpiredTrash();
+    } catch (error) {
+        // Cleanup must never prevent the Split Tool from rendering.
+        console.warn('Could not clean up expired split bills:', error);
+    }
+
     renderSplitGroupFilters();
     renderSplitStats();
     renderSplitHistory();
@@ -107,9 +118,11 @@ export async function renderSplitTool() {
  */
 function getBillsForSelectedGroup() {
     const bills = state.splitBills || [];
-    if (selectedBillGroup === 'all') return bills;
-    if (selectedBillGroup === 'ungrouped') return bills.filter(b => !(b.group || '').trim());
-    return bills.filter(b => (b.group || '').trim() === selectedBillGroup);
+    if (selectedBillGroup === 'trash') return bills.filter(b => b.deleted);
+    const activeBills = bills.filter(b => !b.deleted);
+    if (selectedBillGroup === 'all') return activeBills;
+    if (selectedBillGroup === 'ungrouped') return activeBills.filter(b => !(b.group || '').trim());
+    return activeBills.filter(b => (b.group || '').trim() === selectedBillGroup);
 }
 
 function renderSplitStats() {
@@ -132,17 +145,22 @@ function renderSplitStats() {
 function renderSplitGroupFilters() {
     const host = $('#split-group-filters');
     if (!host) return;
-    const groups = [...new Set((state.splitBills || []).map(b => (b.group || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const activeBills = (state.splitBills || []).filter(b => !b.deleted);
+    const groups = [...new Set(activeBills.map(b => (b.group || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const trashCount = (state.splitBills || []).filter(b => b.deleted).length;
     const groupList = $('#split-known-groups-list');
     if (groupList) groupList.innerHTML = groups.map(group => `<option value="${escHtml(group)}"></option>`).join('');
     const items = [
         { id: 'all', label: 'All', icon: '✦' },
         { id: 'ungrouped', label: 'Ungrouped', icon: '○' },
+        // Keep Trash next to the built-in filters so it remains easy to find,
+        // regardless of how many user-defined groups exist.
+        { id: 'trash', label: `Trash${trashCount ? ` (${trashCount})` : ''}`, icon: '🗑️' },
         ...groups.map(group => ({ id: group, label: group, icon: group.trim().charAt(0).toUpperCase() || '•' }))
     ];
-    if (selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && !groups.includes(selectedBillGroup)) selectedBillGroup = 'all';
+    if (selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && selectedBillGroup !== 'trash' && !groups.includes(selectedBillGroup)) selectedBillGroup = 'all';
     host.innerHTML = items.map(item => `
-        <button type="button" class="split-group-filter ${selectedBillGroup === item.id ? 'active' : ''}" data-group="${escHtml(item.id)}" title="${escHtml(item.label)}" aria-pressed="${selectedBillGroup === item.id}">
+        <button type="button" class="split-group-filter ${item.id === 'trash' ? 'split-group-filter-trash' : ''} ${selectedBillGroup === item.id ? 'active' : ''}" data-group="${escHtml(item.id)}" title="${escHtml(item.label)}" aria-label="${escHtml(item.label)}" aria-pressed="${selectedBillGroup === item.id}">
             <span class="split-group-filter-icon">${escHtml(item.icon)}</span><span class="split-group-filter-label">${escHtml(item.label)}</span>
         </button>`).join('');
     host.querySelectorAll('.split-group-filter').forEach(button => button.addEventListener('click', () => {
@@ -152,7 +170,7 @@ function renderSplitGroupFilters() {
         // top group filters should also populate the editor's Group field.
         // Do not alter an existing bill when the user is only filtering history.
         if (activeBill && !activeBill.id) {
-            const groupName = selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped'
+            const groupName = selectedBillGroup !== 'all' && selectedBillGroup !== 'ungrouped' && selectedBillGroup !== 'trash'
                 ? selectedBillGroup
                 : '';
             activeBill.group = groupName;
@@ -177,7 +195,18 @@ function renderSplitHistory() {
     const bills = getBillsForSelectedGroup();
     if (bills.length === 0) {
         listContainer.innerHTML = '';
-        if (emptyState) emptyState.style.display = 'block';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+            const heading = emptyState.querySelector('h3');
+            const message = emptyState.querySelector('p');
+            if (selectedBillGroup === 'trash') {
+                if (heading) heading.textContent = 'Trash is Empty';
+                if (message) message.textContent = 'Split bills you move to Trash will appear here until the configured retention period expires.';
+            } else {
+                if (heading) heading.textContent = 'No Split Bills Yet';
+                if (message) message.textContent = 'Create a split bill to see it here.';
+            }
+        }
         return;
     }
 
@@ -240,16 +269,9 @@ function renderSplitHistory() {
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-sm btn-ghost" onclick="window.copySplitBreakdown('${b.id}')" title="Copy breakdown to clipboard" style="padding: 6px 12px; font-size: 0.82rem;">
-                        📋 Copy Text
-                    </button>
+                    ${b.deleted ? '' : `<button type="button" class="btn btn-sm btn-ghost" onclick="window.copySplitBreakdown('${b.id}')" title="Copy breakdown to clipboard" style="padding: 6px 12px; font-size: 0.82rem;">📋 Copy Text</button>`}
                     <div style="display: flex; gap: 8px;">
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="window.editSplitBill('${b.id}')" style="padding: 6px 14px; font-size: 0.85rem;">
-                            ✏️ Edit
-                        </button>
-                        <button type="button" class="btn btn-sm btn-ghost" onclick="window.confirmDeleteSplitBill('${b.id}')" style="color: var(--red); padding: 6px 12px; font-size: 0.85rem;">
-                            🗑️ Delete
-                        </button>
+                        ${b.deleted ? `<button type="button" class="btn btn-sm btn-secondary" onclick="window.restoreSplitBill('${b.id}')">↩️ Restore</button><button type="button" class="btn btn-sm btn-ghost" onclick="window.confirmPermanentlyDeleteSplitBill('${b.id}')" style="color: var(--red);">Permanently Delete</button>` : `<button type="button" class="btn btn-sm btn-secondary" onclick="window.editSplitBill('${b.id}')" style="padding: 6px 14px; font-size: 0.85rem;">✏️ Edit</button><button type="button" class="btn btn-sm btn-ghost" onclick="window.confirmDeleteSplitBill('${b.id}')" style="color: var(--red); padding: 6px 12px; font-size: 0.85rem;">🗑️ Move to Trash</button>`}
                     </div>
                 </div>
             </div>
@@ -671,20 +693,35 @@ export function confirmDeleteSplitBill(billId) {
     if (!bill) return;
 
     openModal({
-        title: 'Delete Split Bill',
-        message: `Are you sure you want to delete "${bill.title || 'this bill'}"?`,
-        confirmLabel: 'Delete',
+        title: 'Move Split Bill to Trash',
+        message: `Move "${bill.title || 'this bill'}" to Trash? It will be permanently removed after the configured retention period.`,
+        confirmLabel: 'Move to Trash',
         confirmClass: 'btn-danger',
         onConfirm: async () => {
             showLoader('Deleting bill...');
             await deleteSplitBill(billId);
             hideLoader();
-            toast('Split bill deleted', 'info');
+            toast('Split bill moved to Trash', 'info');
             renderSplitGroupFilters();
             renderSplitStats();
             renderSplitHistory();
         }
     });
+}
+
+export async function restoreSplitBillFromTrash(billId) {
+    try { await restoreSplitBill(billId); toast('Split bill restored', 'success'); renderSplitGroupFilters(); renderSplitStats(); renderSplitHistory(); }
+    catch (error) { console.error(error); toast('Could not restore split bill', 'error'); }
+}
+
+export function confirmPermanentlyDeleteSplitBill(billId) {
+    const bill = (state.splitBills || []).find(b => b.id === billId && b.deleted);
+    if (!bill) return;
+    openModal({ title: 'Permanently Delete Split Bill', message: `Permanently delete \"${bill.title || 'this bill'}\"? This cannot be undone.`, confirmLabel: 'Delete Permanently', confirmClass: 'btn-danger', onConfirm: async () => {
+        await permanentlyDeleteSplitBill(billId);
+        toast('Split bill permanently deleted', 'info');
+        renderSplitGroupFilters(); renderSplitStats(); renderSplitHistory();
+    }});
 }
 
 /**
@@ -723,6 +760,8 @@ window.openSplitEditor = openSplitEditor;
 window.closeSplitEditor = closeSplitEditor;
 window.editSplitBill = openSplitEditor;
 window.confirmDeleteSplitBill = confirmDeleteSplitBill;
+window.restoreSplitBill = restoreSplitBillFromTrash;
+window.confirmPermanentlyDeleteSplitBill = confirmPermanentlyDeleteSplitBill;
 window.copySplitBreakdown = copySplitBreakdown;
 window.addKnownPersonToSplit = addKnownPersonToSplit;
 window.removePersonFromSplit = removePersonFromSplit;

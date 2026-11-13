@@ -60,9 +60,9 @@ flowchart TD
 | **Login, Auth & Offline Caching** | [login-and-caching.md](architecture/login-and-caching.md) | Zero-wait optimistic login, client-side AES-GCM encryption, IndexedDB caching, and Android WebView ETag asset revalidation. |
 | **SMS & Email Inbox Analysis** | [sms-email-analysis.md](architecture/sms-email-analysis.md) | Native Android IMAP + SMS reader, ML Kit NLP entity extraction, cross-source deduplication, and approval flows. |
 | **Scheduled Transactions** | [scheduled-transactions.md](architecture/scheduled-transactions.md) | Recurrence scheduler, silent addition (single txn in last 3 days), modal approval (multiple / >3 days), and ETag rollback. |
-| **Split Tool** | [split-tool.md](architecture/split-tool.md) | Multi-participant expense splitting, payer/participant roles, share tracking, settlement status, and CSV persistence with JSON participant array. |
-| **Activity History** | [activity-history.md](architecture/activity-history.md) | Full audit trail of user actions (add/edit/delete/restore/import), change tracking, 2000-entry cap, Firebase JSON persistence, and trash recovery integration. |
-| **Trash (Soft Delete)** | [trash-feature.md](architecture/trash-feature.md) | Soft deletion with `deleted` flag in CSV, in-memory trash array, Activity History restore flow, rollback on save failure, and split transaction handling. |
+| **Split Tool** | [split-tool.md](architecture/split-tool.md) | Multi-participant expense splitting, payer/participant roles, share tracking, settlement status, JSON persistence, dedicated bill Trash, restore/permanent delete, and shared retention cleanup. |
+| **Activity History** | [activity-history.md](architecture/activity-history.md) | Transaction audit trail across manual, Quick Add, inline/batch edit, SMS/Email approval, scheduler, Refund Action, refund linking, deletion, and restore; before/after diffs, conflict-aware Firebase JSON persistence, and trash recovery. |
+| **Trash (Soft Delete)** | [trash-feature.md](architecture/trash-feature.md) | Soft deletion with `deleted` flag in CSV, in-memory transaction Trash, Activity History restore flow, 30/60/90-day retention (90-day default), activity-history cleanup, and matching Split Tool bill retention. |
 
 ---
 
@@ -81,7 +81,7 @@ This repository follows the **"Doc-Centric + Agent-Indexed" Pattern**:
 
 ---
 
-## 🚦 Frontend Verification & Invariants
+## 🧾 Activity History Regression Tests\n\nThe transaction activity capture contract is covered by [`webapp/tests/activity_capture.test.js`](../webapp/tests/activity_capture.test.js). Run `npm test` from `webapp/` after changing any transaction mutation or approval path. The suite includes a scheduler execution test and source-wiring assertions for the other commit paths.\n\n---\n\n## 🚦 Frontend Verification & Invariants
 
 Whenever making changes to any frontend module:
 - **Desktop Browsers**: Verify column constraints, dropdown menus, and sticky headers.
