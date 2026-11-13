@@ -605,7 +605,7 @@ export function setupSmsApproval() {
                     category: chosenCategory,
                     txnType: computedType,
                     txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                    note: txn.merchant || '',
+                    note: (txn.merchant || '').slice(0, 50),
                     source: txn.source,
                     txnId: txn.transactionId || '',
                     location: detectedLocation
