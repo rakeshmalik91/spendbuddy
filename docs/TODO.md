@@ -9,7 +9,7 @@ do not make changes to this file except mark/unmark todo items
 ### 2026.11.13
 
 - [ ] selecting category/txnmode badges on add txn page on mobile scrolling the screen to top
-- [ ] clearing sms/email suggestions on add txn page should keep that suggestion cleared. use local storage with expiry. use this for hiding the suggestions in dashboard or aaproval modal too.
+- [ ] clearing sms/email suggestions on add txn page should keep that suggestion cleared. use local storage with expiry. use this for hiding the suggestions in dashboard or approval modal too.
 - [ ] on ipad, in txn quick edit mode, trying to select text is triggerring on hold context menu
 - [x] limit sms/email suggestion note length
 - [x] show trimmed note for sms/email suggestion in add txn page
@@ -28,7 +28,7 @@ do not make changes to this file except mark/unmark todo items
 - [x] option to permanently delete a deleted txn from activity history
 - [x] trash cleanup & retaintion settings
 - [x] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
-- [ ] to connect android app to firebase instead of netlify
+- [x] to connect android app to firebase instead of netlify
 - [x] BUG: when autotag is on, manually changing the tag in add form is setting 2 tags. stop that
 
 ### 2026.10.19

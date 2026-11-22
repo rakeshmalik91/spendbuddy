@@ -728,12 +728,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void checkAndClearCacheIfSiteChanged(String finalUrl) {
         try {
-            URL checkUrl = new URL(finalUrl + "/index.html");
+            String target = finalUrl.endsWith("/") ? finalUrl : finalUrl + "/";
+            URL checkUrl = new URL(target);
             HttpURLConnection conn = (HttpURLConnection) checkUrl.openConnection();
+            conn.setInstanceFollowRedirects(true);
             conn.setConnectTimeout(1500);
             conn.setReadTimeout(1500);
             conn.setRequestMethod("HEAD");
-            if (conn.getResponseCode() == 200) {
+            int responseCode = conn.getResponseCode();
+            if (responseCode >= 200 && responseCode <= 399) {
                 String currentETag = conn.getHeaderField("ETag");
                 if (currentETag == null) currentETag = "";
                 String currentLastModified = conn.getHeaderField("Last-Modified");

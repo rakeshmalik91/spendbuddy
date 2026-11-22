@@ -38,7 +38,7 @@ public class CachedWebViewClient extends WebViewClient {
             localHost = new URL(AppConfig.LOCAL_WEB_URL).getHost();
         } catch (Exception ignored) {}
 
-        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals(localHost) || host.equals("localhost") || host.equals("127.0.0.1") || host.startsWith("192.168.") || host.contains("google.com") || host.contains("gstatic.com") || host.contains("googleapis.com")) {
+        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals("spendbuddy.firebaseapp.com") || host.equals(localHost) || host.equals("localhost") || host.equals("127.0.0.1") || host.startsWith("192.168.") || host.contains("google.com") || host.contains("gstatic.com") || host.contains("googleapis.com")) {
             return false; // Let WebView load it
         }
 
@@ -60,7 +60,7 @@ public class CachedWebViewClient extends WebViewClient {
         if (host == null) return null;
 
         // Only intercept requests for our specific website shell.
-        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST)) {
+        if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals("spendbuddy.firebaseapp.com")) {
             String path = url.getPath();
             String relativePath = (path != null) ? path.replaceAll("^/+", "") : "";
             return serveFromCache(urlString, relativePath);
