@@ -185,7 +185,7 @@
     <link rel="stylesheet" href="css/components/forms.css?v=16">
     <link rel="stylesheet" href="css/components/filters.css?v=10">
     <link rel="stylesheet" href="css/components/modals.css?v=14">
-    <link rel="stylesheet" href="css/views/settings.css?v=6">
+    <link rel="stylesheet" href="css/views/settings.css?v=7">
     <link rel="stylesheet" href="css/layout/responsive.css?v=51">
     <link rel="stylesheet" href="css/components/toasts.css?v=22">
     <link rel="stylesheet" href="css/base/animations.css?v=5">
@@ -1103,8 +1103,7 @@
                     <span>⚙️</span> Settings
                 </h2>
                 <div class="settings-grid" style="margin-bottom: 28px;">
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('account')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">👤</span>
@@ -1113,11 +1112,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Profile and passwords</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('backups')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">💾</span>
@@ -1126,11 +1124,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Google Drive backups, ZIP export & restore</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card" id="sync-nav-card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card" id="sync-nav-card"
                         onclick="window.switchView('syncing')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">🔄</span>
@@ -1139,12 +1136,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Gmail IMAP and SMS integration</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('categories')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">🏷️</span>
@@ -1153,11 +1148,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Customize spending categories</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('txnmodes')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">💳</span>
@@ -1166,11 +1160,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage payment methods</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('locations')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">📍</span>
@@ -1179,11 +1172,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">View all transaction locations</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('visibility')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">👁️</span>
@@ -1192,11 +1184,10 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Hide data, display preferences, refund merging</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <div class="card"
-                        style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('keyword-mappings')">
                         <div style="display: flex; align-items: center; gap: 16px;">
                             <span style="font-size: 1.8rem;">🔤</span>
@@ -1205,35 +1196,88 @@
                                 <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Override category, tag, txn type, and mode</div>
                             </div>
                         </div>
-                        <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
 
-                    <!-- Auto Tagging uses the same grid cell sizing as the other settings buttons -->
-                    <div class="card"
-                        style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:20px;"
+                    <div class="card settings-nav-card"
                         onclick="window.switchView('auto-tagging')">
-                        <div style="display:flex; align-items:center; gap:16px; min-width:0;">
-                            <span style="font-size:1.8rem; flex:0 0 auto;">🏷️</span>
-                            <div style="min-width:0;">
-                                <div style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Auto Tagging</div>
-                                <div style="font-size:0.85rem; color:var(--text-dim); margin-top:4px;">Choose a tag to apply automatically to new transactions</div>
+                        <div style="display: flex; align-items: center; gap: 16px; min-width: 0;">
+                            <span style="font-size: 1.8rem; flex: 0 0 auto;">🏷️</span>
+                            <div style="min-width: 0;">
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Auto Tagging</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Choose a tag to apply automatically to new transactions</div>
                             </div>
                         </div>
-                        <span style="color:var(--text-muted); font-size:1.2rem; flex:0 0 auto;">❯</span>
+                        <span class="settings-nav-arrow">❯</span>
                     </div>
-                    <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('trash-retention')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🗑️</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Data cleanup & retention</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Automatically remove old deleted transactions and activity history</div></div></div><span>❯</span></div>
+
+                    <div class="card settings-nav-card"
+                        onclick="window.switchView('trash-retention')">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <span style="font-size: 1.8rem;">🗑️</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Data cleanup & retention</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Automatically remove old deleted transactions and activity history</div>
+                            </div>
+                        </div>
+                        <span class="settings-nav-arrow">❯</span>
+                    </div>
                 </div>
 
                 <!-- Section 2: Tools -->
-                <div style="margin-bottom:28px;">
-                    <h2 class="settings-section-heading" style="font-size:1.15rem;font-weight:700;color:var(--text-secondary);margin:0 0 14px 4px;display:flex;align-items:center;gap:8px;"><span>🛠️</span> Tools</h2>
-                    <div class="settings-grid about-settings-grid">
-                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('balance')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">💰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Balance Tracker</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Track account balances and net worth</div></div></div><span>❯</span></div>
-                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('split')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">➗</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Split Tool</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Split bills with tax distribution</div></div></div><span>❯</span></div>
-                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('activity')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">🕘</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Activity History</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Recent transaction and schedule changes</div></div></div><span>❯</span></div>
-                        <div class="card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:20px;" onclick="window.switchView('scheduled')"><div style="display:flex;align-items:center;gap:16px;"><span style="font-size:1.8rem;">⏰</span><div><div style="font-weight:600;font-size:1.1rem;color:var(--text-main);">Scheduled Transactions</div><div style="font-size:.85rem;color:var(--text-dim);margin-top:4px;">Manage recurring transactions</div></div></div><span>❯</span></div>
+                <div style="margin-bottom: 28px;">
+                    <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
+                        <span>🛠️</span> Tools
+                    </h2>
+                    <div class="settings-grid">
+                        <div class="card settings-nav-card"
+                            onclick="window.switchView('balance')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">💰</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Balance Tracker</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Track account balances and net worth</div>
+                                </div>
+                            </div>
+                            <span class="settings-nav-arrow">❯</span>
                         </div>
 
+                        <div class="card settings-nav-card"
+                            onclick="window.switchView('split')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">➗</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Split Tool</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Split bills with tax distribution</div>
+                                </div>
+                            </div>
+                            <span class="settings-nav-arrow">❯</span>
+                        </div>
+
+                        <div class="card settings-nav-card"
+                            onclick="window.switchView('activity')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">🕘</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Activity History</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Recent transaction and schedule changes</div>
+                                </div>
+                            </div>
+                            <span class="settings-nav-arrow">❯</span>
+                        </div>
+
+                        <div class="card settings-nav-card"
+                            onclick="window.switchView('scheduled')">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <span style="font-size: 1.8rem;">⏰</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">Scheduled Transactions</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">Manage recurring transactions</div>
+                                </div>
+                            </div>
+                            <span class="settings-nav-arrow">❯</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Section 3: About -->
@@ -1241,9 +1285,8 @@
                     <h2 class="settings-section-heading" style="font-size: 1.15rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 14px 4px; display: flex; align-items: center; gap: 8px;">
                         <span>ℹ️</span> About
                     </h2>
-                    <div class="settings-grid about-settings-grid" style="margin-bottom: 24px;">
-                        <div class="card"
-                            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 20px;"
+                    <div class="settings-grid" style="margin-bottom: 24px;">
+                        <div class="card settings-nav-card"
                             onclick="window.switchView('about')">
                             <div style="display: flex; align-items: center; gap: 16px;">
                                 <span style="font-size: 1.8rem;">ℹ️</span>
@@ -1252,7 +1295,7 @@
                                     <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 4px;">App info, copyright and credits</div>
                                 </div>
                             </div>
-                            <span style="color: var(--text-muted); font-size: 1.2rem;">❯</span>
+                            <span class="settings-nav-arrow">❯</span>
                         </div>
                     </div>
                 </div>
