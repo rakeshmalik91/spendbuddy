@@ -114,6 +114,9 @@ describe('Historical Data Fetching & Cache Handling', () => {
             // Provide a dummy CSV in localStorage for fetchYearCSVIfNeeded to read
             // Because we don't want to mock the internal getCsvContent function
             localStorage.setItem('expman_cache_2024.csv', 'id,Amount,Date\n1,100,2024-05-01');
+            localStorage.setItem('expman_hash_2024.csv', 'dummy-hash');
+            const firebaseStorage = require('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+            jest.spyOn(firebaseStorage, 'getMetadata').mockResolvedValue({ md5Hash: 'dummy-hash' });
             
             Papa.parse.mockReturnValue({
                 data: [{ id: '1', Amount: '100', Date: '2024-05-01' }]
@@ -121,10 +124,12 @@ describe('Historical Data Fetching & Cache Handling', () => {
 
             // Prevent early return due to file not existing in availableFiles
             state.availableFiles = new Set(['2024.csv', '2025.csv']);
+            state.loadedYears = new Set();
+            state.expenses = [];
         });
 
         afterEach(() => {
-            jest.restoreAllMocks();
+            jest.clearAllMocks();
         });
 
         it('skips fetching if year is already loaded', async () => {
@@ -158,6 +163,8 @@ describe('Historical Data Fetching & Cache Handling', () => {
 
         it('parses data, updates state, and triggers UI renders', async () => {
             helpers.isMobileView.mockReturnValue(false);
+            state.loadedYears.delete(2024);
+            state.expenses = [];
             await storage.fetchYearCSVIfNeeded(2024);
             expect(Papa.parse).toHaveBeenCalled();
             expect(state.expenses.length).toBe(1);
@@ -170,6 +177,8 @@ describe('Historical Data Fetching & Cache Handling', () => {
         it('suppresses loaded toast when on mobile', async () => {
             helpers.toast.mockClear();
             helpers.isMobileView.mockReturnValue(true);
+            state.loadedYears.delete(2024);
+            state.expenses = [];
             await storage.fetchYearCSVIfNeeded(2024);
             expect(helpers.toast).not.toHaveBeenCalledWith(expect.stringContaining('Loaded'), expect.anything());
         });
@@ -196,11 +205,14 @@ describe('Historical Data Fetching & Cache Handling', () => {
             
             // Mock current year
             jest.useFakeTimers().setSystemTime(new Date('2024-01-01'));
+            state.loadedYears = new Set();
+            state.expenses = [];
+            state.historicalLoaded = false;
         });
 
         afterEach(() => {
             jest.useRealTimers();
-            jest.restoreAllMocks();
+            jest.clearAllMocks();
         });
 
         it('skips if already historically loaded', async () => {
@@ -212,8 +224,13 @@ describe('Historical Data Fetching & Cache Handling', () => {
         it('loads adjacent years (currentYear-1, currentYear-2, currentYear+1)', async () => {
             // Load them into cache to avoid firebase fetch complexity for this test
             localStorage.setItem('expman_cache_2022.csv', 'dummy');
+            localStorage.setItem('expman_hash_2022.csv', 'dummy-hash');
             localStorage.setItem('expman_cache_2023.csv', 'id,Amount,Date\n2,200,2023-01-01');
+            localStorage.setItem('expman_hash_2023.csv', 'dummy-hash');
             localStorage.setItem('expman_cache_2025.csv', 'dummy');
+            localStorage.setItem('expman_hash_2025.csv', 'dummy-hash');
+            const firebaseStorage = require('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+            jest.spyOn(firebaseStorage, 'getMetadata').mockResolvedValue({ md5Hash: 'dummy-hash' });
             
             await storage.loadHistoricalData();
             

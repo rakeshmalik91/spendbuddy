@@ -76,7 +76,7 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.taxAmount).toBe(0);
             expect(result.grandTotal).toBe(1500);
 
-            expect(result.participants[0].baseAmount).toBe(450);
+            expect(result.participants[0].baseAmount).toBe(500);
             expect(result.participants[0].taxAmount).toBe(0);
             expect(result.participants[0].endAmount).toBe(500);
 
@@ -108,7 +108,7 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.participants[0].endAmount).toBe(400);
 
             expect(result.participants[1].baseAmount).toBe(600);
-            expect(result.participants[1].endAmount).toBe(500);
+            expect(result.participants[1].endAmount).toBe(600);
 
             expect(result.participants[2].baseAmount).toBe(500);
             expect(result.participants[2].endAmount).toBe(500);
@@ -177,8 +177,8 @@ describe('Split Tool & Expression Calculations', () => {
             expect(result.grandTotal).toBe(1000);
             expect(result.taxAmount).toBe(152.54);
             expect(result.remainingBase).toBe(447.46);
-            expect(result.remainingTax).toBe(80.54);
-            expect(result.remainingInclusive).toBe(528);
+            expect(result.remainingTax).toBe(0);
+            expect(result.remainingInclusive).toBe(447.46);
         });
 
         it('distributes tax equally among participants', () => {

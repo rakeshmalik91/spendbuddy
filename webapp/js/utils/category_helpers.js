@@ -2,6 +2,7 @@ import { state } from "../core/state.js";
 import { KEYWORD_MAPPINGS, TXN_TYPE_MAPPINGS } from "./category_mappings.js";
 import { getTxnTypeFromMapping } from "./txn_mode_mapping.js";
 import { escHtml } from "./date_helpers.js";
+import { isRefundTxn } from "./txn_id_helpers.js";
 
 /* ══════════════ CATEGORY / MERCHANT HELPERS ══════════════ */
 
@@ -292,5 +293,50 @@ export function txnModeBadgeHTML(txnMode, isCompact = false) {
         return `<span class="badge-mode badge-mode-emoji" title="${escHtml(resolvedMode)}"><span class="badge-mode-emoji-icon">${emoji}</span>${label ? `<span class="badge-mode-label">${label}</span>` : ''}</span>`;
     }
     return `<span class="badge-mode" title="${escHtml(resolvedMode)}">${escHtml(resolvedMode)}</span>`;
+}
+
+/**
+ * Resolves the transaction type for an SMS/Email suggestion (Dashboard, Add Form, Approval modal).
+ * For negative transactions (-ve amount / credits), the default type is 'Refund', NOT 'Income'.
+ * It is only 'Income' if inferred by manual keyword mapping or auto mapping (historical data or built-in keywords).
+ */
+export function resolveSuggestionTxnType(txn) {
+    if (!txn) return 'Expense';
+
+    // 1. Manual keyword mapping rule (highest priority)
+    const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
+    if (customRule && customRule.txnType) {
+        return normalizeTxnType(customRule.txnType);
+    }
+
+    const isNegative = Number(txn.amount) < 0;
+
+    // 2. Automatic mapping: Check historical transactions for this merchant
+    const historicalType = getTxnTypeForMerchant(txn.merchant, null, txn.source);
+    if (historicalType) {
+        if (historicalType === 'Income' || !isNegative) {
+            return historicalType;
+        }
+    }
+
+    // Check built-in auto-mapping keywords (e.g. salary, wage, dividend, interest)
+    const textToMatch = `${txn.merchant || ''} ${txn.source || ''}`.trim();
+    const mappedKeywordType = getTxnTypeFromMapping(textToMatch);
+    if (mappedKeywordType === 'Income') {
+        return 'Income';
+    }
+
+    // 3. For negative transactions, default to Refund (not Income)
+    if (isNegative || isRefundTxn(txn)) {
+        return 'Refund';
+    }
+
+    // 4. For positive transactions, fallback to provided txnType or Expense
+    if (txn.txnType) {
+        const norm = normalizeTxnType(txn.txnType);
+        if (norm && norm !== 'Income') return norm;
+    }
+
+    return 'Expense';
 }
 

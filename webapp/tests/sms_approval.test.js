@@ -118,17 +118,16 @@ describe('SMS Approval Logic', () => {
             expect(suggestions[0].source).toContain('SMS 2');
         });
         
-        it('should not filter out discarded signatures (they should still show as suggestions)', () => {
+        it('should filter out discarded signatures with expiry (they should not show as suggestions)', () => {
             const rawSms = [
                 { date: '2026-07-19', amount: 300, source: 'SMS 1' }
             ];
             localStorage.setItem('expman_sms_txn_cache', JSON.stringify(rawSms));
-            localStorage.setItem('expman_discarded_signatures', JSON.stringify(['2026-07-19_300']));
+            localStorage.setItem('expman_discarded_signatures', JSON.stringify({ '2026-07-19_300': Date.now() + 100000 }));
             
             const suggestions = getRawSmsSuggestionsForDate('2026-07-19');
             
-            expect(suggestions.length).toBe(1);
-            expect(suggestions[0].amount).toBe(300);
+            expect(suggestions.length).toBe(0);
         });
     });
 
@@ -735,6 +734,91 @@ describe('SMS Approval Logic', () => {
             selectAll.dispatchEvent(new Event('change'));
             expect(checkboxes[0].checked).toBe(false);
             expect(checkboxes[1].checked).toBe(false);
+        });
+    });
+
+    describe('Dismissal Persistence & resolveSuggestionTxnType (TODO Items)', () => {
+        const { resolveSuggestionTxnType } = helpers;
+
+        describe('Suggestion Dismissal Persistence', () => {
+            it('discardRawSmsTransaction should save signatures with expiry and clear from raw/pending suggestions', () => {
+                const { discardRawSmsTransaction, isTransactionDismissed } = require('../js/ui/sms_approval.js');
+                const testTxn = {
+                    date: '2026-07-19',
+                    amount: 450,
+                    merchant: 'Zomato',
+                    transactionId: 'ZOMATO_999',
+                    source: 'SMS: Zomato'
+                };
+                state.rawSmsTransactions = [testTxn];
+                localStorage.setItem('expman_sms_txn_cache', JSON.stringify([testTxn]));
+
+                discardRawSmsTransaction(testTxn);
+
+                expect(isTransactionDismissed(testTxn)).toBe(true);
+
+                // Should not show in getRawSmsSuggestionsForDate
+                const addPageSuggestions = getRawSmsSuggestionsForDate('2026-07-19');
+                expect(addPageSuggestions.length).toBe(0);
+
+                // Should not show in state.pendingSmsTransactions (Dashboard)
+                expect(state.pendingSmsTransactions.length).toBe(0);
+
+                // Should not open showSmsApprovalModal
+                showSmsApprovalModal([testTxn]);
+                expect(document.getElementById('sms-modal-overlay').style.display).toBe('none');
+                expect(document.getElementById('sms-count')).toBeNull();
+            });
+        });
+
+        describe('resolveSuggestionTxnType', () => {
+            it('should default negative SMS/Email transactions to Refund instead of Income', () => {
+                const txn = { date: '2026-07-19', amount: -500, merchant: 'Amazon', source: 'SMS: Amazon', txnType: 'Income' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Refund');
+            });
+
+            it('should resolve negative txn to Income if user manual keyword rule specifies Income', () => {
+                state.keywordMappings = [
+                    { id: '1', keyword: 'Google Pay Stipend', txnType: 'Income' }
+                ];
+                const txn = { date: '2026-07-19', amount: -25000, merchant: 'Google Pay Stipend', source: 'SMS: Bank' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Income');
+            });
+
+            it('should resolve negative txn to Income if auto mapping matches salary keyword', () => {
+                state.keywordMappings = [];
+                const txn = { date: '2026-07-19', amount: -150000, merchant: 'Acme Corp Salary Nov', source: 'SMS: HDFC' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Income');
+            });
+
+            it('should resolve negative txn to Income if merchant was historically categorized as Income', () => {
+                state.keywordMappings = [];
+                state.expenses = [
+                    { note: 'Consulting Client X', txnType: 'Income', amount: -50000, date: '2026-06-01' },
+                    { note: 'Consulting Client X', txnType: 'Income', amount: -50000, date: '2026-05-01' }
+                ];
+                const txn = { date: '2026-07-19', amount: -50000, merchant: 'Consulting Client X', source: 'SMS: Bank' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Income');
+            });
+
+            it('should preserve Refund if manual keyword rule specifies Refund', () => {
+                state.keywordMappings = [
+                    { id: '1', keyword: 'Swiggy', txnType: 'Refund' }
+                ];
+                const txn = { date: '2026-07-19', amount: -320, merchant: 'Swiggy', source: 'SMS: Swiggy' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Refund');
+            });
+
+            it('should default positive SMS transactions to Expense', () => {
+                const txn = { date: '2026-07-19', amount: 350, merchant: 'Zomato', source: 'SMS: Zomato' };
+                const resolved = resolveSuggestionTxnType(txn);
+                expect(resolved).toBe('Expense');
+            });
         });
     });
 });

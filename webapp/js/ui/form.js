@@ -4,7 +4,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow, getCsvContent } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType, escHtml } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType, escHtml, resolveSuggestionTxnType } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -1595,11 +1595,8 @@ export function renderSmsSuggestions() {
 
     suggestions.forEach(txn => {
 
-        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-        const isExpense = ruleTxnType ? (ruleTxnType === 'Expense') : (!isRefund && normalizeTxnType(txn.txnType) !== 'Income' && txn.amount >= 0);
+        const computedType = resolveSuggestionTxnType(txn);
+        const isExpense = computedType === 'Expense';
         const amountColor = isExpense ? 'var(--red)' : 'var(--green)';
         const amountPrefix = isExpense ? '' : '+';
 
@@ -1660,25 +1657,12 @@ export function renderSmsSuggestions() {
             }
 
             if (!isTxnTypeManuallyChanged) {
-                let bestTxnType = null;
-                if (ruleTxnType) {
-                    bestTxnType = ruleTxnType;
-                } else if (isRefund) {
-                    bestTxnType = 'Refund';
-                } else if (normalizeTxnType(txn.txnType) === 'Income') {
-                    bestTxnType = 'Income';
-                } else if (txn.txnType) {
-                    bestTxnType = normalizeTxnType(txn.txnType);
-                } else {
-                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
-                    bestTxnType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
-                
+                const bestTxnType = resolveSuggestionTxnType(txn);
                 $('#input-transaction-type').value = bestTxnType;
                 syncChips('#txntype-chips', bestTxnType);
             }
 
-            const effectiveType = $('#input-transaction-type')?.value || (ruleTxnType || (isRefund ? 'Refund' : (txn.amount < 0 ? 'Refund' : 'Expense')));
+            const effectiveType = $('#input-transaction-type')?.value || resolveSuggestionTxnType(txn);
             const fillAmount = (effectiveType === 'Income' || effectiveType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             $('#input-amount').value = fillAmount;
 

@@ -1,7 +1,7 @@
 import { applyAutoTag } from '../utils/auto_tag.js';
 import { updateUserSettings } from '../services/user_settings.js';
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, resolveSuggestionTxnType } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state, removeTrashedTransactionsFromActiveState } from "../core/state.js";
@@ -642,11 +642,8 @@ if (!showSmsApprovalOnly) pendingSms.forEach((txn, i) => {
         if (txn.date !== todayStr) return;
         const title = txn.merchant || txn.source || 'SMS';
         const displayTitle = title.length > 20 ? `${title.slice(0, 20)}…` : title;
-        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
-        const isCredit = ruleTxnType ? (ruleTxnType === 'Refund' || ruleTxnType === 'Income') : (isRefund || isIncome || txn.amount < 0);
+        const computedType = resolveSuggestionTxnType(txn);
+        const isCredit = computedType === 'Refund' || computedType === 'Income' || txn.amount < 0;
         const displayType = isCredit ? '+' : '';
         const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
         const emoji = (txn.source || '').toLowerCase().includes('email') ? '📧' : '💬';
@@ -739,23 +736,7 @@ if (!showSmsApprovalOnly) pendingSms.forEach((txn, i) => {
             const txn = state.pendingSmsTransactions[idx];
             if (!txn) return;
 
-            const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-            const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-            let computedType = null;
-            if (ruleTxnType) {
-                computedType = ruleTxnType;
-            } else {
-                const isRefund = isRefundTxn(txn);
-                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
-                computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
-                if (!computedType) {
-                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
-                    computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
-                if (isRefund) {
-                    computedType = 'Refund';
-                }
-            }
+            const computedType = resolveSuggestionTxnType(txn);
             const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
 

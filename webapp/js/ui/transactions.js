@@ -546,8 +546,8 @@ document.addEventListener('touchstart', (e) => {
     const row = e.target.closest('.touchable-row');
     if (!row) return;
     
-    // Check if the target is a button, don't trigger long press if clicking a button
-    if (e.target.closest('.row-btn') || e.target.closest('button') || e.target.closest('.badge-schedule-link')) return;
+    // Check if the target is an editable input or button, or if row is in quick-edit mode; don't trigger long press
+    if (row.classList.contains('quick-editing') || e.target.closest('input, textarea, select, .quick-editing, .inline-edit-input, .row-btn, button, .badge-schedule-link')) return;
 
     activeTouchRow = row;
     longPressTriggered = false;

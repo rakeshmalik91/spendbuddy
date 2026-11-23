@@ -9,8 +9,8 @@ do not make changes to this file except mark/unmark todo items
 ### 2026.11.13
 
 - [ ] selecting category/txnmode badges on add txn page on mobile scrolling the screen to top
-- [ ] clearing sms/email suggestions on add txn page should keep that suggestion cleared. use local storage with expiry. use this for hiding the suggestions in dashboard or approval modal too.
-- [ ] on ipad, in txn quick edit mode, trying to select text is triggerring on hold context menu
+- [x] clearing sms/email suggestions on add txn page should keep that suggestion cleared. use local storage with expiry. use this for hiding the suggestions in dashboard or approval modal too.
+- [x] on ipad, in txn quick edit mode, trying to select text is triggerring on hold context menu
 - [x] limit sms/email suggestion note length
 - [x] show trimmed note for sms/email suggestion in add txn page
 - [x] show just approval model button for any more than 3 sms/email on dashboard
@@ -23,7 +23,7 @@ do not make changes to this file except mark/unmark todo items
 
 - [x] BUG: only for android app, footer button list is chopped off at the bottom
 - [x] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history
-- [ ] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
+- [x] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
 - [x] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
 - [x] option to permanently delete a deleted txn from activity history
 - [x] trash cleanup & retaintion settings

@@ -34,7 +34,7 @@ describe('CSV Export Feature', () => {
         test('defaults to preserveOrder = false and sorts by date descending', () => {
             const csv = expensesToCSV(sampleData);
             const lines = csv.trim().split('\n');
-            expect(lines[0]).toBe('Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag');
+            expect(lines[0]).toBe('Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag,Deleted');
             expect(lines[1]).toContain('2026-05-12');
             expect(lines[2]).toContain('2026-05-10');
             expect(lines[3]).toContain('2026-05-08');
