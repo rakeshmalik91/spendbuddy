@@ -52,7 +52,6 @@ public class CachedWebViewClient extends WebViewClient {
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         Uri url = request.getUrl();
         if (url == null) return null;
-        String urlString = url.toString();
 
         if (!request.getMethod().equals("GET")) return null;
 
@@ -61,23 +60,24 @@ public class CachedWebViewClient extends WebViewClient {
 
         // Only intercept requests for our specific website shell.
         if (host.equals(SITE_HOST) || host.equals("www." + SITE_HOST) || host.equals("spendbuddy.firebaseapp.com")) {
-            String path = url.getPath();
-            String relativePath = (path != null) ? path.replaceAll("^/+", "") : "";
-            return serveFromCache(urlString, relativePath);
+            return serveFromCache(url);
         }
 
         return null;
     }
 
-    private WebResourceResponse serveFromCache(String urlStr, String relativePath) {
-        String path = (relativePath.isEmpty() || relativePath.equals("/")) ? "index.html" : relativePath;
-        String cleanPath = path.split("\\?")[0];
-        boolean isMainHtml = cleanPath.equals("index.html") || cleanPath.isEmpty();
+    private WebResourceResponse serveFromCache(Uri url) {
+        String urlStr = url.toString();
+        String path = url.getPath();
+        String relativePath = (path != null) ? path.replaceAll("^/+", "") : "";
+        String cleanPath = (relativePath.isEmpty() || relativePath.equals("/")) ? "index.html" : relativePath;
+        boolean isMainHtml = cleanPath.equals("index.html");
 
-        // Include query params in cache filename to respect cache-busters
+        // Include query params in cache filename to respect cache-busters (e.g. ?v=428 -> _v_428)
+        String query = url.getQuery();
         String queryStr = "";
-        if (path.contains("?")) {
-            queryStr = "_" + path.substring(path.indexOf("?") + 1).replace("=", "_").replace("&", "_");
+        if (query != null && !query.isEmpty()) {
+            queryStr = "_" + query.replaceAll("[^a-zA-Z0-9_.-]", "_");
         }
         
         int extIndex = cleanPath.lastIndexOf(".");
@@ -97,11 +97,13 @@ public class CachedWebViewClient extends WebViewClient {
 
     private WebResourceResponse createResponse(String path, byte[] bytes) {
         String mimeType = siteCache.getMimeType(path);
-        String encoding = (mimeType.startsWith("text/") || mimeType.equals("application/javascript")) ? "UTF-8" : null;
+        String encoding = (mimeType.startsWith("text/") || mimeType.equals("application/javascript") || mimeType.equals("application/json")) ? "UTF-8" : null;
         
         Map<String, String> responseHeaders = new HashMap<>();
         responseHeaders.put("Access-Control-Allow-Origin", "*");
-        responseHeaders.put("Cache-Control", "no-cache");
+        responseHeaders.put("Cache-Control", "no-cache, no-store, must-revalidate");
+        responseHeaders.put("Pragma", "no-cache");
+        responseHeaders.put("Expires", "0");
         
         return new WebResourceResponse(
             mimeType,
@@ -202,4 +204,3 @@ public class CachedWebViewClient extends WebViewClient {
         }
     }
 }
-

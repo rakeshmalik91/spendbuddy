@@ -39,7 +39,7 @@ Chores:
 - [x] add netlify auto deploy as github workflow
 
 Bugs:
-- [ ] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least startup should completely refresh whole website (only if any content changed)
+- [x] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least startup should completely refresh whole website (only if any content changed)
 - [x] keyword mapping  
    - [x] support to update tags. support for enable/disable.
    - [x] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
