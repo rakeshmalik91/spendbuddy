@@ -13,7 +13,7 @@ import { showScheduledApprovalModal } from "./scheduled_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
-const HIDDEN_AMOUNT = '🙈🙈🙈.🙈🙈';
+const HIDDEN_AMOUNT = '✦✦✦.✦✦';
 const HIDDEN_CURRENCY = '₹';
 
 function formatAmount(value) {
@@ -33,7 +33,7 @@ function updateEyeButton() {
     if (eyeBtn) {
         const eyeIcon = eyeBtn.querySelector('.eye-icon');
         if (eyeIcon) {
-            eyeIcon.textContent = state.hideAmounts ? '🙈' : '👁️';
+            eyeIcon.textContent = state.hideAmounts ? '✦' : '👁️';
         }
         eyeBtn.setAttribute('aria-label', state.hideAmounts ? 'Show amounts' : 'Hide amounts');
         eyeBtn.title = state.hideAmounts ? 'Show amounts' : 'Hide amounts';
