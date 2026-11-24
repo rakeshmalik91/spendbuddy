@@ -213,6 +213,7 @@ When making changes to form layouts, headers, or scrolling logic, verify on:
   - Verify fields remain visible and window resets cleanly on dismiss.
 - [ ] **Android App WebView (`spendbuddy-android-app`)**:
   - Verify soft keyboard resize mode does not glitch header positions.
+  - In `MainActivity.java`, ensure root container insets listener sets `systemBars.bottom` padding to `0` so the WebView extends edge-to-edge to the display bottom without leaving a blank gap under `#bottom-nav`.
 - [ ] **Desktop Browser**:
   - Verify mouse clicks into fields do not cause unnecessary scrolling if the field is already in view.
 - [ ] **Cache Bursting**:
