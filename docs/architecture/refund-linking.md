@@ -179,3 +179,16 @@ flowchart TD
    - **Modal**: Verify searching, checking/unchecking candidates, live summary calculation, and multi-year CSV saving.
 3. **Cache Bursting**:
    - Increment CSS/JS version parameters in `webapp/index.html` whenever updating refund modal or table sub-row styles.
+
+
+---
+
+## 7. Activity History Integration
+
+Refund operations are recorded as transaction events:
+
+- **Generate Refund (`generateRefund`)**: after the year CSV save succeeds, records `added` with `type: "txn"` and source `Refund Action`.
+- **Link / unlink existing transactions**: after all modified year CSVs save, records `updated` for each transaction whose `txnId` changed. The `changes` array stores the old and new `txnId`.
+- **Delete a refund or linked refund group**: uses the standard single/bulk transaction deletion path, producing one `deleted` event per deleted row with a snapshot.
+
+The relationship is represented by pipe-separated transaction IDs; there is no separate `refund_linked` action. See [Activity History](activity-history.md) for supported diff fields and persistence ordering.

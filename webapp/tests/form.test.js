@@ -8,31 +8,40 @@ jest.mock('../js/services/storage.js', () => ({
     amountToStr: (amt) => String(amt),
     roundAmount: (amt) => Math.round(amt * 100) / 100
 }));
-jest.mock('../js/utils/helpers.js', () => ({
-    toast: jest.fn(),
-    getLocalDateString: jest.fn(() => '2026-07-19'),
-    parseLocalDate: jest.fn((d) => new Date(d)),
-    getCategoryForMerchant: jest.fn(),
-    getTxnTypeForMerchant: jest.fn(),
-    syncChips: jest.fn(),
-    getDisplayTxnId: jest.fn(() => ''),
-    getDisplayTxnIdList: jest.fn(() => []),
-    getDisplaySource: (s) => s || '',
-    getDisplaySourceList: (s) => s ? [s] : [],
-    escHtml: (str) => str || '',
-    amountClass: () => 'amt-expense',
-    txnTypeBadgeHTML: () => '',
-    txnModeBadgeHTML: (mode) => mode ? `<span class="badge-mode">${mode}</span>` : '',
-    formatDate: (d) => d || '',
-    renderAmountHTML: (e) => e ? String(e.amount) : '',
-    isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),
-    normalizeTxnType: (t) => t ? (t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : t,
-    getLastLocation: jest.fn(() => ''),
-    getCurrentLocationTag: jest.fn().mockResolvedValue(''),
-    resetLocationPermissionDenied: jest.fn(),
-    findMatchingKeywordRule: jest.fn(() => null),
-    getTxnModeForMerchant: jest.fn((m, mode, modes) => mode || (modes ? modes[0] : 'UPI'))
-}));
+jest.mock('../js/utils/helpers.js', () => {
+    const mockFindRule = jest.fn(() => null);
+    return {
+        toast: jest.fn(),
+        getLocalDateString: jest.fn(() => '2026-07-19'),
+        parseLocalDate: jest.fn((d) => new Date(d)),
+        getCategoryForMerchant: jest.fn(),
+        getTxnTypeForMerchant: jest.fn(),
+        syncChips: jest.fn(),
+        getDisplayTxnId: jest.fn(() => ''),
+        getDisplayTxnIdList: jest.fn(() => []),
+        getDisplaySource: (s) => s || '',
+        getDisplaySourceList: (s) => s ? [s] : [],
+        escHtml: (str) => str || '',
+        amountClass: () => 'amt-expense',
+        txnTypeBadgeHTML: () => '',
+        txnModeBadgeHTML: (mode) => mode ? `<span class="badge-mode">${mode}</span>` : '',
+        formatDate: (d) => d || '',
+        renderAmountHTML: (e) => e ? String(e.amount) : '',
+        isRefundTxn: (e) => e && (e.txnType === 'Refund' || e.amount < 0),
+        normalizeTxnType: (t) => t ? (t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()) : t,
+        getLastLocation: jest.fn(() => ''),
+        getCurrentLocationTag: jest.fn().mockResolvedValue(''),
+        resetLocationPermissionDenied: jest.fn(),
+        findMatchingKeywordRule: mockFindRule,
+        getTxnModeForMerchant: jest.fn((m, mode, modes) => mode || (modes ? modes[0] : 'UPI')),
+        resolveSuggestionTxnType: jest.fn((txn) => {
+            if (!txn) return 'Expense';
+            const rule = mockFindRule(txn.merchant) || (txn.source ? mockFindRule(txn.source) : null);
+            if (rule && rule.txnType) return rule.txnType;
+            return (Number(txn.amount) < 0 || txn.txnType === 'Refund') ? 'Refund' : (txn.txnType || 'Expense');
+        })
+    };
+});
 
 // Provide a minimalistic mock for the form initialization
 function initFormDummy() {
@@ -585,10 +594,11 @@ describe('Add Page Form UI', () => {
                 <div id="tag-suggestions" class="chip-group"></div>
                 <input id="input-tag" />
             `;
+            const todayStr = new Date().toISOString().split('T')[0];
             state.expenses = [
-                { date: '2026-07-19', amount: 500, category: 'Food', tag: 'Vacation' },
-                { date: '2026-07-18', amount: 300, category: 'Food', tag: 'Vacation' },
-                { date: '2026-07-17', amount: 200, category: 'Travel', tag: 'ProjectX' }
+                { date: todayStr, amount: 500, category: 'Food', tag: 'Vacation' },
+                { date: todayStr, amount: 300, category: 'Food', tag: 'Vacation' },
+                { date: todayStr, amount: 200, category: 'Travel', tag: 'ProjectX' }
             ];
 
             populateTagSuggestions();

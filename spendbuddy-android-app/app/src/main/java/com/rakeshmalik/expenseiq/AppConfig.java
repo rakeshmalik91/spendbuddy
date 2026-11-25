@@ -6,8 +6,8 @@ import java.util.regex.Pattern;
 
 public class AppConfig {
 
-    public static final String WEB_HOST = "spend-buddy.netlify.app";
-    public static final String WEB_URL = "http://" + WEB_HOST;
+    public static final String WEB_HOST = "spendbuddy.web.app";
+    public static final String WEB_URL = "https://" + WEB_HOST;
     // public static final String LOCAL_WEB_URL = "http://192.168.1.10:8080";
     public static final String LOCAL_WEB_URL = "http://192.168.29.83:8080";
 

@@ -219,7 +219,7 @@ describe('Dashboard Quick-Add Concurrency & Failure Rollback', () => {
             await new Promise(r => setTimeout(r, 30));
 
             expect(state.expenses.length).toBe(1);
-            expect(state.expenses[0].note).toBe(salaryNote);
+            expect(state.expenses[0].note).toBe(salaryNote.slice(0, 20));
             expect(state.expenses[0].category).toBe('💰 Salary');
             expect(state.expenses[0].txnType).toBe('Income');
             expect(state.expenses[0].txnMode).toBe('🏦 Bank Transfer');

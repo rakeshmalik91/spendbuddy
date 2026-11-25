@@ -15,10 +15,10 @@ A lightweight, offline-first expense tracker built with vanilla HTML, CSS, and J
 - **End-to-End Encryption (E2EE)** — Client-side AES-GCM encryption with zero plaintext cloud exposure.
 - **Serverless Cloud Sync** — Offline-first IndexedDB caching with automatic background sync to Firebase Storage CSVs.
 - **Transaction Ledger & Search** — Search and filter by category, payment mode, tags, and geolocation with multi-column sorting.
-- **Refund Linking** — Automatically groups refunds with original expenses and calculates net totals with collapsible sub-rows.
+- **Refund Linking** — Automatically groups refunds with original expenses and calculates net totals with collapsible sub-rows; refund creation and link changes are audited.
 - **Balance & Net Worth Tracker** — Historical pivot table, account grouping, and stacked asset/liability trajectory charts.
-- **Scheduled Transactions** — Manage recurring income and expenses with automated execution.
-- **SMS & Email Inbox Automation** — Companion Android app extracts bank alerts via ML Kit NLP for 1-click recording.
+- **Scheduled Transactions** — Manage recurring income and expenses with automated execution; committed occurrences are recorded in Activity History.
+- **SMS & Email Inbox Automation** — Companion Android app extracts bank alerts via ML Kit NLP for 1-click recording; approved transactions are recorded in Activity History.
 - **Math Expressions in Amount Inputs** — Evaluates live arithmetic calculations directly in the amount field (`127+100+30`).
 - **Interactive Visualizations** — 12+ Chart.js visual analytics with time-series trends and custom breakdowns.
 - **Multi-Device Responsive UI** — Dark glassmorphic design optimized for desktop, tablets, mobile browsers, and Android WebViews.
@@ -154,13 +154,14 @@ spendbuddy/
 Comprehensive architectural specifications and decision records are maintained in [`docs/`](docs/README.md):
 - [Virtual Keyboard Viewport & Sticky Headers](docs/architecture/virtual-keyboard-viewport.md)
 - [Transaction Table & Mobile Card Layouts](docs/architecture/txn-table-ui.md)
-- [Refund Merging & Sub-Rows](docs/architecture/refund-linking.md)
+- [Refund Merging, Sub-Rows & Activity Recording](docs/architecture/refund-linking.md)
 - [Balance & Net Worth Tracker](docs/architecture/balance-tracker.md)
 - [Amount Math Expression Evaluator](docs/architecture/expression-as-amount.md)
 - [Google Drive Automated Periodic Backups](docs/architecture/google-drive-backup.md)
 - [Custom Keyword Mappings & Inference Engine](docs/architecture/keyword-mappings.md)
 - [Zero-Wait Login, Auth & Offline Caching](docs/architecture/login-and-caching.md)
 - [SMS & Email Inbox Extraction Pipeline](docs/architecture/sms-email-analysis.md)
+- [Activity History & Transaction Audit Coverage](docs/architecture/activity-history.md)
 
 ---
 

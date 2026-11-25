@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
 
         ViewCompat.setOnApplyWindowInsetsListener(container, (view, insets) -> {
             androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
             return insets;
         });
         setContentView(container);
@@ -490,17 +490,25 @@ public class MainActivity extends AppCompatActivity {
             final boolean finalLocalAvailable = localAvailable;
             final String finalUrl = finalLocalAvailable ? localHost : AppConfig.WEB_URL;
 
-            checkAndClearCacheIfSiteChanged(finalUrl);
+            boolean contentChanged = false;
+            if (!finalLocalAvailable) {
+                contentChanged = siteCache.checkAndUpdateMainHtml(finalUrl);
+            }
+
+            final boolean siteUpdated = contentChanged;
 
             runOnUiThread(() -> {
+                webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
                 if (finalLocalAvailable) {
                     currentLoadedBaseUrl = localHost;
-                    webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
                     showDebugBadge();
                 } else {
                     currentLoadedBaseUrl = AppConfig.WEB_URL;
-                    webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
                     hideDebugBadge();
+                    if (siteUpdated) {
+                        Log.d("MainActivity", "Website content changed on startup; clearing WebView cache.");
+                        webView.clearCache(true);
+                    }
                 }
                 webView.loadUrl(currentLoadedBaseUrl);
 
@@ -724,45 +732,6 @@ public class MainActivity extends AppCompatActivity {
             })
             .setNegativeButton("Cancel", null)
             .show();
-    }
-
-    private void checkAndClearCacheIfSiteChanged(String finalUrl) {
-        try {
-            URL checkUrl = new URL(finalUrl + "/index.html");
-            HttpURLConnection conn = (HttpURLConnection) checkUrl.openConnection();
-            conn.setConnectTimeout(1500);
-            conn.setReadTimeout(1500);
-            conn.setRequestMethod("HEAD");
-            if (conn.getResponseCode() == 200) {
-                String currentETag = conn.getHeaderField("ETag");
-                if (currentETag == null) currentETag = "";
-                String currentLastModified = conn.getHeaderField("Last-Modified");
-                if (currentLastModified == null) currentLastModified = "";
-
-                SharedPreferences prefs = getSharedPreferences("ExpenseIQPrefs", Context.MODE_PRIVATE);
-                String savedETag = prefs.getString("site_etag", "");
-                String savedLastModified = prefs.getString("site_last_modified", "");
-                
-                boolean hasChanged = (!currentETag.isEmpty() && !currentETag.equals(savedETag)) || 
-                                     (!currentLastModified.isEmpty() && !currentLastModified.equals(savedLastModified));
-                                 
-                if (hasChanged) {
-                    Log.d("SpendBuddy", "Remote site changed, clearing cache");
-                    siteCache.clearCache();
-                    prefs.edit()
-                        .putString("site_etag", currentETag)
-                        .putString("site_last_modified", currentLastModified)
-                        .apply();
-                } else if (savedETag.isEmpty() && savedLastModified.isEmpty()) {
-                    prefs.edit()
-                        .putString("site_etag", currentETag)
-                        .putString("site_last_modified", currentLastModified)
-                        .apply();
-                }
-            }
-        } catch (Exception e) {
-            Log.w("SpendBuddy", "Failed to check if site changed: " + e.getMessage());
-        }
     }
 
     public void saveFileFromBase64(String base64Data, String filename) {

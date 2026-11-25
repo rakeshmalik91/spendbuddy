@@ -1,6 +1,6 @@
 import { applyAutoTag } from '../utils/auto_tag.js';
 import { state } from "../core/state.js";
-import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, findMatchingKeywordRule, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { getLocalDateString, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, mapTxnMode, getTxnModeForMerchant, findMatchingKeywordRule, hasMatchingTxnId, getRealTxnIdList, parseLocalDate, isTxnIdInOtherTxn, getSourceProvider, getSourceProvidersList, getCurrentLocationTag, isRefundTxn, normalizeTxnType, resolveSuggestionTxnType } from "../utils/helpers.js";
 import { SMS_DEDUPLICATION_THRESHOLD, SMS_DEDUPLICATION_WINDOW_DAYS, IGNORE_LAST_SMS_DATE } from "../../config.js";
 import { amountToStr } from "../services/storage.js";
 import { renderAll } from "./render_all.js";
@@ -11,7 +11,7 @@ const SMS_TXN_CACHE_KEY = 'expman_sms_txn_cache';
 const DISMISSED_SMS_KEY = 'expman_discarded_signatures';
 const DISMISSAL_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function loadDismissedSignatures() {
+export function loadDismissedSignatures() {
     try {
         const raw = JSON.parse(localStorage.getItem(DISMISSED_SMS_KEY) || '{}');
         const now = Date.now();
@@ -23,9 +23,43 @@ function loadDismissedSignatures() {
     } catch (_) { return {}; }
 }
 
-function saveDismissedSignature(signature) {
+export function getTxnDismissSignatures(txn) {
+    if (!txn) return [];
+    const sigs = [];
+    if (txn.date && txn.amount !== undefined) {
+        sigs.push(`${txn.date}_${txn.amount}`);
+        if (txn.merchant) {
+            sigs.push(`${txn.date}_${txn.amount}_${String(txn.merchant).trim().toLowerCase()}`);
+        }
+    }
+    const realIds = getRealTxnIdList(txn);
+    realIds.forEach(id => {
+        if (id) sigs.push(`id_${String(id).trim().toLowerCase()}`);
+    });
+    return sigs;
+}
+
+export function isTransactionDismissed(txn, dismissed = null) {
+    if (!txn) return false;
+    const active = dismissed || loadDismissedSignatures();
+    const sigs = getTxnDismissSignatures(txn);
+    return sigs.some(sig => Boolean(active[sig]));
+}
+
+export function saveDismissedSignature(signature) {
     const dismissed = loadDismissedSignatures();
     dismissed[signature] = Date.now() + DISMISSAL_TTL_MS;
+    localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(dismissed));
+}
+
+export function saveDismissedTransaction(txn) {
+    if (!txn) return;
+    const dismissed = loadDismissedSignatures();
+    const sigs = getTxnDismissSignatures(txn);
+    const expires = Date.now() + DISMISSAL_TTL_MS;
+    sigs.forEach(sig => {
+        dismissed[sig] = expires;
+    });
     localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(dismissed));
 }
 
@@ -303,8 +337,7 @@ export function recomputePendingSmsTransactions() {
             return false; // Filter out from pending since it matches/enriches a committed transaction
         }
 
-        const sig = `${txn.date}_${txn.amount}`;
-        if (discarded[sig]) return false;
+        if (isTransactionDismissed(txn, discarded)) return false;
         
         if (txn.date !== todayStr && !IGNORE_LAST_SMS_DATE && txn.timestamp && txn.timestamp <= lastProcessed) {
             return false;
@@ -407,8 +440,10 @@ if (typeof window !== 'undefined') {
  */
 export function getRawSmsSuggestionsForDate(date) {
     const rawSms = loadRawSmsCache();
+    const dismissed = loadDismissedSignatures();
     let pending = rawSms.filter(txn => 
         txn.date === date && 
+        !isTransactionDismissed(txn, dismissed) &&
         !state.expenses.some(e => isDuplicateTxn(txn, e, 7))
     );
 
@@ -450,8 +485,7 @@ export function consumeRawSmsTransaction(txn) {
  */
 export function discardRawSmsTransaction(txn) {
     if (!txn) return;
-    const sig = `${txn.date}_${txn.amount}`;
-    saveDismissedSignature(sig);
+    saveDismissedTransaction(txn);
     consumeRawSmsTransaction(txn);
     // Recompute the dashboard's pending list immediately so the dismissal is
     // reflected in both the Add Transaction page and Dashboard quick actions.
@@ -526,18 +560,9 @@ export function setupSmsApproval() {
                 }
             }
             
-            let discarded = loadDismissedSignatures();
-            let modified = false;
             snapshot.forEach(t => {
-                const sig = `${t.date}_${t.amount}`;
-                if (!discarded[sig]) {
-                    discarded[sig] = Date.now() + DISMISSAL_TTL_MS;
-                    modified = true;
-                }
+                saveDismissedTransaction(t);
             });
-            if (modified) {
-                localStorage.setItem(DISMISSED_SMS_KEY, JSON.stringify(discarded));
-            }
             
             // Removed state.rawSmsTransactions.filter mutation so it stays in cache
         }
@@ -573,28 +598,13 @@ export function setupSmsApproval() {
                 localStorage.setItem('expman_last_location', detectedLocation);
             }
             let modifiedYears = new Set();
+            const approvedEntries = [];
             checkboxes.forEach(cb => {
                 const idx = cb.dataset.index;
                 const txn = snapshot[idx];
                 const selectEl = document.querySelector(`.sms-category-select[data-index="${idx}"]`);
                 const chosenCategory = selectEl ? selectEl.value : (txn.masterCategory || 'Others');
-                const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-                const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-                const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-                const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
-                let computedType = null;
-                if (ruleTxnType) {
-                    computedType = ruleTxnType;
-                } else if (isRefund) {
-                    computedType = 'Refund';
-                } else if (isIncome) {
-                    computedType = 'Income';
-                } else if (txn.txnType) {
-                    computedType = normalizeTxnType(txn.txnType);
-                } else {
-                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
-                    computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
+                const computedType = resolveSuggestionTxnType(txn);
                 const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
 
                 const approvedEntry = applyAutoTag({
@@ -604,12 +614,13 @@ export function setupSmsApproval() {
                     category: chosenCategory,
                     txnType: computedType,
                     txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                    note: txn.merchant || '',
+                    note: (txn.merchant || '').slice(0, 20),
                     source: txn.source,
                     txnId: txn.transactionId || '',
                     location: detectedLocation
                 });
                 state.expenses.unshift(approvedEntry);
+                approvedEntries.push(approvedEntry);
                 modifiedYears.add(txn.date.slice(0, 4));
             });
 
@@ -617,6 +628,10 @@ export function setupSmsApproval() {
 
             for (const year of modifiedYears) {
                 await saveYearCSV(year);
+            }
+            const { recordActivity } = await import("../services/activity.js");
+            for (const entry of approvedEntries) {
+                await recordActivity({ action: 'added', type: 'txn', source: entry.source || 'SMS', txn: entry });
             }
 
             toast(`Added ${checkboxes.length} transactions from SMS`, 'success');
@@ -668,10 +683,13 @@ export function showSmsApprovalModal(txns) {
     if (typeof window !== 'undefined') {
         window.showSmsApprovalModal = showSmsApprovalModal;
     }
-    if (!Array.isArray(txns) || txns.length === 0) {
+    const dismissed = loadDismissedSignatures();
+    const activeTxns = (txns || []).filter(t => !isTransactionDismissed(t, dismissed));
+    if (!Array.isArray(activeTxns) || activeTxns.length === 0) {
         toast('No pending SMS or Email transactions to review', 'info');
         return;
     }
+    txns = activeTxns;
     const overlay = document.getElementById('sms-modal-overlay');
     const listContainer = document.getElementById('sms-approval-list');
     if (!overlay || !listContainer) return;
@@ -695,18 +713,19 @@ export function showSmsApprovalModal(txns) {
             catOptions = `<option value="Others" selected>Others</option>` + catOptions;
         }
 
-        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
+        const computedType = resolveSuggestionTxnType(txn);
         const isEmail = (txn.source || '').toLowerCase().includes('email');
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
-        const isCredit = ruleTxnType ? (ruleTxnType === 'Refund' || ruleTxnType === 'Income') : (isRefund || isIncome || txn.amount < 0);
+        const isCredit = computedType === 'Refund' || computedType === 'Income' || txn.amount < 0;
         const amountColor = isCredit ? 'var(--green)' : 'var(--red)';
         const amountPrefix = isCredit ? '+' : '';
 
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
         const emoji = isEmail ? '📧' : '💬';
         const sourceStr = txn.merchant || txn.source || (isEmail ? 'Email' : 'SMS');
+        const displaySourceStr = sourceStr.length > 20 ? `${sourceStr.slice(0, 20)}…` : sourceStr;
+        const displayMerchant = txn.merchant && txn.merchant.length > 20
+            ? `${txn.merchant.slice(0, 20)}…`
+            : txn.merchant;
 
         const div = document.createElement('div');
         div.className = 'sms-card';
@@ -717,7 +736,7 @@ export function showSmsApprovalModal(txns) {
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${emoji} ${escHtml(sourceStr)}</div>
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; line-height: 1.3; word-break: break-word; text-align: left;">${emoji} ${escHtml(displaySourceStr)}</div>
                             <div style="font-weight: 700; color: ${amountColor}; font-size: 1.1rem; white-space: nowrap; text-align: right;">
                                 ${amountPrefix}₹${amountToStr(Math.abs(txn.amount))}
                             </div>
@@ -731,7 +750,7 @@ export function showSmsApprovalModal(txns) {
                             </div>
                             ${txn.merchant ? `
                             <div style="display: flex; align-items: flex-start; gap: 6px;">
-                                <span>🏪</span> <span style="font-weight: 500; color: var(--text-main); line-height: 1.3; word-break: break-word; text-align: left;">${escHtml(txn.merchant)}</span>
+                                <span>🏪</span> <span style="font-weight: 500; color: var(--text-main); line-height: 1.3; word-break: break-word; text-align: left;">${escHtml(displayMerchant)}</span>
                             </div>
                             ` : ''}
                             <div style="display: flex; align-items: flex-start; gap: 6px;">

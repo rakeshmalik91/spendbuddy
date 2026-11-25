@@ -114,7 +114,7 @@ describe('Storage Helpers', () => {
             const csvOutput = storage.expensesToCSV(unSortedData);
             const lines = csvOutput.trim().split('\n');
 
-            expect(lines[0]).toBe('Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag');
+            expect(lines[0]).toBe('Date,Amount,Amount Expression,Currency,Category,Transaction Type,Transaction Mode,Note,Source,Txn ID,Location,Tag,Deleted');
             expect(lines.length).toBe(4);
             expect(lines[1]).toContain('2026-08-04');
             expect(lines[1]).toContain('Clothes');

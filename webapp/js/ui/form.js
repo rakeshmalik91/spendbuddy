@@ -4,7 +4,7 @@ import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.co
 import { fetchYearCSVIfNeeded, loadMetadata, amountToStr, roundAmount, csvEscape, saveScheduledCSV, processScheduledTransactions, uploadFile, expensesToCSV, normalizeRow, getCsvContent } from "../services/storage.js";
 import { getUserEmail, getRequiredEmail } from "../services/auth.js";
 import { switchView } from "./navigation.js";
-import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType } from "../utils/helpers.js";
+import { parseLocalDate, formatDate, toast, calculateNextRunDate, getLocalDateString, getCategoryForMerchant, getTxnTypeForMerchant, getLastLocation, mapTxnMode, getDistance, getCurrentLocationTag, resetLocationPermissionDenied, getTxnModeForMerchant, findMatchingKeywordRule, isRefundTxn, normalizeTxnType, escHtml, resolveSuggestionTxnType } from "../utils/helpers.js";
 import { $, hideLoader, showLoader, $$ } from "../core/init.js";
 import { state } from "../core/state.js";
 import { populateFormDropdowns, syncChips, renderCalendar } from "./form_dropdowns.js";
@@ -1563,6 +1563,8 @@ export async function generateRefund(idx) {
     try {
         const yr = e.date.slice(0, 4);
         await saveYearCSV(yr);
+        const { recordActivity } = await import("../services/activity.js");
+        await recordActivity({ action: 'added', type: 'txn', source: 'Refund Action', txn: refundTxn });
         toast('Refund generated and linked!', 'success');
         renderAll();
     } catch (err) {
@@ -1593,11 +1595,8 @@ export function renderSmsSuggestions() {
 
     suggestions.forEach(txn => {
 
-        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-        const isExpense = ruleTxnType ? (ruleTxnType === 'Expense') : (!isRefund && normalizeTxnType(txn.txnType) !== 'Income' && txn.amount >= 0);
+        const computedType = resolveSuggestionTxnType(txn);
+        const isExpense = computedType === 'Expense';
         const amountColor = isExpense ? 'var(--red)' : 'var(--green)';
         const amountPrefix = isExpense ? '' : '+';
 
@@ -1606,10 +1605,14 @@ export function renderSmsSuggestions() {
         div.style.cssText = 'padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;';
 
         const mappedMode = getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source);
+        const suggestionTitle = txn.merchant || 'Unknown';
+        const shortSuggestionTitle = suggestionTitle.length > 20
+            ? `${suggestionTitle.slice(0, 19)}…`
+            : suggestionTitle;
 
         div.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 4px;">
-                <div style="font-weight: 600; color: var(--text-main);">${txn.merchant || 'Unknown'}</div>
+                <div style="font-weight: 600; color: var(--text-main);" title="${escHtml(suggestionTitle)}">${escHtml(shortSuggestionTitle)}</div>
                 <div style="font-size: 0.85rem; color: var(--text-muted);">${txn.source} &bull; ${mappedMode}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -1654,29 +1657,20 @@ export function renderSmsSuggestions() {
             }
 
             if (!isTxnTypeManuallyChanged) {
-                let bestTxnType = null;
-                if (ruleTxnType) {
-                    bestTxnType = ruleTxnType;
-                } else if (isRefund) {
-                    bestTxnType = 'Refund';
-                } else if (normalizeTxnType(txn.txnType) === 'Income') {
-                    bestTxnType = 'Income';
-                } else if (txn.txnType) {
-                    bestTxnType = normalizeTxnType(txn.txnType);
-                } else {
-                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
-                    bestTxnType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
-                
+                const bestTxnType = resolveSuggestionTxnType(txn);
                 $('#input-transaction-type').value = bestTxnType;
                 syncChips('#txntype-chips', bestTxnType);
             }
 
-            const effectiveType = $('#input-transaction-type')?.value || (ruleTxnType || (isRefund ? 'Refund' : (txn.amount < 0 ? 'Refund' : 'Expense')));
+            const effectiveType = $('#input-transaction-type')?.value || resolveSuggestionTxnType(txn);
             const fillAmount = (effectiveType === 'Income' || effectiveType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             $('#input-amount').value = fillAmount;
 
-            $('#input-note').value = txn.merchant || '';
+            // Keep the suggestion note preview compact on the add-transaction form.
+            const suggestionNote = txn.merchant || '';
+            $('#input-note').value = suggestionNote.length > 20
+                ? `${suggestionNote.slice(0, 19)}…`
+                : suggestionNote;
             currentSuggestionSource = txn.source;
             currentSuggestionTxnId = txn.transactionId || '';
             currentSelectedSuggestionTxn = txn;

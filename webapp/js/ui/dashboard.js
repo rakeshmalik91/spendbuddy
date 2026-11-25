@@ -1,7 +1,7 @@
 import { applyAutoTag } from '../utils/auto_tag.js';
 import { updateUserSettings } from '../services/user_settings.js';
 import { buildDailyTrendChart, renderChart, buildTopExpensesChart, buildMonthlyExpenseChart, buildCategoryDonut } from "./chart_builders.js";
-import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund } from "../utils/helpers.js";
+import { calculateNextRunDate, getLocalDateString, formatDate, escHtml, toast, getCategoryForMerchant, getTxnTypeForMerchant, findMatchingKeywordRule, amountClass, txnTypeBadgeHTML, txnModeBadgeHTML, setupInfiniteScroll, getLastLocation, mapTxnMode, getTxnModeForMerchant, getCurrentLocationTag, getDisplayTxnId, getDisplayTxnIdList, getDisplaySource, getDisplaySourceList, renderAmountHTML, isRefundTxn, normalizeTxnType, mergeRefundTransactions, renderRefundCollapsibleSubrow, isSameDaySameAmountSingleRefund, resolveSuggestionTxnType } from "../utils/helpers.js";
 import { getDaySeparatorHTML } from "./settings.js";
 import { $$, $ } from "../core/init.js";
 import { state, removeTrashedTransactionsFromActiveState } from "../core/state.js";
@@ -13,7 +13,7 @@ import { showScheduledApprovalModal } from "./scheduled_approval.js";
 
 /* ══════════════ DASHBOARD ══════════════ */
 
-const HIDDEN_AMOUNT = '🙈🙈🙈.🙈🙈';
+const HIDDEN_AMOUNT = '✦✦✦.✦✦';
 const HIDDEN_CURRENCY = '₹';
 
 function formatAmount(value) {
@@ -33,7 +33,7 @@ function updateEyeButton() {
     if (eyeBtn) {
         const eyeIcon = eyeBtn.querySelector('.eye-icon');
         if (eyeIcon) {
-            eyeIcon.textContent = state.hideAmounts ? '🙈' : '👁️';
+            eyeIcon.textContent = state.hideAmounts ? '✦' : '👁️';
         }
         eyeBtn.setAttribute('aria-label', state.hideAmounts ? 'Show amounts' : 'Hide amounts');
         eyeBtn.title = state.hideAmounts ? 'Show amounts' : 'Hide amounts';
@@ -626,7 +626,10 @@ export function renderQuickAdd() {
         `;
     });
 
-    if (olderPendingSms.length > 0) {
+    // Keep the dashboard compact when the inbox has more than three items.
+    // In that case, show only the bulk approval entry point.
+    const showSmsApprovalOnly = pendingSms.length > 3;
+    if (showSmsApprovalOnly || olderPendingSms.length > 0) {
         html += `
         <button class="btn-quick-add sms-review-all" title="Review all pending SMS & Email transactions" style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--accent); color: var(--text-primary);">
             <span class="qa-note">📋 SMS/Email Txns (${pendingSms.length})</span>
@@ -635,21 +638,19 @@ export function renderQuickAdd() {
         `;
     }
 
-pendingSms.forEach((txn, i) => {
+if (!showSmsApprovalOnly) pendingSms.forEach((txn, i) => {
         if (txn.date !== todayStr) return;
         const title = txn.merchant || txn.source || 'SMS';
-        const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-        const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-        const isRefund = ruleTxnType ? (ruleTxnType === 'Refund') : isRefundTxn(txn);
-        const isIncome = ruleTxnType ? (ruleTxnType === 'Income') : (normalizeTxnType(txn.txnType) === 'Income');
-        const isCredit = ruleTxnType ? (ruleTxnType === 'Refund' || ruleTxnType === 'Income') : (isRefund || isIncome || txn.amount < 0);
+        const displayTitle = title.length > 20 ? `${title.slice(0, 20)}…` : title;
+        const computedType = resolveSuggestionTxnType(txn);
+        const isCredit = computedType === 'Refund' || computedType === 'Income' || txn.amount < 0;
         const displayType = isCredit ? '+' : '';
         const amtColor = isCredit ? 'var(--green)' : 'var(--amount-negative)';
         const emoji = (txn.source || '').toLowerCase().includes('email') ? '📧' : '💬';
         const amountDisplay = `${displayType}₹${Math.abs(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
         html += `
         <button class="btn-quick-add sms-quick-add" data-index="${i}" title="Approve: ${escHtml(title)}" style="border: 1px solid var(--accent);">
-            <span class="qa-note">${emoji} ${escHtml(title)}</span>
+            <span class="qa-note">${emoji} ${escHtml(displayTitle)}</span>
             <span class="qa-amount" style="color: ${amtColor}">${amountDisplay}</span>
         </button>
         `;
@@ -719,6 +720,8 @@ pendingSms.forEach((txn, i) => {
             toast('Quick Add saving...', 'info');
             try {
                 await saveYearCSV(newYear);
+                const { recordActivity } = await import("../services/activity.js");
+                await recordActivity({ action: 'added', type: 'quickadd', source: 'Quick Add', txn: entry });
                 toast(`Quick Add: ₹${Math.abs(entry.amount)} logged!`, 'success');
             } catch (err) {
                 toast('Error saving to cloud', 'error');
@@ -733,23 +736,7 @@ pendingSms.forEach((txn, i) => {
             const txn = state.pendingSmsTransactions[idx];
             if (!txn) return;
 
-            const customRule = findMatchingKeywordRule(txn.merchant) || (txn.source ? findMatchingKeywordRule(txn.source) : null);
-            const ruleTxnType = (customRule && customRule.txnType) ? normalizeTxnType(customRule.txnType) : null;
-            let computedType = null;
-            if (ruleTxnType) {
-                computedType = ruleTxnType;
-            } else {
-                const isRefund = isRefundTxn(txn);
-                const isIncome = normalizeTxnType(txn.txnType) === 'Income';
-                computedType = isRefund ? 'Refund' : (isIncome ? 'Income' : (txn.txnType ? normalizeTxnType(txn.txnType) : null));
-                if (!computedType) {
-                    const expectedType = (txn.amount < 0 || isRefund) ? 'Refund' : 'Expense';
-                    computedType = getTxnTypeForMerchant(txn.merchant, expectedType, txn.source);
-                }
-                if (isRefund) {
-                    computedType = 'Refund';
-                }
-            }
+            const computedType = resolveSuggestionTxnType(txn);
             const finalAmount = (computedType === 'Income' || computedType === 'Refund') ? -Math.abs(txn.amount) : Math.abs(txn.amount);
             let bestMatch = getCategoryForMerchant(txn.merchant, txn.masterCategory, txn.source);
 
@@ -762,7 +749,7 @@ pendingSms.forEach((txn, i) => {
                 category: bestMatch,
                 txnType: computedType,
                 txnMode: getTxnModeForMerchant(txn.merchant, txn.transactionMode, state.txnModes, txn.source),
-                note: txn.merchant || '',
+                note: (txn.merchant || '').slice(0, 20),
                 source: txn.source || 'SMS',
                 txnId: txn.transactionId || '',
                 location: await getCurrentLocationTag()
@@ -784,6 +771,8 @@ pendingSms.forEach((txn, i) => {
 
             try {
                 await saveYearCSV(newYear);
+                const { recordActivity } = await import("../services/activity.js");
+                await recordActivity({ action: 'added', type: 'txn', source: entry.source || displaySource, txn: entry });
 
                 consumeRawSmsTransaction(txn);
 

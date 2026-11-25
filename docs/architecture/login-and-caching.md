@@ -137,11 +137,13 @@ flowchart TD
 ### 7.1 Key Asset Caching Principles:
 1. **Entry Point Revalidation (`index.html`)**:
    - `index.html` is the root shell containing script tags like `<script type="module" src="app.js?v=XXX">`.
-   - On launch / refresh, [SiteCache.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/webview/SiteCache.java) sends a conditional `If-None-Match` request.
+   - On startup, `MainActivity` calls `SiteCache.checkAndUpdateMainHtml()` before loading the WebView. It sends conditional headers (`If-None-Match` and `If-Modified-Since`).
    - If no update was deployed, the server responds with `304 Not Modified` in ~40ms, loading instantly from disk.
-   - If a new build was deployed (`200 OK`), `SiteCache` detects the content change and flushes stale `.js`/`.css` modules from `site_cache/`, ensuring the fresh build and sub-modules are loaded.
+   - If a new build was deployed (`200 OK`), `SiteCache` detects the content change, flushes stale `.js`/`.css` modules from `site_cache/`, updates `index.html` on disk, and signals `MainActivity` to purge Chromium's internal cache (`webView.clearCache(true)`) and reload fresh assets.
+   - Cache busters on assets (e.g. `app.js?v=428`) are encoded into cache keys (e.g. `app_v_428.js`) to guarantee version isolation.
 2. **Offline Fallback**:
    - If the device is offline, `SiteCache` catches network exceptions and immediately serves the cached `index.html` and assets from disk.
+   - `WebSettings.LOAD_NO_CACHE` is used so Chromium delegates all asset requests directly to `shouldInterceptRequest`, preventing Chromium from silently serving stale cached JS/CSS behind `SiteCache`'s back while preserving full offline functionality.
 3. **`WIPE_CACHE_ON_STARTUP` Flag**:
    - Located in [AppConfig.java](../../spendbuddy-android-app/app/src/main/java/com/rakeshmalik/expenseiq/AppConfig.java).
    - **Must remain `false` in production**.

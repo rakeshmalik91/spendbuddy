@@ -6,6 +6,15 @@ run full test & update docs for new changes
 do not make changes to this file except mark/unmark todo items
 ---------------------
 
+### 2026.11.13
+
+- [ ] selecting category/txnmode badges on add txn page on mobile scrolling the screen to top
+- [x] clearing sms/email suggestions on add txn page should keep that suggestion cleared. use local storage with expiry. use this for hiding the suggestions in dashboard or approval modal too.
+- [x] on ipad, in txn quick edit mode, trying to select text is triggerring on hold context menu
+- [x] limit sms/email suggestion note length
+- [x] show trimmed note for sms/email suggestion in add txn page
+- [x] show just approval model button for any more than 3 sms/email on dashboard
+
 ### 2026.11.09
 
 - [x] Change the trash cleanup setting to cleanup activity history as well. Rename the setting with a suitable name. Make the setting to have max 90 days retention, Remove ‘never’ too. Default 90 days.
@@ -14,12 +23,12 @@ do not make changes to this file except mark/unmark todo items
 
 - [x] BUG: only for android app, footer button list is chopped off at the bottom
 - [x] BUG: getting conflict in editing/adding txn but they are getting executed. possibly etag issue with activity history
-- [ ] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
+- [x] BUG: default txn type for -ve txn from sms/email (dashboard & add page suggestions) should be Refund, not Income. It should be Income only if it is inferred by any other mapping (auto/manual) logic
 - [x] crossing off an sms/email suggestion in add txn page should clear it from both add txn page and dashboard. use browser cache for it with expiry
 - [x] option to permanently delete a deleted txn from activity history
 - [x] trash cleanup & retaintion settings
 - [x] move scheduled txn to tools in `mobile only > dashboard > tools` & `settings > tools` section
-- [ ] to connect android app to firebase instead of netlify
+- [x] to connect android app to firebase instead of netlify
 - [x] BUG: when autotag is on, manually changing the tag in add form is setting 2 tags. stop that
 
 ### 2026.10.19
@@ -30,7 +39,7 @@ Chores:
 - [x] add netlify auto deploy as github workflow
 
 Bugs:
-- [ ] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least startup should completely refresh whole website if possible
+- [x] to check android app caching, it doesnt reflect changes completely when new deployement is done, at least startup should completely refresh whole website (only if any content changed)
 - [x] keyword mapping  
    - [x] support to update tags. support for enable/disable.
    - [x] Layout is broken on ipad safari landscape mode, maybe broken everywhere, keyword column overlaps other columns
@@ -48,7 +57,7 @@ Bugs:
 - [x] settings > about missing for mobile
 
 Features:
-- [ ] Ability to add/update/delete/restore txn offline (only for android app)
+- [ ] to have Ability to add/update/delete/restore txn offline (only for android app)
   - website needs to be cached for full offline use. should never logically redirect to offline page unless it is installed in offline or cache is manually cleared
   - any offline txn activity etc should be stored in local as diff, so that when app is online, etag doesnt reject local change or replace remote change
   - no need to support anything other than txn and scheduled txn for offline use. show error toast on update.

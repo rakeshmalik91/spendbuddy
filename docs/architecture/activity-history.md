@@ -2,308 +2,195 @@
 
 ## Overview
 
-The **Activity History** system provides a complete audit trail of user actions within SpendBuddy. It tracks transaction additions, edits, deletions, restores, imports, and split operations—enabling users to review changes and recover from mistakes.
+Activity History is SpendBuddy's transaction and configuration audit trail. It is persisted as user-scoped JSON in Firebase Storage and mirrored in `state.activityHistory`. Transaction mutations should be recorded only after their corresponding year CSV has been successfully saved.
 
----
+The history is also the recovery index for soft-deleted transactions and scheduled transactions. A deletion event carries a snapshot so the item can be restored.
 
 ## Data Model
 
-### Activity Item (in `state.activityHistory`)
-
-Stored as an array in memory, persisted to `activity_history.json` in Firebase Storage.
+An activity entry has this shape (optional fields depend on the event):
 
 ```javascript
 {
-  id: "1704067200000-abc123",           // Unique: timestamp + random suffix
-  timestamp: "2024-01-01T12:00:00.000Z", // ISO 8601 UTC
-  action: "added" | "edited" | "deleted" | "restored" | "imported" | "split_created" | "split_edited",
-  type: "txn" | "schedule" | "balance" | "settings",
-  source: "manual" | "csv" | "sms" | "email" | "split" | "schedule",
-  targetId: "txn-123" | "schedule-456",  // Original entity identifier
-  title: "Groceries",                     // Human-readable summary
-  date: "2024-01-01",                     // Transaction date (if applicable)
-  amount: 500.00,                         // Transaction amount (if applicable)
-  changes: [                              // For "edited" actions only
+  id: "1704067200000-abc123",
+  timestamp: "2024-01-01T12:00:00.000Z",
+  action: "added" | "updated" | "deleted" | "restored" | "imported",
+  type: "txn" | "schedule" | "quickadd" | "balance" | "settings",
+  source: "manual" | "Quick Add" | "SMS" | "Email" | "Schedule" | "Refund Action" | "...",
+  targetId: "txn-123",
+  title: "Groceries",
+  date: "2024-01-01",
+  amount: 500,
+  changes: [
     { field: "amount", from: 400, to: 500 },
-    { field: "note", from: "Old note", to: "New note" }
+    { field: "category", from: "Food", to: "Groceries" }
   ],
-  restored: false,                        // Whether this deleted item has been restored
-  snapshot: { ... }                       // Full entity copy (only for "deleted" actions)
+  restored: false,
+  snapshot: { ... }
 }
 ```
 
-### Field Details
+`source` is intentionally not a closed enum. The caller's source label is preserved so combined inbox sources and future ingestion paths can be distinguished. `type` identifies the activity surface/entity class; Quick Add uses `type: "quickadd"` while ordinary transactions use `type: "txn"`.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | Yes | Globally unique; used for restore targeting |
-| `timestamp` | Yes | Sort key (newest first in UI) |
-| `action` | Yes | Verb describing what happened |
-| `type` | Yes | Entity category |
-| `source` | Yes | Input origin (helps filter) |
-| `targetId` | No | Links to original entity; format varies by type |
-| `title` | No | Display name (category, note, or "Transaction") |
-| `date` | No | Transaction date for sorting/filtering |
-| `amount` | No | Numeric amount for display |
-| `changes` | Only for `edited` | Array of `{field, from, to}` for changed fields |
-| `restored` | Yes | Prevents double-restore |
-| `snapshot` | Only for `deleted` | Deep copy of entity at deletion time |
+### Field semantics
 
----
+| Field | Description |
+|---|---|
+| `id` | Unique timestamp/random-suffix activity identifier |
+| `timestamp` | ISO-8601 UTC timestamp |
+| `action` | Mutation verb: `added`, `updated`, `deleted`, `restored`; other workflows may use `imported` |
+| `type` | Entity/surface discriminator, commonly `txn`, `schedule`, or `quickadd` |
+| `source` | Origin label supplied by the caller |
+| `targetId` | Transaction/schedule identifier; falls back to a date/amount/note composite when needed |
+| `title`, `date`, `amount` | Display/search fields derived from the entity |
+| `changes` | Supported field-level before/after values for updates |
+| `restored` | Prevents restoring the same deletion twice |
+| `snapshot` | Deep copy captured for `deleted` entries |
 
-## State Management
+## State, Loading, and Persistence
 
-### `state.activityHistory` (in `js/core/state.js`)
+### State
 
-```javascript
-activityHistory: [],      // Array of activity items (newest first)
-activityLoaded: false     // Whether initial load completed
-```
+`state.activityHistory` is the in-memory newest-first list; `state.activityLoaded` tracks initial loading.
 
-### Loading (`loadActivityHistory` in `js/services/activity.js`)
+### Storage
 
-```javascript
-async function loadActivityHistory(force = false) {
-  if (state.activityLoaded && !force) return state.activityHistory || [];
-  
-  const content = await getCsvContent('activity_history.json', force);
-  if (!content) return [];
-  
-  const data = JSON.parse(content);
-  // Support both array and { activities: [...] } formats
-  const history = Array.isArray(data) ? data : (Array.isArray(data.activities) ? data.activities : []);
-  
-  state.activityHistory = history;
-  state.activityLoaded = true;
-  return history;
-}
-```
+The canonical cloud object is:
 
-- **Lazy load**: Only fetches on first access or explicit `force: true`
-- **Timeout**: 12-second request timeout with `Promise.race`
-- **Cache**: Results cached in `state.activityHistory`
-- **Limit**: In-memory array capped at 2000 entries (oldest dropped on new insert)
-
-### Saving (`saveActivityHistory` in `js/services/activity.js`)
-
-```javascript
-async function saveActivityHistory() {
-  await uploadFile(
-    ref(state.storage, `${getRequiredEmail()}/activity_history.json`),
-    JSON.stringify(state.activityHistory || [], null, 2)
-  );
-}
-```
-
-- Writes entire array as pretty-printed JSON
-- Called after every mutation (add, restore, etc.)
-- Uses Firebase Storage with user-scoped path
-
----
-
-## Recording Activities
-
-### `recordActivity` (in `js/services/activity.js`)
-
-```javascript
-export async function recordActivity({
-  action,           // required
-  type = "txn",     // default
-  source = "manual",// default
-  id,               // targetId
-  txn,              // source transaction object
-  changes = {}      // for edits
-}) {
-  const item = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-    timestamp: new Date().toISOString(),
-    action,
-    type,
-    source,
-    targetId: id || txn?.txnId || txn?.id || (txn ? `${txn.date||txn.start_date||""}|${txn.amount??""}|${txn.note||""}` : ""),
-    title: txn?.note || txn?.category || "Transaction",
-    date: txn?.date || txn?.start_date || "",
-    amount: txn?.amount ?? null,
-    changes: Object.entries(changes)
-      .filter(([f]) => ["amount", "note", "date"].includes(f))
-      .map(([field, v]) => ({ field, from: v.from, to: v.to })),
-    restored: false,
-    snapshot: (action === "deleted" ? JSON.parse(JSON.stringify(txn || {})) : undefined)
-  };
-  
-  state.activityHistory = state.activityHistory || [];
-  state.activityHistory.unshift(item);  // Newest first
-  state.activityHistory = state.activityHistory.slice(0, 2000);  // Cap
-  await saveActivityHistory();
-  return item;
-}
-```
-
-### Action Types by Source
-
-| Action | Type | Source | When |
-|--------|------|--------|------|
-| `added` | `txn` | `manual` | User adds transaction via form |
-| `added` | `txn` | `csv` | CSV import |
-| `added` | `txn` | `sms` | SMS extraction |
-| `added` | `txn` | `email` | Email extraction |
-| `added` | `txn` | `split` | Split tool create |
-| `edited` | `txn` | `manual` | User edits transaction |
-| `edited` | `txn` | `split` | Split tool edit |
-| `deleted` | `txn` | `manual` | User deletes transaction |
-| `deleted` | `schedule` | `schedule` | User deletes scheduled transaction |
-| `restored` | `txn` | `manual` | User restores from trash |
-| `restored` | `schedule` | `schedule` | User restores scheduled transaction |
-| `imported` | `txn` | `csv` | Bulk CSV import |
-| `split_created` | `txn` | `split` | Split transaction created |
-| `split_edited` | `txn` | `split` | Split transaction edited |
-
-### Change Tracking (Edits Only)
-
-Only three fields are tracked for changes:
-- `amount`
-- `note`
-- `date` (or `start_date` for scheduled)
-
-Other field changes (category, payment mode, etc.) are not recorded in `changes` array but the `edited` action is still logged.
-
----
-
-## UI: Activity History View
-
-### Navigation
-
-- Nav button: `data-view="activity"` (icon: 📋)
-- View ID: `#view-activity`
-- Rendered by `renderActivityHistory()` in `js/ui/activity.js`
-
-### Layout
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Activity History                    [Clear All]     │
-├─────────────────────────────────────────────────────┤
-│ 🔍 Search: [________________________]  [Filter ▼]  │
-├─────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ 2024-01-15 14:32  Added    Groceries      ₹500  │ │
-│ │         ↳ Restore (if deleted)                  │ │
-│ ├─────────────────────────────────────────────────┤ │
-│ │ 2024-01-15 14:30  Edited   amount: 400→500      │ │
-│ ├─────────────────────────────────────────────────┤ │
-│ │ 2024-01-14 09:15  Deleted  Dinner         ₹800  │ │
-│ │         ↳ [Restore] button                      │ │
-│ └─────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────┘
-```
-
-### Features
-
-1. **Search**: Filters by title, category, note, amount (client-side)
-2. **Filter**: By action type (Added, Edited, Deleted, Restored, Imported, Split)
-3. **Expandable Rows**: Click row to show `changes` array for edits
-4. **Restore Button**: Shows for `deleted` actions where `restored: false`
-5. **Pagination**: Loads all (max 2000); virtual scrolling not needed
-
-### Restore Flow
-
-1. User clicks "Restore" on a deleted activity row
-2. `restoreTrashedTransaction(activityId)` called
-3. Looks up activity by `id`
-4. If `type === "schedule"`: Restores to `state.scheduledTransactions`
-5. If `type === "txn"`: Finds matching item in `state.trash` by `targetId`
-6. Moves item from trash → expenses, marks `deleted: false`
-7. Marks activity `restored: true`
-8. Records new `restored` activity
-9. Re-renders activity history
-
----
-
-## Trash Integration
-
-Activity History is the **primary interface for trash recovery**:
-
-- Deleted transactions → `action: "deleted"` + `snapshot` + `restored: false`
-- Trash storage (`state.trash`) is internal; Activity History is user-facing
-- Restore uses `targetId` to locate item in `state.trash`
-- Scheduled transactions use `snapshot.id` for restore (not in trash)
-
----
-
-## CSV Import Activity
-
-Bulk imports record a single `imported` activity with:
-- `title`: "CSV Import"
-- `amount`: Total imported amount
-- `changes`: Empty
-- `snapshot`: Undefined
-
-Individual imported transactions are **not** logged separately (performance).
-
----
-
-## Persistence Format
-
-### Firebase Storage Path
-
-```
+```text
 {userEmail}/activity_history.json
 ```
 
-### JSON Structure
+`loadActivityHistory()` accepts either a JSON array or an object containing an `activities` array. `saveActivityHistory()` writes the complete array. The in-memory history is capped at 2,000 entries.
 
-```json
-[
-  {
-    "id": "1704067200000-abc123",
-    "timestamp": "2024-01-01T12:00:00.000Z",
-    "action": "added",
-    "type": "txn",
-    "source": "manual",
-    "targetId": "txn-123",
-    "title": "Groceries",
-    "date": "2024-01-01",
-    "amount": 500,
-    "changes": [],
-    "restored": false
-  }
-]
+### Conflict handling and failure isolation
+
+`recordActivity()` prepends the activity to in-memory state and then attempts to persist it. `saveActivityHistory()` handles an ETag conflict by fetching the latest cloud history, merging entries by activity ID, and retrying once.
+
+Activity history is secondary to the transaction commit: a history upload failure is logged and does not turn an already-saved transaction into a failed transaction. This means a temporary history-sync failure can leave the event in local in-memory state until a later successful save/reload; callers must not roll back a committed transaction solely because history synchronization failed.
+
+## Recording Contract
+
+**Required ordering:**
+
+1. Apply the transaction mutation.
+2. Persist every affected year CSV (including both years when a transaction's date changes across years).
+3. Record the corresponding activity event.
+4. Refresh the UI.
+
+Never emit an `added`, `updated`, or `deleted` event for a transaction whose CSV commit failed. For multi-year or multi-item operations, record only after all required CSV saves for that operation succeed.
+
+### Supported edit fields
+
+`recordActivity()` currently retains before/after values for:
+
+- `amount`
+- `note`
+- `date`
+- `category`
+- `txnType`
+- `txnMode`
+- `txnId`
+- `location`
+- `tag`
+- `currency`
+
+Unchanged values are filtered out. The activity event itself is still recorded even when no supported field diff is supplied.
+
+## Transaction Source Coverage
+
+The following table describes the current implementation paths in the web application.
+
+| User action / source | Activity event | Implementation path |
+|---|---|---|
+| Manual transaction add | `added`, `type: txn` | Add form in `ui/form.js` |
+| Manual transaction edit | `updated`, `type: txn` | Edit form in `ui/form.js`; records before/after values |
+| Quick Add template | `added`, `type: quickadd` | Dashboard Quick Add in `ui/dashboard.js` |
+| Quick Add through add form | `added`, `type: quickadd` when source identifies Quick Add | Add form in `ui/form.js` |
+| Inline Quick Edit | `updated`, `type: txn` | Inline transaction edit in `ui/transactions.js` |
+| Batch transaction edit | One `updated` event per changed transaction | `ui/batch_update.js` |
+| SMS / Email approval | One `added` event per approved transaction | `ui/sms_approval.js`; source label is taken from each approved entry |
+| Dashboard inbox quick approval | `added`, `type: txn` | `ui/dashboard.js`; source label preserved from the approved entry |
+| Scheduled transaction execution | One `added`, `type: txn` per committed occurrence | `ui/scheduled_approval.js`; source defaults to `Schedule` |
+| Refund Action generation | `added`, `type: txn` | `ui/form.js` |
+| Refund link / unlink | `updated`, `type: txn` for each transaction whose `txnId` changes | `ui/refund_linking_modal.js` |
+| Single transaction deletion | `deleted`, `type: txn` with snapshot | `ui/modal.js` |
+| Bulk transaction deletion | One `deleted`, `type: txn` with snapshot per deleted transaction | `ui/modal.js` |
+| Restore transaction | `restored`, `type: txn` | `services/activity.js` |
+| Scheduled definition add/edit/delete/restore | `added` / `updated` / `deleted` / `restored`, `type: schedule` | Form, scheduled UI, and `services/activity.js` |
+
+The event records a transaction created by a scheduler separately from the schedule-definition activity. Advancing a schedule's next-run date is part of schedule execution/persistence; the generated expense/income transaction is the `txn` activity event.
+
+### SMS and Email nuances
+
+- SMS and Email suggestions are not transactions until the user approves them.
+- Approval records an event for each committed transaction, not merely for each raw inbox message.
+- When SMS and Email detections are merged into one suggestion, the saved entry's `source` label is preserved.
+- Dashboard one-tap approval and the batch approval modal are separate commit paths and both record activity.
+
+### Scheduler nuances
+
+- Schedule definition changes are `type: "schedule"` events.
+- Actual generated transactions are `type: "txn"` events, one per committed occurrence.
+- Unapproved/discarded candidates do not create transaction-add events because no transaction is committed.
+- A schedule's next-run advancement is not itself a transaction event.
+
+### Refund nuances
+
+- Generating a refund creates a new transaction and records `added`.
+- Linking or unlinking existing refund/expense rows changes `txnId`; each changed row receives an `updated` event.
+- The refund relationship is represented by the transaction IDs, not by a separate activity action.
+
+## Deletion and Restore
+
+A deleted transaction is moved to the trash state and persisted with its year CSV. Its activity entry includes a snapshot and target ID. Restore locates the deleted row in `state.trash`, moves it back to active expenses, persists its year CSV, marks the deletion event restored, and records a separate `restored` event.
+
+Scheduled definitions are restored from their activity snapshot rather than `state.trash`.
+
+See [Trash Feature](trash-feature.md) for the soft-delete data model and rollback behavior.
+
+## Activity History UI
+
+The Activity view is rendered by `ui/activity.js`. It supports searching/filtering activity entries and exposes restore controls for eligible deletion events. Deleted items can be restored only while their corresponding trash/snapshot data remains available.
+
+## Tests
+
+The activity-capture regression suite is `webapp/tests/activity_capture.test.js`. It covers:
+
+- Scheduler execution records each successfully committed generated transaction.
+- Manual form and inline edit paths are wired to activity recording.
+- Dashboard Quick Add and SMS/Email approval paths are wired to activity recording.
+- Batch edits, refund generation, refund-link updates, and deletion paths are wired to activity recording.
+
+The scheduler test exercises the execution function; several other coverage assertions are source-wiring checks rather than full end-to-end browser workflows. Run the web test suite from `webapp/`:
+
+```bash
+npm test
 ```
-
-- Pretty-printed (2-space indent) for readability
-- No encryption (activity history is not sensitive)
-- Overwritten entirely on each save
-
----
-
-## Limits & Performance
-
-| Limit | Value | Rationale |
-|-------|-------|-----------|
-| Max entries | 2000 | Prevents unbounded memory/storage growth |
-| Request timeout | 12 sec | Firebase Storage latency buffer |
-| Load frequency | Once per session + manual refresh | Lazy load pattern |
-
----
 
 ## File References
 
-| File | Purpose |
-|------|---------|
-| `js/services/activity.js` | Core service: load, save, record, restore |
-| `js/ui/activity.js` | View rendering, search, filter, restore handlers |
-| `js/core/state.js` | `state.activityHistory`, `state.activityLoaded` |
-| `js/services/storage.js` | `getCsvContent`, `uploadFile` for persistence |
-| `index.html` | Activity view HTML (`#view-activity`) |
-| `styles/responsive.css` | Activity table styles, expandable rows |
-| `js/ui/navigation.js` | Nav button registration |
+| File | Responsibility |
+|---|---|
+| `js/services/activity.js` | Activity creation, load/save, conflict merge/retry, restore |
+| `js/ui/activity.js` | Activity view, filters, restore controls |
+| `js/core/state.js` | In-memory activity state |
+| `js/ui/form.js` | Manual add/edit, schedule definition changes, Refund Action |
+| `js/ui/transactions.js` | Inline Quick Edit |
+| `js/ui/dashboard.js` | Dashboard Quick Add and inbox one-tap approval |
+| `js/ui/sms_approval.js` | SMS/Email batch approval |
+| `js/ui/scheduled_approval.js` | Committed scheduled transaction activity |
+| `js/ui/batch_update.js` | Batch transaction edit |
+| `js/ui/refund_linking_modal.js` | Refund relationship changes |
+| `js/ui/modal.js` | Single and bulk transaction deletion |
+| `js/services/storage.js` | Firebase Storage read/write primitives |
 
----
+## Maintenance Invariants
 
-## Future Enhancements
-
-1. **Export**: Download activity history as CSV/JSON
-2. **Bulk Restore**: Select multiple deleted items
-3. **Retention Policy**: Auto-archive older than N days
-4. **Detailed Diff**: Show full field diff for edits
-5. **Sync Indicator**: Show pending cloud sync status
+1. Record transaction activity only after successful transaction CSV persistence.
+2. For cross-year edits, save both affected years before recording the update.
+3. Record one event per transaction in bulk operations so each item has its own target and snapshot.
+4. Preserve the caller-provided source label; do not collapse SMS, Email, Schedule, Quick Add, and Refund Action into a generic manual source.
+5. Do not let an activity-history upload failure undo a successfully committed transaction.
+6. Keep activity snapshots sufficient for restore, and keep restore idempotent.
+7. Add a regression test whenever a new transaction mutation path is introduced.

@@ -275,5 +275,24 @@ describe('Mobile Long-Press Slop Tolerance', () => {
 
         expect(window.openMobileTxnMenu).not.toHaveBeenCalled();
     });
+
+    test('long press does not trigger menu when row has quick-editing class or input is touched', () => {
+        document.body.innerHTML = `
+            <table>
+                <tr class="touchable-row quick-editing" data-real-idx="0">
+                    <td><input type="text" class="edit-input" value="Note" /></td>
+                </tr>
+            </table>
+        `;
+
+        const input = document.querySelector('.edit-input');
+        const touchEvent = new Event('touchstart', { bubbles: true, cancelable: true });
+        touchEvent.touches = [{ clientX: 100, clientY: 100 }];
+        input.dispatchEvent(touchEvent);
+
+        jest.advanceTimersByTime(600);
+
+        expect(window.openMobileTxnMenu).not.toHaveBeenCalled();
+    });
 });
 

@@ -472,9 +472,11 @@ export async function applyBatchUpdate() {
     const affectedYears = new Set();
     const indices = Array.from(selectedTxnIndices).filter(idx => idx >= 0 && idx < state.expenses.length);
 
+    const beforeByTxn = new Map();
     indices.forEach(idx => {
         const e = state.expenses[idx];
         if (!e) return;
+        beforeByTxn.set(e, { ...e });
 
         if (e.date) {
             affectedYears.add(e.date.split('-')[0]);
@@ -508,6 +510,14 @@ export async function applyBatchUpdate() {
     try {
         for (const yr of affectedYears) {
             await saveYearCSV(yr);
+        }
+        const { recordActivity } = await import("../services/activity.js");
+        for (const [txn, before] of beforeByTxn) {
+            const changes = {};
+            for (const field of ['amount', 'note', 'date', 'category', 'txnType', 'txnMode', 'txnId', 'location', 'tag', 'currency']) {
+                if (before[field] !== txn[field]) changes[field] = { from: before[field], to: txn[field] };
+            }
+            await recordActivity({ action: 'updated', type: 'txn', source: txn.source || 'manual', txn, changes });
         }
         toast(`Successfully updated ${indices.length} transaction${indices.length > 1 ? 's' : ''}!`, 'success');
         clearSelection();

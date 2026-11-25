@@ -197,3 +197,20 @@ flowchart TD
 - **Dashboard Quick Add**: 1-click approvals for immediate logging.
 - **Add Entry Suggestion Cards**: Tapping a suggestion card autofills the form with merchant, note, amount, inferred category, and payment mode.
 - **Pending SMS Modal**: Card-based overlay for batch review.
+
+
+---
+
+## 7. Activity History Integration
+
+Extracted SMS and Email suggestions are pending items, not ledger transactions. Activity history is written only when the user approves and the transaction has been saved to its year CSV.
+
+### Approval paths
+
+- Dashboard one-tap approval in `ui/dashboard.js` records an `added` event for the committed entry.
+- Batch approval in `ui/sms_approval.js` records one `added` event per approved entry after the affected year CSVs are saved.
+- The approved entry's `source` value is preserved. A combined SMS + Email suggestion can therefore retain its combined source label.
+- Unapproved or discarded suggestions do not create transaction-add events.
+- A cross-source enrichment that only updates an existing committed transaction's source/reference metadata is distinct from creating a new transaction; do not treat raw inbox ingestion as a new transaction approval.
+
+The Activity History architecture guide documents the shared event schema and recording contract. Regression wiring checks for dashboard quick approval and SMS/Email batch approval live in `webapp/tests/activity_capture.test.js`.
