@@ -347,6 +347,29 @@ describe('Google Drive Backup Service', () => {
             expect(state.lastErrorTime).toBeGreaterThan(0);
         });
 
+        it('should clear token and report permission error on 403 insufficient authentication scopes', async () => {
+            localStorage.setItem(STORAGE_KEYS.TOKEN, 'scoped_missing_token');
+            localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, (Date.now() + 3600000).toString());
+
+            global.fetch.mockResolvedValueOnce({
+                ok: false,
+                status: 403,
+                json: async () => ({
+                    error: { message: 'Request had insufficient authentication scopes.' }
+                })
+            });
+
+            Blob.prototype.arrayBuffer = jest.fn().mockResolvedValue(new ArrayBuffer(8));
+
+            const success = await backupToGoogleDrive(false);
+            expect(success).toBe(false);
+            expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBeNull();
+            expect(localStorage.getItem(STORAGE_KEYS.EXPIRES_AT)).toBeNull();
+
+            const state = getGoogleDriveConnectionState();
+            expect(state.lastError).toContain('Google Drive permission missing');
+        });
+
         it('should clear last error from localStorage upon successful backup', async () => {
             localStorage.setItem(STORAGE_KEYS.TOKEN, 'valid_token');
             localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, (Date.now() + 3600000).toString());
@@ -423,6 +446,32 @@ describe('Google Drive Backup Service', () => {
             expect(token).toBe('refreshed_silent_token');
             expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBe('refreshed_silent_token');
             expect(parseInt(localStorage.getItem(STORAGE_KEYS.EXPIRES_AT))).toBeGreaterThan(Date.now());
+        });
+
+        it('rejects silent token missing drive.file scope and returns null when non-interactive', async () => {
+            localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
+            localStorage.setItem(STORAGE_KEYS.EMAIL, 'user@gmail.com');
+            localStorage.setItem(STORAGE_KEYS.CUSTOM_CLIENT_ID, 'mock-client-id');
+
+            window.google = {
+                accounts: {
+                    oauth2: {
+                        hasGrantedAllScopes: jest.fn(() => false),
+                        initTokenClient: jest.fn(({ callback }) => ({
+                            requestAccessToken: jest.fn(() => {
+                                callback({
+                                    access_token: 'scopeless_token',
+                                    expires_in: 3600
+                                });
+                            })
+                        }))
+                    }
+                }
+            };
+
+            const token = await getValidAccessToken(false);
+            expect(token).toBeNull();
+            expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBeNull();
         });
     });
 });

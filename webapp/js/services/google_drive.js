@@ -37,8 +37,20 @@ export const RETENTION_THRESHOLDS_MS = {
     '365_days': 365 * 24 * 60 * 60 * 1000
 };
 
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email openid';
+const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPE = `${DRIVE_FILE_SCOPE} https://www.googleapis.com/auth/userinfo.email openid`;
 let tokenClient = null;
+
+/**
+ * Checks whether a GIS token response includes the required drive.file scope.
+ * Returns true if GIS helper is unavailable (e.g., older mocks) or scope is granted.
+ */
+function hasDriveScope(tokenResponse) {
+    if (typeof window.google?.accounts?.oauth2?.hasGrantedAllScopes === 'function') {
+        return window.google.accounts.oauth2.hasGrantedAllScopes(tokenResponse, DRIVE_FILE_SCOPE);
+    }
+    return true;
+}
 
 /**
  * Dynamically loads the Google Identity Services (GIS) client script if not already present.
@@ -148,6 +160,12 @@ export async function connectGoogleDrive(forceConsent = false) {
                     cleanup(timeoutId);
                     if (tokenResponse.error) {
                         reject(new Error(tokenResponse.error_description || tokenResponse.error));
+                        return;
+                    }
+
+                    // Ensure the user actually ticked the Drive file scope on Google's granular consent screen
+                    if (!hasDriveScope(tokenResponse)) {
+                        reject(new Error('Google Drive permission was not granted. Please check the Google Drive access box on the consent screen.'));
                         return;
                     }
 
@@ -274,6 +292,7 @@ export async function getValidAccessToken(interactive = false) {
     }
 
     // 2. Attempt silent token refresh first if user was previously connected
+    let needsConsent = false;
     if (localStorage.getItem(STORAGE_KEYS.CONNECTED) === 'true') {
         try {
             await loadGisScript();
@@ -286,6 +305,12 @@ export async function getValidAccessToken(interactive = false) {
                         hint: savedEmail || undefined,
                         callback: (tokenResponse) => {
                             if (tokenResponse.access_token) {
+                                if (!hasDriveScope(tokenResponse)) {
+                                    // Silent refresh reused a grant lacking drive.file; force interactive consent
+                                    needsConsent = true;
+                                    resolve(null);
+                                    return;
+                                }
                                 const accessToken = tokenResponse.access_token;
                                 const expiresIn = parseInt(tokenResponse.expires_in || '3599', 10);
                                 const newExpiresAt = Date.now() + (expiresIn * 1000);
@@ -312,7 +337,7 @@ export async function getValidAccessToken(interactive = false) {
 
     // 3. If silent refresh failed and interactive is true, prompt user with account hint
     if (interactive) {
-        return await connectGoogleDrive(false);
+        return await connectGoogleDrive(needsConsent);
     }
 
     // Return null if expired and cannot refresh silently
@@ -594,10 +619,21 @@ export async function backupToGoogleDrive(isAutomated = false) {
     } catch (error) {
         console.error('Google Drive backup failed:', error);
         const errMsg = error.message || '';
-        const isApiDisabled = errMsg.includes('403') || errMsg.includes('not been used in project') || errMsg.includes('disabled') || errMsg.includes('Google Drive API');
+        const isInsufficientScopes = /insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT|Insufficient Permission/i.test(errMsg);
+        const isApiDisabled = !isInsufficientScopes && (
+            errMsg.includes('has not been used in project') ||
+            errMsg.includes('it is disabled') ||
+            errMsg.includes('API has not been used') ||
+            errMsg.includes('accessNotConfigured')
+        );
 
         let cleanReason = errMsg || 'Upload failed';
-        if (isApiDisabled) {
+        if (isInsufficientScopes) {
+            // Clear cached token lacking drive.file scope so next attempt triggers consent
+            localStorage.removeItem(STORAGE_KEYS.TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.EXPIRES_AT);
+            cleanReason = 'Google Drive permission missing. Please disconnect and reconnect, ensuring the Drive access checkbox is checked.';
+        } else if (isApiDisabled) {
             cleanReason = 'Google Drive API is not enabled in your Google Cloud project.';
         }
         localStorage.setItem(STORAGE_KEYS.LAST_ERROR, cleanReason);
